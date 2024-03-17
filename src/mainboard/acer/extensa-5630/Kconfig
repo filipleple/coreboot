@@ -17,7 +17,7 @@ config BOARD_SPECIFIC_OPTIONS
 	select MAINBOARD_HAS_LIBGFXINIT
 	select MAINBOARD_USES_IFD_GBE_REGION
 	select INTEL_GMA_HAVE_VBT
-	// select EC_DELL_MEC5035 - what EC?
+	## select EC_DELL_MEC5035 - what EC?
 
 config MAINBOARD_DIR
 	default "acer/extensa-5630"
