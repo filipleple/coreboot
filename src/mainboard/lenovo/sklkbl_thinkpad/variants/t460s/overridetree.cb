@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+chip soc/intel/skylake
+	device domain 0 on
+		device ref sata on
+			register "SataPortsEnable[1]" = "1"
+			register "SataPortsDevSlp[1]" = "1"
+		end
+
+		# USB port map
+		device ref south_xhci on
+			register "usb2_ports" = "{
+				[0] = USB2_PORT_MID(OC0), // USB-A (right, always on)
+				[1] = USB2_PORT_MID(OC1), // USB-A (left)
+				[2] = USB2_PORT_MID(OC_SKIP), // Smartcard/internal use
+			}"
+			register "usb3_ports" = "{
+				[0] = USB3_PORT_DEFAULT(OC0), // USB-A (right)
+				[1] = USB3_PORT_DEFAULT(OC1), // USB-A (left)
+			}"
+		end
+
+		# PCIe configuration:
+		
+		# SD Card reader (Realtek RTS522A) on RP1
+		device ref pcie_rp1 on
+			register "PcieRpClkReqSupport[0]" = "1"
+			register "PcieRpClkReqNumber[0]" = "0"
+			register "PcieRpClkSrcNumber[0]" = "0"
+			register "PcieRpAdvancedErrorReporting[0]" = "1"
+			register "PcieRpLtrEnable[0]" = "1"
+		end
+
+		# WLAN (Intel 8260) on RP3
+		device ref pcie_rp3 on
+			register "PcieRpClkReqSupport[2]" = "1"
+			register "PcieRpClkReqNumber[2]" = "1"
+			register "PcieRpClkSrcNumber[2]" = "1"
+			register "PcieRpAdvancedErrorReporting[2]" = "1"
+			register "PcieRpLtrEnable[2]" = "1"
+		end
+
+		# NVMe SSD on RP5
+		device ref pcie_rp5 on
+			register "PcieRpClkReqSupport[4]" = "1"
+			register "PcieRpClkReqNumber[4]" = "2"
+			register "PcieRpClkSrcNumber[4]" = "2"
+			register "PcieRpAdvancedErrorReporting[4]" = "1"
+			register "PcieRpLtrEnable[4]" = "1"
+		end
+
+	end
+end
