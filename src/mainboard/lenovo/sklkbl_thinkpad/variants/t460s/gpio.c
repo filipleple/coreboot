@@ -1,9 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-#ifndef CFG_GPIO_H
-#define CFG_GPIO_H
-
-#include <gpio.h>
+#include <soc/gpio.h>
+#include "../../gpio.h"
 
 /* Pad configuration was generated automatically using intelp2m utility */
 static const struct pad_config gpio_table[] = {
@@ -196,8 +194,6 @@ static const struct pad_config gpio_table[] = {
 	_PAD_CFG_STRUCT(GPP_G6, PAD_FUNC(GPIO) | PAD_RESET(RSMRST) | PAD_TRIG(OFF) | PAD_BUF(TX_RX_DISABLE), 0),	/* GPIO */
 	_PAD_CFG_STRUCT(GPP_G7, PAD_FUNC(GPIO) | PAD_RESET(RSMRST) | PAD_TRIG(OFF) | PAD_BUF(TX_RX_DISABLE), 0),	/* GPIO */
 };
-
-#endif /* CFG_GPIO_H */
 
 void variant_config_gpios(void)
 {
