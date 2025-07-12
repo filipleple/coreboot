@@ -9,6 +9,7 @@ chip soc/intel/skylake
         register "PmConfigSlpAMinAssert" = "3"          # 2s
 
 	device domain 0 on
+		subsystemid 0x17aa 0x225d inherit
 		device ref igpu on
 			register "gfx" = "GMA_STATIC_DISPLAYS(0)"
 			register "panel_cfg" = "{
@@ -23,10 +24,10 @@ chip soc/intel/skylake
 		device ref sa_thermal on end
 		device ref thermal on end
 		device ref south_xhci on end
-		device ref sata on
-			register "SataPortsEnable[2]" = "1"
-			register "SataPortsDevSlp[2]" = "1"
-		end
+		# device ref sata on
+		# 	register "SataPortsEnable[2]" = "1"
+		# 	register "SataPortsDevSlp[2]" = "1"
+		# end
 		device ref lpc_espi on
 			register "serirq_mode" = "SERIRQ_CONTINUOUS"
 
