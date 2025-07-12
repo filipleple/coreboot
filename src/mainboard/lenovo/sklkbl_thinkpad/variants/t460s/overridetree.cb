@@ -31,6 +31,8 @@ chip soc/intel/skylake
 			register "PcieRpLtrEnable[0]" = "1"
 		end
 
+		device generic 0 alias dgpu off end
+
 		# WLAN (Intel 8260) on RP3
 		device ref pcie_rp3 on
 			register "PcieRpClkReqSupport[2]" = "1"
