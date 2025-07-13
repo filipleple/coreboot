@@ -24,7 +24,7 @@ chip soc/intel/skylake
 		
 		# SD Card reader (Realtek RTS522A) on RP1
 		device ref pcie_rp1 on
-			register "PcieRpClkReqSupport[0]" = "1"
+			register "PcieRpClkReqSupport[0]" = "0"
 			register "PcieRpClkReqNumber[0]" = "0"
 			register "PcieRpClkSrcNumber[0]" = "0"
 			register "PcieRpAdvancedErrorReporting[0]" = "1"
@@ -35,7 +35,7 @@ chip soc/intel/skylake
 
 		# WLAN (Intel 8260) on RP3
 		device ref pcie_rp3 on
-			register "PcieRpClkReqSupport[2]" = "1"
+			register "PcieRpClkReqSupport[2]" = "0"
 			register "PcieRpClkReqNumber[2]" = "1"
 			register "PcieRpClkSrcNumber[2]" = "1"
 			register "PcieRpAdvancedErrorReporting[2]" = "1"
@@ -44,9 +44,9 @@ chip soc/intel/skylake
 
 		# NVMe SSD on RP5
 		device ref pcie_rp5 on
-			register "PcieRpClkReqSupport[4]" = "1"
-			register "PcieRpClkReqNumber[4]" = "2"
-			register "PcieRpClkSrcNumber[4]" = "2"
+			register "PcieRpClkReqSupport[4]" = "0"
+			register "PcieRpClkReqNumber[4]" = "5"
+			register "PcieRpClkSrcNumber[4]" = "5"
 			register "PcieRpAdvancedErrorReporting[4]" = "1"
 			register "PcieRpLtrEnable[4]" = "1"
 		end
