@@ -9,15 +9,25 @@ chip soc/intel/skylake
 
 		# USB port map
 		device ref south_xhci on
-			register "usb2_ports" = "{
-				[0] = USB2_PORT_MID(OC0), // USB-A (right, always on)
-				[1] = USB2_PORT_MID(OC1), // USB-A (left)
-				[2] = USB2_PORT_MID(OC_SKIP), // Smartcard/internal use
-			}"
-			register "usb3_ports" = "{
-				[0] = USB3_PORT_DEFAULT(OC0), // USB-A (right)
-				[1] = USB3_PORT_DEFAULT(OC1), // USB-A (left)
-			}"
+		    register "usb2_ports" = "{
+				[0] = USB2_PORT_MID(OC0), // Right USB-A
+				[1] = USB2_PORT_MID(OC1), // Left USB-A
+				[2] = USB2_PORT_MID(OC_SKIP), // Smartcard
+				[3] = USB2_PORT_MID(OC_SKIP), // USB-C or WWAN
+				[4] = USB2_PORT_MID(OC_SKIP), // Webcam
+				[5] = USB2_PORT_MID(OC_SKIP), // WLAN Bluetooth
+				[6] = USB2_PORT_MID(OC_SKIP),
+				[7] = USB2_PORT_MID(OC_SKIP),
+				[8] = USB2_PORT_MID(OC_SKIP),
+				[9] = USB2_PORT_MID(OC_SKIP),
+		    }"
+
+		    register "usb3_ports" = "{
+	            [0] = USB3_PORT_DEFAULT(OC0), // Right USB-A
+	            [1] = USB3_PORT_DEFAULT(OC1), // Left USB-A
+	            [2] = USB3_PORT_DEFAULT(OC_SKIP), // maybe unused
+	            [3] = USB3_PORT_DEFAULT(OC_SKIP), // maybe USB-C
+		    }"
 		end
 
 		# PCIe configuration:
