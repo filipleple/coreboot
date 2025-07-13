@@ -9,6 +9,7 @@ chip soc/intel/skylake
         register "PmConfigSlpAMinAssert" = "3"          # 2s
 
 	device domain 0 on
+		subsystemid 0x17aa 0x225d inherit
 		device ref igpu on
 			register "gfx" = "GMA_STATIC_DISPLAYS(0)"
 			register "panel_cfg" = "{
