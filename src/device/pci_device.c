@@ -543,6 +543,11 @@ void pci_dev_read_resources(struct device *dev)
 {
 	pci_read_bases(dev, 6);
 	pci_get_rom_resource(dev, PCI_ROM_ADDRESS);
+
+#if CONFIG(PCIEXP_PLUGIN_SUPPORT)
+	/* Check for SR-IOV BARs if we have PCIe support */
+	pciexp_dev_read_resources(dev);
+#endif
 }
 
 void pci_bus_read_resources(struct device *dev)
@@ -570,7 +575,7 @@ void pci_domain_read_resources(struct device *dev)
 	 * one big range from cbmem_top to the configured limit.
 	 */
 	res = new_resource(dev, IOINDEX_SUBTRACTIVE(1, 0));
-	res->base  = (uintptr_t)cbmem_top();
+	res->base  = cbmem_top();
 	res->limit = CONFIG_DOMAIN_RESOURCE_32BIT_LIMIT - 1;
 	res->flags = IORESOURCE_MEM | IORESOURCE_SUBTRACTIVE |
 		     IORESOURCE_ASSIGNED;
@@ -839,97 +844,11 @@ void pci_dev_set_subsystem(struct device *dev, unsigned int vendor,
 	}
 }
 
-static int should_run_oprom(struct device *dev, struct rom_header *rom)
-{
-	static int should_run = -1;
-
-	if (dev->upstream->segment_group) {
-		printk(BIOS_ERR, "Only option ROMs of devices in first PCI segment group can "
-				 "be run.\n");
-		return 0;
-	}
-
-	if (CONFIG(VENDORCODE_ELTAN_VBOOT))
-		if (rom != NULL)
-			if (!verified_boot_should_run_oprom(rom))
-				return 0;
-
-	if (should_run >= 0)
-		return should_run;
-
-	if (CONFIG(ALWAYS_RUN_OPROM)) {
-		should_run = 1;
-		return should_run;
-	}
-
-	/* Don't run VGA option ROMs, unless we have to print
-	 * something on the screen before the kernel is loaded.
-	 */
-	should_run = display_init_required();
-
-	if (!should_run)
-		printk(BIOS_DEBUG, "Not running VGA Option ROM\n");
-	return should_run;
-}
-
-static int should_load_oprom(struct device *dev)
-{
-	/* If S3_VGA_ROM_RUN is disabled, skip running VGA option
-	 * ROMs when coming out of an S3 resume.
-	 */
-	if (!CONFIG(S3_VGA_ROM_RUN) && acpi_is_wakeup_s3() &&
-		((dev->class >> 8) == PCI_CLASS_DISPLAY_VGA))
-		return 0;
-	if (CONFIG(ALWAYS_LOAD_OPROM))
-		return 1;
-	if (should_run_oprom(dev, NULL))
-		return 1;
-
-	return 0;
-}
-
-static void oprom_pre_graphics_stall(void)
-{
-	if (CONFIG_PRE_GRAPHICS_DELAY_MS)
-		mdelay(CONFIG_PRE_GRAPHICS_DELAY_MS);
-}
-
 /** Default handler: only runs the relevant PCI BIOS. */
 void pci_dev_init(struct device *dev)
 {
-	struct rom_header *rom, *ram;
-
-	if (!CONFIG(VGA_ROM_RUN))
-		return;
-
-	/* Only execute VGA ROMs. */
-	if (((dev->class >> 8) != PCI_CLASS_DISPLAY_VGA))
-		return;
-
-	if (!should_load_oprom(dev))
-		return;
-	timestamp_add_now(TS_OPROM_INITIALIZE);
-
-	rom = pci_rom_probe(dev);
-	if (rom == NULL)
-		return;
-
-	ram = pci_rom_load(dev, rom);
-	if (ram == NULL)
-		return;
-	timestamp_add_now(TS_OPROM_COPY_END);
-
-	if (!should_run_oprom(dev, rom))
-		return;
-
-	/* Wait for any configured pre-graphics delay */
-	oprom_pre_graphics_stall();
-
-	run_bios(dev, (unsigned long)ram);
-
-	gfx_set_init_done(1);
-	printk(BIOS_DEBUG, "VGA Option ROM was run\n");
-	timestamp_add_now(TS_OPROM_END);
+	if (CONFIG(VGA_ROM_RUN))
+		pci_rom_run(dev);
 }
 
 /** Default device operation for PCI devices */
@@ -1346,6 +1265,24 @@ uint16_t pci_find_cap_recursive(const struct device *dev, uint16_t cap)
 }
 
 /**
+ * Returns if the device support PMEs.
+ *
+ * @param dev Pointer to the device structure.
+ * @return Returns true when the device support PMEs. The PME generation can be
+ *  disabled though.
+ */
+bool pci_has_pme_pin(const struct device *dev)
+{
+	const uint16_t cap = pci_find_capability(dev, PCI_CAP_ID_PM);
+	if (!cap)
+		return false;
+
+	const uint16_t pmecap = pci_read_config16(dev, cap + PCI_PM_PMC);
+
+	return !!(pmecap & PCI_PM_CAP_PME);
+}
+
+/**
  * PCI devices that are marked as "hidden" do not get probed. However, the same
  * initialization logic is still performed as if it were. This is useful when
  * devices would like to be described in the devicetree.cb file, and/or present
@@ -1491,7 +1428,6 @@ void pci_scan_bus(struct bus *bus, unsigned int min_devfn,
 
 	prev = &bus->children;
 	for (dev = bus->children; dev; dev = dev->sibling) {
-
 		/*
 		 * If static device is not PCI then enable it here and don't
 		 * treat it as a leftover device.
@@ -1851,7 +1787,6 @@ void pci_assign_irqs(struct device *dev, const unsigned char pIntAtoD[4])
 	slot = dev->path.pci.devfn >> 3;
 
 	for (; dev ; dev = dev->sibling) {
-
 		if (dev->path.pci.devfn >> 3 != slot)
 			break;
 

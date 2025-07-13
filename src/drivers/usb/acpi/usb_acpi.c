@@ -6,11 +6,13 @@
 #include <acpi/acpigen_dsm.h>
 #include <console/console.h>
 #include <device/device.h>
-#include <device/path.h>
 #include "chip.h"
 
 static bool usb_acpi_add_gpios_to_crs(struct drivers_usb_acpi_config *cfg)
 {
+	if (cfg->is_intel_bluetooth)
+		return false;
+
 	if (cfg->privacy_gpio.pin_count)
 		return true;
 
@@ -108,7 +110,20 @@ static void usb_acpi_fill_ssdt_generator(const struct device *dev)
 		acpi_device_add_power_res(&power_res_params);
 	}
 
+	if (config->is_intel_bluetooth)
+		acpi_device_intel_bt(&config->enable_gpio,
+				     &config->reset_gpio,
+				     config->cnvi_bt_audio_offload);
+
 	acpigen_pop_len();
+
+	/*
+	 * This is generated outside of the USB Device Scope to make it easier for
+	 * other code to access it i.e. CNVi driver.
+	 */
+	if (config->is_intel_bluetooth)
+		acpi_device_intel_bt_common(&config->enable_gpio,
+					    &config->reset_gpio);
 
 	printk(BIOS_INFO, "%s: %s at %s\n", path,
 	       config->desc ? : dev->chip_ops->name, dev_path(dev));

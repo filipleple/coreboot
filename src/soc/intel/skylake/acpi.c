@@ -17,6 +17,7 @@
 #include <soc/pm.h>
 #include <soc/ramstage.h>
 #include <soc/systemagent.h>
+#include <static.h>
 #include <string.h>
 #include <types.h>
 
@@ -123,7 +124,7 @@ static int cstate_set_s0ix[] = {
 static int cstate_set_non_s0ix[] = {
 	C_STATE_C1E,
 	C_STATE_C3,
-	C_STATE_C7S_LONG_LAT,
+	C_STATE_C8
 };
 
 const acpi_cstate_t *soc_get_cstate_map(size_t *entries)
@@ -193,7 +194,7 @@ static unsigned long soc_fill_dmar(unsigned long current)
 	if (emit_igd) {
 		const unsigned long tmp = current;
 
-		current += acpi_create_dmar_drhd(current, 0, 0, gfx_vtbar);
+		current += acpi_create_dmar_drhd_4k(current, 0, 0, gfx_vtbar);
 		current += acpi_create_dmar_ds_pci(current, 0, 2, 0);
 
 		acpi_dmar_drhd_fixup(tmp, current);
@@ -206,7 +207,7 @@ static unsigned long soc_fill_dmar(unsigned long current)
 	if (vtvc0bar && vtvc0en && !MCHBAR32(VTVC0BAR + 4)) {
 		const unsigned long tmp = current;
 
-		current += acpi_create_dmar_drhd(current, DRHD_INCLUDE_PCI_ALL, 0, vtvc0bar);
+		current += acpi_create_dmar_drhd_4k(current, DRHD_INCLUDE_PCI_ALL, 0, vtvc0bar);
 
 		current += acpi_create_dmar_ds_ioapic_from_hw(current, IO_APIC_ADDR, V_P2SB_IBDF_BUS,
 						      V_P2SB_IBDF_DEV, V_P2SB_IBDF_FUN);

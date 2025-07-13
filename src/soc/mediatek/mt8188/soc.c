@@ -6,7 +6,7 @@
 #include <soc/cpu_input_gating.h>
 #include <soc/devapc.h>
 #include <soc/dfd.h>
-#include <soc/dpm.h>
+#include <soc/dpm_v1.h>
 #include <soc/emi.h>
 #include <soc/mcupm.h>
 #include <soc/mmu_operations.h>
@@ -15,13 +15,14 @@
 #include <symbols.h>
 
 #define OPTEE_ADDRESS		0x43000000
-#define OPTEE_SIZE		(80 * MiB)
+#define OPTEE_SIZE		(70 * MiB)
 
 void bootmem_platform_add_ranges(void)
 {
 	if (CONFIG(MTK_DFD))
 		bootmem_add_range(DFD_DUMP_ADDRESS, DFD_DUMP_SIZE, BM_MEM_RESERVED);
-	bootmem_add_range(OPTEE_ADDRESS, OPTEE_SIZE, BM_MEM_RESERVED);
+	if (CONFIG(ARM64_BL31_OPTEE_WITH_SMC))
+		bootmem_add_range(OPTEE_ADDRESS, OPTEE_SIZE, BM_MEM_RESERVED);
 }
 
 static void soc_read_resources(struct device *dev)

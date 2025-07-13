@@ -458,6 +458,9 @@ typedef struct acpi_madt {
 	u32 flags;			/* Multiple APIC flags */
 } __packed acpi_madt_t;
 
+/* MADT Feature Flags */
+#define ACPI_MADT_PCAT_COMPAT	(1 << 0)
+
 /*
  * LPIT (Low Power Idle Table)
  * Conforms to "Intel Low Power S0 Idle" specification, rev 002 from July 2017.
@@ -635,7 +638,7 @@ typedef struct dmar_entry {
 	u16 type;
 	u16 length;
 	u8 flags;
-	u8 reserved;
+	u8 size;
 	u16 segment;
 	u64 bar;
 } __packed dmar_entry_t;
@@ -722,6 +725,10 @@ typedef struct acpi_madt_lapic {
 } __packed acpi_madt_lapic_t;
 
 #define ACPI_MADT_MAX_LAPIC_ID		0xfe
+
+/* MADT Local APIC Feature Flags */
+#define ACPI_MADT_LAPIC_ENABLED		(1 << 0)
+#define ACPI_MADT_LAPIC_ONLINE_CAPABLE	(1 << 1)
 
 /* MADT: Local APIC NMI Structure */
 typedef struct acpi_madt_lapic_nmi {
@@ -1732,7 +1739,6 @@ void acpi_create_einj(acpi_einj_t *einj, uintptr_t addr, u8 actions);
 unsigned long fw_cfg_acpi_tables(unsigned long start);
 
 /* These are implemented by the target port or north/southbridge. */
-void preload_acpi_dsdt(void);
 unsigned long write_acpi_tables(const unsigned long addr);
 unsigned long acpi_fill_madt(unsigned long current);
 unsigned long acpi_arch_fill_madt(acpi_madt_t *madt, unsigned long current);
@@ -1756,7 +1762,7 @@ void acpi_add_table(acpi_rsdp_t *rsdp, void *table);
 
 /* Create CXL Early Discovery Table */
 void acpi_create_cedt(acpi_cedt_t *cedt,
-	unsigned long (*acpi_fill_cedt)(unsigned long current));
+	unsigned long (*acpi_fill_cedt_func)(unsigned long current));
 /* Create a CXL Host Bridge Structure for CEDT */
 int acpi_create_cedt_chbs(acpi_cedt_chbs_t *chbs, u32 uid, u32 cxl_ver, u64 base);
 /* Create a CXL Fixed Memory Window Structure for CEDT */
@@ -1773,6 +1779,7 @@ unsigned long acpi_create_madt_one_lapic(unsigned long current, u32 cpu, u32 api
 
 unsigned long acpi_create_madt_lapic_nmis(unsigned long current);
 
+void platform_fill_gicc(acpi_madt_gicc_t *gicc);
 uintptr_t platform_get_gicd_base(void);
 uintptr_t platform_get_gicr_base(void);
 int platform_get_gic_its(uintptr_t **base);
@@ -1789,10 +1796,10 @@ int acpi_create_srat_gia_pci(acpi_srat_gia_t *gia, u32 proximity_domain,
 			     struct device *dev, u32 flags);
 unsigned long acpi_create_srat_lapics(unsigned long current);
 void acpi_create_srat(acpi_srat_t *srat,
-		      unsigned long (*acpi_fill_srat)(unsigned long current));
+		      unsigned long (*acpi_fill_srat_func)(unsigned long current));
 
 void acpi_create_slit(acpi_slit_t *slit,
-		      unsigned long (*acpi_fill_slit)(unsigned long current));
+		      unsigned long (*acpi_fill_slit_func)(unsigned long current));
 
 /*
  * Create a Memory Proximity Domain Attributes structure for HMAT,
@@ -1802,11 +1809,11 @@ void acpi_create_slit(acpi_slit_t *slit,
 int acpi_create_hmat_mpda(acpi_hmat_mpda_t *mpda, u32 initiator, u32 memory);
 /* Create Heterogeneous Memory Attribute Table */
 void acpi_create_hmat(acpi_hmat_t *hmat,
-		      unsigned long (*acpi_fill_hmat)(unsigned long current));
+		      unsigned long (*acpi_fill_hmat_func)(unsigned long current));
 
 void acpi_create_vfct(const struct device *device,
 		      acpi_vfct_t *vfct,
-		      unsigned long (*acpi_fill_vfct)(const struct device *device,
+		      unsigned long (*acpi_fill_vfct_func)(const struct device *device,
 				acpi_vfct_t *vfct_struct,
 				unsigned long current));
 
@@ -1820,11 +1827,11 @@ void acpi_create_ipmi(const struct device *device,
 		      const u32 uid);
 
 void acpi_create_ivrs(acpi_ivrs_t *ivrs,
-		      unsigned long (*acpi_fill_ivrs)(acpi_ivrs_t *ivrs_struct,
+		      unsigned long (*acpi_fill_ivrs_func)(acpi_ivrs_t *ivrs_struct,
 		      unsigned long current));
 
 void acpi_create_crat(struct acpi_crat_header *crat,
-		      unsigned long (*acpi_fill_crat)(struct acpi_crat_header *crat_struct,
+		      unsigned long (*acpi_fill_crat_func)(struct acpi_crat_header *crat_struct,
 		      unsigned long current));
 
 unsigned long acpi_write_hpet(const struct device *device, unsigned long start,
@@ -1841,9 +1848,11 @@ unsigned long acpi_16550_mmio32_write_dbg2_uart(acpi_rsdp_t *rsdp, unsigned long
 					 uint64_t base, const char *name);
 
 void acpi_create_dmar(acpi_dmar_t *dmar, enum dmar_flags flags,
-		      unsigned long (*acpi_fill_dmar)(unsigned long));
-unsigned long acpi_create_dmar_drhd(unsigned long current, u8 flags,
+		      unsigned long (*acpi_fill_dmar_func)(unsigned long));
+unsigned long acpi_create_dmar_drhd_4k(unsigned long current, u8 flags,
 				    u16 segment, u64 bar);
+unsigned long acpi_create_dmar_drhd(unsigned long current, u8 flags,
+				    u16 segment, u64 bar, size_t size);
 unsigned long acpi_create_dmar_rmrr(unsigned long current, u16 segment,
 				    u64 bar, u64 limit);
 unsigned long acpi_create_dmar_atsr(unsigned long current, u8 flags,
@@ -1958,12 +1967,12 @@ int acpi_get_gpe(int gpe);
 
 /* Once we enter payload, is SMI handler installed and capable of
    responding to APM_CNT Advanced Power Management Control commands. */
-static inline int permanent_smi_handler(void)
+static inline bool permanent_smi_handler(void)
 {
 	return CONFIG(HAVE_SMI_HANDLER);
 }
 
-static inline int acpi_s3_resume_allowed(void)
+static inline bool acpi_s3_resume_allowed(void)
 {
 	return CONFIG(HAVE_ACPI_RESUME);
 }

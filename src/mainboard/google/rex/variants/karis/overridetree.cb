@@ -252,7 +252,7 @@ chip soc/intel/meteorlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 alias dptf_policy on end
@@ -265,6 +265,13 @@ chip soc/intel/meteorlake
 				.clk_req = 8,
 				.flags = PCIE_RP_LTR | PCIE_RP_AER,
 			}"
+			chip soc/intel/common/block/pcie/rtd3
+				register "is_storage" = "true"
+				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_A19)"
+				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_A20)"
+				register "srcclk_pin" = "8"
+				device generic 0 on end
+			end
 		end # PCIE10 SSD card
 		device ref tbt_pcie_rp0 on end
 		device ref tbt_pcie_rp2 on end
@@ -449,7 +456,7 @@ chip soc/intel/meteorlake
 				register "acpi_name" = ""CAM0""
 				register "chip_name" = ""Hi-556 Camera""
 				register "device_type" = "INTEL_ACPI_CAMERA_SENSOR"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 
 				register "ssdb.lanes_used" = "2"
 				register "ssdb.link_used" = "1"
@@ -498,7 +505,7 @@ chip soc/intel/meteorlake
 
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D0"
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 
 				#Controls
 				register "gpio_panel.gpio[0].gpio_num" = "GPP_B09" #EN_FCAM_PWR
@@ -527,6 +534,7 @@ chip soc/intel/meteorlake
 			chip drivers/wifi/generic
 				register "wake" = "GPE0_DW2_09"
 				register "add_acpi_dma_property" = "true"
+				use usb2_port10 as bluetooth_companion
 				device pci 00.0 on
 					probe WIFI_TYPE WIFI_PCIE
 				end
@@ -548,7 +556,7 @@ chip soc/intel/meteorlake
 				register "compat_string" = ""google,cros-ec-spi""
 				register "irq" = "ACPI_IRQ_WAKE_LEVEL_LOW(GPP_E10_IRQ)"
 				register "wake" = "GPE0_DW1_10"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C23)"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B11)"
 				register "enable_delay_ms" = "3"

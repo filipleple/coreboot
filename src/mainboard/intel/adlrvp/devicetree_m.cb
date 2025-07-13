@@ -6,8 +6,6 @@ fw_config
 end
 chip soc/intel/alderlake
 
-	device cpu_cluster 0 on end
-
 	# GPE configuration
 	# Note that GPE events called out in ASL code rely on this
 	# route. i.e. If this route changes then the affected GPE
@@ -78,7 +76,7 @@ chip soc/intel/alderlake
 	}"
 
 	# Hybrid storage mode
-	register "hybrid_storage_mode" = "1"
+	register "hybrid_storage_mode" = "true"
 
 	# Enable CPU PCIE RP 1 using CLK 0
 	register "cpu_pcie_rp[CPU_RP(1)]" = "{
@@ -97,7 +95,7 @@ chip soc/intel/alderlake
 	# TCSS USB3
 	register "tcss_aux_ori" = "0"
 
-	register "s0ix_enable" = "1"
+	register "s0ix_enable" = "true"
 
 	register "serial_io_i2c_mode" = "{
 		[PchSerialIoIndexI2C0] = PchSerialIoPci,
@@ -296,7 +294,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "450000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "0" #IMGCLKOUT_0
 				register "clk_panel.clks[0].freq" = "1" #19.2 Mhz
@@ -347,7 +345,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "450000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "1" #IMGCLKOUT_1
 				register "clk_panel.clks[0].freq" = "1" #19.2 Mhz
@@ -395,6 +393,9 @@ chip soc/intel/alderlake
 					chip drivers/soundwire/alc711
 						# SoundWire Link 0 ID 1
 						register "desc" = ""Headset Codec""
+						register "alc711_address.version" = "SOUNDWIRE_VERSION_1_1"
+						register "alc711_address.class" = "MIPI_CLASS_NONE"
+						register "alc711_address.part_id" = "MIPI_DEV_ID_REALTEK_ALC711"
 						device generic 0.1 on end
 					end
 				end

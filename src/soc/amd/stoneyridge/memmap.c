@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 #include <amdblocks/smm.h>
-#include <assert.h>
 #include <stdint.h>
 #include <cpu/x86/msr.h>
 #include <cpu/x86/smm.h>
@@ -22,7 +21,7 @@ uintptr_t cbmem_top_chipset(void)
 
 static uintptr_t smm_region_start(void)
 {
-	return (uintptr_t)cbmem_top();
+	return cbmem_top();
 }
 
 static size_t smm_region_size(void)

@@ -8,7 +8,7 @@
 		<nixpkgs/nixos/modules/installer/cd-dvd/iso-image.nix>
 	];
 
-	system.stateVersion = "23.11";
+	system.stateVersion = "24.05";
 
 	isoImage = {
 		makeEfiBootable = true;
@@ -104,6 +104,7 @@
 		acpica-tools
 		btrfs-progs
 		bzip2
+		cabextract
 		ccrypt
 		chipsec
 		coreboot-utils
@@ -118,6 +119,7 @@
 		efivar
 		exfat
 		f2fs-tools
+		flashprog
 		fuse
 		fuse3
 		fwts
@@ -129,6 +131,7 @@
 		hexdump
 		htop
 		i2c-tools
+		innoextract
 		intel-gpu-tools
 		inxi
 		iotools
@@ -164,8 +167,11 @@
 		testdisk
 		tmate
 		tmux
+		tpm-tools
+		tpm2-tools
 		uefitool
 		uefitoolPackages.old-engine
+		unshield
 		unzip
 		upterm
 		usbutils

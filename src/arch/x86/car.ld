@@ -72,6 +72,8 @@
 	/* Allow global uninitialized variables for stages without CAR teardown. */
 	*(.bss)
 	*(.bss.*)
+	*(.lbss)
+	*(.lbss.*)
 	*(.sbss)
 	*(.sbss.*)
 	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);
@@ -97,6 +99,8 @@ _bogus = ASSERT(_etext == ALIGN(_etext, ARCH_POINTER_ALIGN_SIZE), "Cache-As-RAM 
 	_data = .;
 	*(.data);
 	*(.data.*);
+	*(.ldata);
+	*(.ldata.*);
 	*(.sdata);
 	*(.sdata.*);
 	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);
@@ -108,11 +112,6 @@ _bogus = ASSERT(_etext == ALIGN(_etext, ARCH_POINTER_ALIGN_SIZE), "Cache-As-RAM 
 _car_unallocated_start = .;
 _car_region_end = . + CONFIG_DCACHE_RAM_SIZE - (. - _car_region_start)
 		  - CONFIG_FSP_T_RESERVED_SIZE;
-
-. = _car_region_start;
-.car.fspm_rc_heap . (NOLOAD) : {
-	. += CONFIG_FSP_M_RC_HEAP_SIZE;
-}
 
 . = _car_region_end;
 .car.mrc_var . (NOLOAD) : {

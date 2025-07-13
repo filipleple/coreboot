@@ -5,12 +5,6 @@ chip soc/intel/tigerlake
 	register "DdiPort2Hpd" = "0"
 	register "typec_aux_bias_pads[0]" = "{.pad_auxp_dc = GPP_E10, .pad_auxn_dc = GPP_E13}"
 
-        # EMMC PCIE 5 using clk 5
-        register "PcieRpLtrEnable[4]" = "1"
-        register "PcieRpHotPlug[4]" = "1"
-        register "PcieClkSrcUsage[5]" = "4"
-        register "PcieClkSrcClkReq[5]" = "5"
-
 	#+-------------------+---------------------------+
 	#| Field             |  Value                    |
 	#+-------------------+---------------------------+
@@ -66,15 +60,6 @@ chip soc/intel/tigerlake
 		},
 	}"
 
-	# Disable M.2 WWAN
-	register "usb2_ports[2]" = "USB2_PORT_EMPTY"
-
-	# Type-A / Type-C C1
-	register "usb2_ports[3]" = "USB2_PORT_TYPE_C(OC_SKIP)"
-
-	# Type-A / Type-C C0
-	register "usb2_ports[8]" = "USB2_PORT_TYPE_C(OC_SKIP)"
-
 	device domain 0 on
 		device ref dptf on
 			chip drivers/intel/dptf
@@ -120,7 +105,7 @@ chip soc/intel/tigerlake
 					[9] = {   0,    0,   0,   50, }}"
 
 				# Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 on end
@@ -146,6 +131,10 @@ chip soc/intel/tigerlake
 			end
 		end
 		device ref south_xhci on
+			register "usb2_ports[2]" = "USB2_PORT_EMPTY"		# Disable M.2 WWAN
+			register "usb2_ports[3]" = "USB2_PORT_TYPE_C(OC_SKIP)"	# Type-A / Type-C C1
+			register "usb2_ports[8]" = "USB2_PORT_TYPE_C(OC_SKIP)"	# Type-A / Type-C C0
+
 			chip drivers/usb/acpi
 				device ref xhci_root_hub on
 					chip drivers/usb/acpi
@@ -227,7 +216,7 @@ chip soc/intel/tigerlake
 				register "reset_off_delay_ms" = "5"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_A8)"
 				register "enable_delay_ms" = "5"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				device i2c 34 on end
 			end
 			chip drivers/i2c/generic
@@ -239,7 +228,7 @@ chip soc/intel/tigerlake
 							"ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C10)"
 				register "reset_delay_ms" = "100"
 				register "reset_off_delay_ms" = "5"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_A8)"
 				register "enable_delay_ms" = "10"
 				register "enable_off_delay_ms" = "1"
@@ -277,7 +266,13 @@ chip soc/intel/tigerlake
 				device generic 0 on end
 			end
 		end
-		device ref pcie_rp5 on end
+		device ref pcie_rp5 on
+			# EMMC PCIE 5 using clk 5
+			register "PcieRpLtrEnable[4]" = "true"
+			register "PcieRpHotPlug[4]" = "1"
+			register "PcieClkSrcUsage[5]" = "4"
+			register "PcieClkSrcClkReq[5]" = "5"
+		end
 		device ref pmc hidden
 			# The pmc_mux chip driver is a placeholder for the
 			# PMC.MUX device in the ACPI hierarchy.

@@ -17,7 +17,7 @@ chip soc/intel/alderlake
 	register "sagv" = "SaGv_Enabled"
 
 	# Acoustic settings
-	register "acoustic_noise_mitigation" = "1"
+	register "acoustic_noise_mitigation" = "true"
 	register "slow_slew_rate[VR_DOMAIN_IA]" = "SLEW_FAST_8"
 	register "slow_slew_rate[VR_DOMAIN_GT]" = "SLEW_FAST_8"
 	register "fast_pkg_c_ramp_disable[VR_DOMAIN_IA]" = "1"
@@ -226,7 +226,8 @@ chip soc/intel/alderlake
 				register "stop_off_delay_ms" = "2"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "enable_delay_ms" = "1"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
+				register "use_gpio_for_status" = "true"
 				device i2c 10 on end
 			end
 			chip drivers/i2c/hid
@@ -243,6 +244,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 15 on end
 			end
@@ -258,6 +260,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 40 on end
 			end
@@ -274,6 +277,7 @@ chip soc/intel/alderlake
 				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
 				register "generic.stop_off_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 0x14 on end
 			end
@@ -360,7 +364,9 @@ chip soc/intel/alderlake
 					chip drivers/intel/pmc_mux/conn
 						use usb2_port2 as usb2_port
 						use tcss_usb3_port2 as usb3_port
-						device generic 1 alias conn1 on end
+						device generic 1 alias conn1 on
+							probe DB_USB DB_1C
+						end
 					end
 				end
 			end

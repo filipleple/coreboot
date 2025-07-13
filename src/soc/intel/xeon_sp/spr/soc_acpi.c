@@ -3,8 +3,6 @@
 #include <acpi/acpigen.h>
 #include <arch/smp/mpspec.h>
 #include <arch/vga.h>
-#include <assert.h>
-#include <cbmem.h>
 #include <cpu/intel/turbo.h>
 #include <device/mmio.h>
 #include <device/pci.h>
@@ -13,6 +11,7 @@
 #include <intelblocks/pmclib.h>
 #include <soc/acpi.h>
 #include <soc/iomap.h>
+#include <soc/numa.h>
 #include <soc/msr.h>
 #include <soc/pci_devs.h>
 #include <soc/pm.h>
@@ -51,70 +50,6 @@ void soc_fill_fadt(acpi_fadt_t *fadt)
 
 	/* PM Extended Registers */
 	fill_fadt_extended_pm_io(fadt);
-}
-
-/*
- * Add a DSDT ACPI Name field for STACK enable setting.
- *  This is retrieved by the device _STA defined in iiostack.asl
- */
-static void create_dsdt_stack_sta(uint8_t socket, uint8_t stack, bool stack_enabled)
-{
-	char stack_sta[16];
-	snprintf(stack_sta, sizeof(stack_sta), "ST%d%X", socket, stack);
-
-	if (!stack_enabled)
-		acpigen_write_name_integer(stack_sta, ACPI_STATUS_DEVICE_ALL_OFF);
-	else
-		acpigen_write_name_integer(stack_sta, ACPI_STATUS_DEVICE_ALL_ON);
-}
-
-void uncore_fill_ssdt(const struct device *device)
-{
-	bool stack_enabled;
-
-	/* Only add RTxx entries once. */
-	if (device->upstream->secondary != 0)
-		return;
-
-	/*
-	   Write stack scope - this needs to match RP ACPI scopes.
-	   Stacks 0 (TYPE_UBOX_IIO)
-		Scope: PC<socket><stack>, ResourceTemplate: P0RS
-	   Stacks 1 .. 5 (TYPE_UBOX_IIO)
-		Scope: PC<socket><stack> & CX<socket><stack>, ResourceTemplate: RBRS
-	   Stacks 8 .. B (TYPE_DINO)
-		Scope: DI<socket><stack> for DINO, ResourceTemplate: RBRS
-		Scope: CP<socket><stack> for CPM (i.e., QAT), ResourceTemplate: RBRS
-		Scope: HQ<socket><stack> for HQM (i.e., DLB), ResourceTemplate: RBRS
-	   Stacks D .. E (TYPE_UBOX)
-		Scope: UC<socket><0..1> for UBOX[1-2], ResourceTemplate: UNRS
-	*/
-
-	printk(BIOS_DEBUG, "%s device: %s\n", __func__, dev_path(device));
-
-	/* The _CSR generation must match SPR iiostack.asl. */
-	const IIO_UDS *hob = get_iio_uds();
-	/* Iterate over CONFIG_MAX_SOCKET to keep ASL templates and DSDT injection in sync */
-	for (uint8_t socket = 0; socket < CONFIG_MAX_SOCKET; ++socket) {
-		for (int stack = 0; stack < MAX_LOGIC_IIO_STACK; ++stack) {
-			const STACK_RES *ri =
-				&hob->PlatformData.IIO_resource[socket].StackRes[stack];
-
-			stack_enabled = soc_cpu_is_enabled(socket) &&
-					ri->Personality < TYPE_RESERVED;
-
-			printk(BIOS_DEBUG, "%s processing socket: %d, stack: %d, type: %d\n",
-			       __func__, socket, stack, ri->Personality);
-
-			if (stack <= IioStack5) { // TYPE_UBOX_IIO
-				create_dsdt_stack_sta(socket, stack, stack_enabled);
-			} else if (stack >= IioStack8 && stack <= IioStack11) { // TYPE_DINO
-				create_dsdt_stack_sta(socket, stack, stack_enabled);
-			} else if (stack == IioStack13) { // TYPE_UBOX
-				create_dsdt_stack_sta(socket, stack, stack_enabled);
-			}
-		}
-	}
 }
 
 /* TODO: See if we can use the common generate_p_state_entries */
@@ -204,7 +139,6 @@ void soc_power_states_generation(int core, int cores_per_package)
 	/* Generate the remaining entries */
 	for (ratio = ratio_min + ((num_entries - 1) * ratio_step); ratio >= ratio_min;
 	     ratio -= ratio_step) {
-
 		/* Calculate power at this ratio */
 		power = common_calculate_power_ratio(power_max, ratio_max, ratio);
 		clock = ratio * CONFIG_CPU_BCLK_MHZ;
@@ -219,25 +153,6 @@ void soc_power_states_generation(int core, int cores_per_package)
 
 	/* Fix package length */
 	acpigen_pop_len();
-}
-
-unsigned long xeonsp_acpi_create_madt_lapics(unsigned long current)
-{
-	struct device *cpu;
-	uint8_t num_cpus = 0;
-
-	for (cpu = all_devices; cpu; cpu = cpu->next) {
-		if ((cpu->path.type != DEVICE_PATH_APIC)
-		    || (cpu->upstream->dev->path.type != DEVICE_PATH_CPU_CLUSTER)) {
-			continue;
-		}
-		if (!cpu->enabled)
-			continue;
-		current = acpi_create_madt_one_lapic(current, num_cpus, cpu->path.apic.apic_id);
-		num_cpus++;
-	}
-
-	return current;
 }
 
 unsigned long acpi_fill_cedt(unsigned long current)

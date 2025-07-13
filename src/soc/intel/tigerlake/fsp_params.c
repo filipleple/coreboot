@@ -7,6 +7,7 @@
 #include <device/pci_ops.h>
 #include <device/pci.h>
 #include <device/pci_ids.h>
+#include <drivers/usb/acpi/chip.h>
 #include <fsp/api.h>
 #include <fsp/ppi/mp_service_ppi.h>
 #include <fsp/util.h>
@@ -26,6 +27,7 @@
 #include <soc/ramstage.h>
 #include <soc/soc_chip.h>
 #include <soc/tcss.h>
+#include <static.h>
 #include <string.h>
 #include <types.h>
 
@@ -493,13 +495,44 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 	params->PchLanEnable = is_devfn_enabled(PCH_DEVFN_GBE);
 
 	/* CNVi */
+	struct device *port = NULL;
+	struct drivers_usb_acpi_config *usb_cfg = NULL;
+	bool usb_audio_offload = false;
+
+	/* Search through the devicetree for matching USB devices */
+	while ((port = dev_find_path(port, DEVICE_PATH_USB)) != NULL) {
+		/* Skip ports that are not enabled or not of USB type */
+		if (!port->enabled || port->path.type != DEVICE_PATH_USB)
+			continue;
+
+		usb_cfg = port->chip_info;
+		if (usb_cfg && usb_cfg->cnvi_bt_audio_offload) {
+			usb_audio_offload = true;
+			break;
+		}
+
+	}
+
 	params->CnviMode = is_devfn_enabled(PCH_DEVFN_CNVI_WIFI);
 	params->CnviBtCore = config->CnviBtCore;
 	params->CnviBtAudioOffload = config->CnviBtAudioOffload;
-	/* Assert if CNVi BT is enabled without CNVi being enabled. */
-	assert(params->CnviMode || !params->CnviBtCore);
-	/* Assert if CNVi BT offload is enabled without CNVi BT being enabled. */
-	assert(params->CnviBtCore || !params->CnviBtAudioOffload);
+
+	if (!params->CnviBtCore && params->CnviBtAudioOffload) {
+		printk(BIOS_ERR, "BT offload is enabled without CNVi BT being enabled\n");
+		params->CnviBtAudioOffload = 0;
+	}
+	if (!params->CnviMode && params->CnviBtCore) {
+		printk(BIOS_ERR, "CNVi BT is enabled without CNVi being enabled\n");
+		params->CnviBtCore = 0;
+		params->CnviBtAudioOffload = 0;
+	}
+	if (params->CnviBtAudioOffload && !usb_audio_offload) {
+		printk(BIOS_WARNING, "CNVi BT Audio offload enabled but not in USB driver.\n");
+	}
+	if (!params->CnviBtAudioOffload && usb_cfg && usb_audio_offload) {
+		printk(BIOS_ERR, "USB BT Audio offload enabled but CNVi BT offload disabled\n");
+		usb_cfg->cnvi_bt_audio_offload = 0;
+	}
 
 	/* VMD */
 	params->VmdEnable = is_devfn_enabled(SA_DEVFN_VMD);
@@ -563,7 +596,6 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 
 		params->PchFivrExtV1p05RailIccMaximum =
 			config->ext_fivr_settings.v1p05_icc_max_ma;
-
 	}
 
 	/* Apply minimum assertion width settings if non-zero */
@@ -650,6 +682,9 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 	params->SiSkipSsidProgramming = 0;
 
 	mainboard_silicon_init_params(params);
+
+	/* Runtime configuration of S0ix */
+	config->s0ix_enable = get_uint_option("s0ix_enable", config->s0ix_enable);
 }
 
 /*

@@ -27,16 +27,18 @@
 ##
 
 CFLAGS += -mthumb -march=armv7-a
-arm_asm_flags = -Wa,-mthumb -Wa,-mimplicit-it=always -Wa,-mno-warn-deprecated
+arm_asm_flags = -Wa,-mthumb -Wa,-mimplicit-it=always
+ifeq ($(CONFIG_COMPILER_GCC),y)
+arm_asm_flags += -Wa,-mno-warn-deprecated
+endif
 
-head.o-y += head.S
+libc-y += head.S
 libc-y += eabi_compat.c
 libc-y += main.c sysinfo.c
 libc-y += timer.c coreboot.c util.S
 libc-y += virtual.c
 libc-y += exception_asm.S exception.c
 libc-y += cache.c cpu.S
-libc-y += selfboot.c
 
 # Will fall back to default_memXXX() in libc/memory.c if GPL not allowed.
 libc-$(CONFIG_LP_GPL) += memcpy.S memset.S memmove.S
@@ -44,5 +46,4 @@ libc-$(CONFIG_LP_GPL) += memcpy.S memset.S memmove.S
 libgdb-y += gdb.c
 
 # Add other classes here when you put assembly files into them!
-head.o-S-ccopts += $(arm_asm_flags)
 libc-S-ccopts += $(arm_asm_flags)

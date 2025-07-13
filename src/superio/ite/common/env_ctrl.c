@@ -4,6 +4,7 @@
 #include <delay.h>
 #include <stddef.h>
 #include <superio/hwm5_conf.h>
+#include <option.h>
 
 #include "env_ctrl.h"
 #include "env_ctrl_chip.h"
@@ -67,6 +68,8 @@ static void enable_tmpin(const u16 base, const u8 tmpin,
 	reg_extra = pnp_read_hwm5_index(base, ITE_EC_ADC_TEMP_EXTRA_CHANNEL_ENABLE);
 
 	switch (conf->mode) {
+	case THERMAL_MODE_DISABLED:
+		return;
 	case THERMAL_PECI:
 		/* Some chips can set any TMPIN as the target for PECI readings
 		   while others can only read to TMPIN3. In the latter case a
@@ -78,12 +81,15 @@ static void enable_tmpin(const u16 base, const u8 tmpin,
 				       "PECI to TMPIN2 not supported on IT8721F\n");
 				return;
 			}
-			if (reg & ITE_EC_ADC_TEMP_EXT_REPORTS_TO_MASK) {
+			u8 reg_new = (reg & ~ITE_EC_ADC_TEMP_EXT_REPORTS_TO_MASK)
+					   | ITE_EC_ADC_TEMP_EXT_REPORTS_TO(tmpin);
+			/* Registers stick on reboot and resume,
+			   don't warn for correct reg values */
+			if (reg & ITE_EC_ADC_TEMP_EXT_REPORTS_TO_MASK && reg != reg_new) {
 				printk(BIOS_WARNING,
-				       "PECI specified for multiple TMPIN\n");
-				return;
+				       "PECI specified for another TMPIN, overwriting\n");
 			}
-			reg |= ITE_EC_ADC_TEMP_EXT_REPORTS_TO(tmpin);
+			reg = reg_new;
 		} else if (tmpin == 3) {
 			reg_extra |= ITE_EC_ADC_TEMP_EXTRA_TMPIN3_EXT;
 			pnp_write_hwm5_index(base, ITE_EC_ADC_TEMP_EXTRA_CHANNEL_ENABLE,
@@ -177,7 +183,8 @@ static void fan_smartconfig(const u16 base, const u8 fan,
 			conf->tmp_full ? conf->tmp_full : 127);
 
 		delta_temp = ITE_EC_FAN_CTL_DELTA_TEMP_INTRVL(conf->tmp_delta);
-		delta_temp |= ITE_EC_FAN_CTL_FULL_AT_THRML_LMT(conf->full_lmt);
+		if (!CONFIG(SUPERIO_ITE_ENV_CTRL_NO_FULLSPEED_SETTING))
+			delta_temp |= ITE_EC_FAN_CTL_FULL_AT_THRML_LMT(conf->full_lmt);
 		pnp_write_hwm5_index(base, ITE_EC_FAN_CTL_DELTA_TEMP(fan),
 			delta_temp);
 	}
@@ -247,6 +254,49 @@ static void enable_fan(const u16 base, const u8 fan,
 	}
 }
 
+static void enable_fan_vector(const u16 base, const u8 fan_vector,
+			      const struct ite_ec_fan_vector_config *const conf)
+{
+	u8 reg;
+
+	u8 start = conf->tmp_start;
+	if (!start) {
+		/* When tmp_start is not configured we would set the
+		 * register to it's default of 0xFF here, which would
+		 * effectively disable the vector functionality of the
+		 * SuperIO altogether since that temperature will never
+		 * be reached. We can therefore return here and don't
+		 * need to set any other registers.
+		 */
+		return;
+	}
+	pnp_write_hwm5_index(base, ITE_EC_FAN_VEC_CTL_LIMIT_START(fan_vector), start);
+
+	const s8 slope = conf->slope;
+	const bool slope_neg = slope < 0;
+	if (slope <= -128)
+		reg = 127;
+	else if (slope_neg)
+		reg = -slope;
+	else
+		reg = slope;
+	reg |= ITE_EC_FAN_VEC_CTL_SLOPE_TMPIN0(conf->tmpin);
+	pnp_write_hwm5_index(base, ITE_EC_FAN_VEC_CTL_SLOPE(fan_vector), reg);
+
+	reg = ITE_EC_FAN_VEC_CTL_DELTA_TEMP_INTRVL(conf->tmp_delta);
+	reg |= ITE_EC_FAN_VEC_CTL_DELTA_FANOUT(conf->fanout);
+	reg |= ITE_EC_FAN_VEC_CTL_DELTA_TMPIN1(conf->tmpin);
+	pnp_write_hwm5_index(base, ITE_EC_FAN_VEC_CTL_DELTA(fan_vector), reg);
+
+	if (CONFIG(SUPERIO_ITE_ENV_CTRL_FAN_VECTOR_RANGED)) {
+		reg = conf->tmp_range & 0x7f;
+		reg |= ITE_EC_FAN_VEC_CTL_RANGE_SLOPESIGN(slope_neg);
+		pnp_write_hwm5_index(base, ITE_EC_FAN_VEC_CTL_RANGE(fan_vector), reg);
+	} else if (slope_neg) {
+		printk(BIOS_WARNING, "Unsupported negative slope on fan vector control\n");
+	}
+}
+
 static void enable_beeps(const u16 base, const struct ite_ec_config *const conf)
 {
 	u8 reg = 0;
@@ -307,6 +357,12 @@ void ite_ec_init(const u16 base, const struct ite_ec_config *const conf)
 	for (i = 0; i < ITE_EC_FAN_CNT; ++i)
 		enable_fan(base, i + 1, &conf->fan[i]);
 
+	if (CONFIG(SUPERIO_ITE_ENV_CTRL_FAN_VECTOR)) {
+		/* Enable Special FAN Vector X if configured */
+		for (i = 0; i < ITE_EC_FAN_VECTOR_CNT; ++i)
+			enable_fan_vector(base, i, &conf->fan_vector[i]);
+	}
+
 	/* Enable beeps if configured */
 	enable_beeps(base, conf);
 
@@ -318,4 +374,31 @@ void ite_ec_init(const u16 base, const struct ite_ec_config *const conf)
 	for (i = 0; i < ITE_EC_TMPIN_CNT; ++i)
 		if (conf->tmpin[i].mode == THERMAL_PECI)
 			extemp_force_idle_status(base);
+}
+
+void ite_ec_set_power_state(struct device *dev)
+{
+	uint8_t power_status;
+	uint8_t reg_pcr1, reg_pcr2;
+
+	/* Set power state after power fail */
+	power_status = get_uint_option("power_on_after_fail",
+					CONFIG_MAINBOARD_POWER_FAILURE_STATE);
+	pnp_enter_conf_mode(dev);
+	pnp_set_logical_device(dev);
+	reg_pcr1 = pnp_read_config(dev, ITE_EC_REG_PCR1);
+	reg_pcr2 = pnp_read_config(dev, ITE_EC_REG_PCR2);
+	if (power_status == MAINBOARD_POWER_ON) {
+		reg_pcr2 |= (1 << 5);
+	} else if (power_status == MAINBOARD_POWER_KEEP) {
+		reg_pcr2 &= ~(1 << 5);
+		reg_pcr1 |=  (1 << 5);
+	} else {
+		reg_pcr2 &= ~(1 << 5);
+		reg_pcr1 &= ~(1 << 5);
+	}
+	pnp_write_config(dev, ITE_EC_REG_PCR1, reg_pcr1);
+	pnp_write_config(dev, ITE_EC_REG_PCR2, reg_pcr2);
+	pnp_exit_conf_mode(dev);
+	printk(BIOS_INFO, "set power %u after power fail\n", power_status);
 }

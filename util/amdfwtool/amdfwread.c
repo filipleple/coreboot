@@ -8,10 +8,6 @@
 #include <unistd.h>
 #include "amdfwtool.h"
 
-/* An address can be relative to the image/file start but it can also be the address when
- * the image is mapped at 0xff000000. Used to ensure that we only attempt to read within
- * the limits of the file. */
-#define SPI_ROM_BASE 0xff000000
 #define FILE_REL_MASK 0xffffff
 
 #define ERR(...) fprintf(stderr, __VA_ARGS__)
@@ -34,10 +30,7 @@ static uint64_t relative_offset(uint32_t header_offset, uint64_t addr, uint64_t 
 	case AMD_ADDR_PHYSICAL:
 		if (addr < SPI_ROM_BASE || addr > (SPI_ROM_BASE + FILE_REL_MASK)) {
 			ERR("Invalid address(%lx) or mode(%lx)\n", addr, mode);
-			/* TODO: fix amdfwtool to program the right address/mode. In guybrush,
-			 * lots of addresses are marked as physical, but they are relative to
-			 * BIOS. Until that is fixed, just leave an error message. */
-			// exit(1);
+			exit(1);
 		}
 		return addr & FILE_REL_MASK;
 
@@ -266,11 +259,6 @@ static int amdfw_bios_dir_walk(FILE *fw, uint32_t bios_offset, uint32_t cookie, 
 			printf("%sBIOS%s: 0x%02x 0x%lx(DRAM-Address)\n",
 				indent, cookie == BHD_COOKIE ? "L1" : "L2",
 				type, current_entries[i].dest);
-		else if (type == AMD_BIOS_APOB_NV)
-			printf("%sBIOS%s: 0x%02x 0x%08lx 0x%08x\n",
-				indent, cookie == BHD_COOKIE ? "L1" : "L2",
-				type, relative_offset(bios_offset, addr, AMD_ADDR_PHYSICAL),
-				current_entries[i].size);
 		else
 			printf("%sBIOS%s: 0x%02x 0x%08lx 0x%08x\n",
 				indent, cookie == BHD_COOKIE ? "L1" : "L2",

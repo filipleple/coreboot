@@ -10,6 +10,7 @@
 #include <soc/pci_devs.h>
 #include <soc/northbridge.h>
 #include <soc/cpu.h>
+#include <static.h>
 #include <string.h>
 
 void __weak SetMemParams(AMD_POST_PARAMS *PostParams) {}
@@ -387,7 +388,6 @@ static AGESA_STATUS ramstage_dispatch(AMD_CONFIG_PARAMS *StdHeader)
 	default:
 		return AGESA_UNSUPPORTED;
 	}
-
 }
 
 AGESA_STATUS agesa_execute_state(AGESA_STRUCT_NAME func)

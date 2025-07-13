@@ -127,7 +127,7 @@ void raminit(struct romstage_params *params)
 	} else {
 		fsp_reserved_bytes = fsp_memory->ResourceLength;
 		printk(BIOS_DEBUG, "Reserving 0x%016lx bytes for FSP\n",
-			(unsigned long int)fsp_reserved_bytes);
+			(unsigned long)fsp_reserved_bytes);
 	}
 
 	/* Display SMM area */
@@ -138,7 +138,7 @@ void raminit(struct romstage_params *params)
 	}
 
 	/* Migrate CAR data */
-	printk(BIOS_DEBUG, "%p: cbmem_top\n", cbmem_top());
+	printk(BIOS_DEBUG, "%lx: cbmem_top\n", cbmem_top());
 	if (!s3wake) {
 		cbmem_initialize_empty_id_size(CBMEM_ID_FSP_RESERVED_MEMORY,
 			fsp_reserved_bytes);

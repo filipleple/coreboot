@@ -4,6 +4,7 @@
 #include <symbols.h>
 #include <soc/emi.h>
 #include <soc/mmu_operations.h>
+#include <soc/symbols.h>
 
 __weak void mtk_soc_after_dram(void) { /* do nothing */ }
 
@@ -19,11 +20,11 @@ void mtk_mmu_init(void)
 	mmu_init();
 
 	/*
-	 * Set 0x0 to 8GB address as device memory. We want to config IO_PHYS
+	 * Set 0x0 to 16GB address as device memory. We want to config IO_PHYS
 	 * address to DEV_MEM, and map a proper range of dram for the memory
 	 * test during calibration.
 	 */
-	mmu_config_range((void *)0, (uintptr_t)8U * GiB, DEV_MEM);
+	mmu_config_range((void *)0, (uintptr_t)16U * GiB, DEV_MEM);
 
 	/* SRAM is cached */
 	mmu_config_range(_sram, REGION_SIZE(sram), SECURE_CACHED_MEM);
@@ -34,6 +35,11 @@ void mtk_mmu_init(void)
 	/* DMA is non-cached and is reserved for TPM & da9212 I2C DMA */
 	mmu_config_range(_dma_coherent, REGION_SIZE(dma_coherent),
 			 SECURE_UNCACHED_MEM);
+
+	/* Set mcufw_reserved to non-cacheable */
+	if (REGION_SIZE(mcufw_reserved) != 0)
+		mmu_config_range(_mcufw_reserved, REGION_SIZE(mcufw_reserved),
+				 SECURE_UNCACHED_MEM);
 
 	mmu_enable();
 }

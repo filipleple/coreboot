@@ -16,6 +16,7 @@ config BOARD_MSI_MS7E06
 	select HAVE_ACPI_RESUME
 	select HAVE_ACPI_TABLES
 	select INTEL_GMA_HAVE_VBT
+	select MEMORY_MAPPED_TPM
 	select CRB_TPM
 	select HAVE_INTEL_PTT
 
@@ -34,9 +35,6 @@ config MAINBOARD_VENDOR
 config MAINBOARD_FAMILY
 	default "Default string"
 
-config DIMM_SPD_SIZE
-	default 512
-
 config UART_FOR_CONSOLE
 	default 0
 
@@ -48,6 +46,9 @@ config USE_LEGACY_8254_TIMER
 
 config CBFS_SIZE
 	default 0x1000000
+
+config TPM_PIRQ
+	default 0x3f # GPP_E7_IRQ
 
 config VBOOT
 	select GBB_FLAG_DISABLE_EC_SOFTWARE_SYNC

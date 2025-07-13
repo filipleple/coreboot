@@ -93,7 +93,7 @@ struct soc_amd_cezanne_config {
 		DXIO_PSPP_POWERSAVE,
 	} pspp_policy;
 
-	uint8_t usb_phy_custom;
+	bool usb_phy_custom;
 	struct usb_phy_config usb_phy;
 
 	/* eDP phy tuning settings */
@@ -108,6 +108,9 @@ struct soc_amd_cezanne_config {
 		uint8_t tx_eq_post;
 		uint8_t tx_vboost_lvl;
 	} edp_tuningset;
+
+	/* If using an external 48MHz OSC for codec, will disable internal X48M_OSC */
+	bool acp_i2s_use_external_48mhz_osc;
 };
 
 #endif /* CEZANNE_CHIP_H */

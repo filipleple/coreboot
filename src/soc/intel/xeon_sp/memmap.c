@@ -30,12 +30,13 @@ void smm_region(uintptr_t *start, size_t *size)
 
 void fill_postcar_frame(struct postcar_frame *pcf)
 {
-	const uintptr_t top_of_ram = (uintptr_t)cbmem_top();
+	const uintptr_t top_of_ram = cbmem_top();
 	uintptr_t cbmem_base;
 	size_t cbmem_size;
 
 	/* Try account for the CBMEM region currently used and for future use */
-	cbmem_get_region((void **)&cbmem_base, &cbmem_size);
+	if (cbmem_get_region((void **)&cbmem_base, &cbmem_size))
+		die("Could not find cbmem region");
 	printk(BIOS_DEBUG, "top_of_ram = 0x%lx\n", top_of_ram);
 	printk(BIOS_DEBUG, "cbmem base_ptr: 0x%lx, size: 0x%zx\n", cbmem_base, cbmem_size);
 	/* Assume 4MiB will be enough for future cbmem objects (FSP-S, ramstage, ...) */

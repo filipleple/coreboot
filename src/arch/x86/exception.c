@@ -2,6 +2,7 @@
 #include <arch/cpu.h>
 #include <arch/breakpoint.h>
 #include <arch/null_breakpoint.h>
+#include <arch/stack_canary_breakpoint.h>
 #include <arch/exception.h>
 #include <arch/registers.h>
 #include <commonlib/helpers.h>
@@ -369,7 +370,6 @@ static void put_packet(char *buffer)
 		stub_flush();
 
 	} while ((stub_getc() & 0x7f) != '+');
-
 }
 #endif /* CONFIG_GDB_STUB */
 
@@ -380,6 +380,7 @@ void x86_exception(struct eregs *info);
 void x86_exception(struct eregs *info)
 {
 #if CONFIG(GDB_STUB)
+	/* TODO implement 64bit mode */
 	int signo;
 	memcpy(gdb_stub_registers, info, 8*sizeof(uint32_t));
 	gdb_stub_registers[PC] = info->eip;
@@ -664,5 +665,8 @@ asmlinkage void exception_init(void)
 
 	load_idt(idt, sizeof(idt));
 
+#if !ENV_SMM
 	null_breakpoint_init();
+	stack_canary_breakpoint_init();
+#endif
 }

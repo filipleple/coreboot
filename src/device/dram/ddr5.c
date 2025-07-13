@@ -4,7 +4,6 @@
 #include <device/device.h>
 #include <device/dram/ddr5.h>
 #include <memory_info.h>
-#include <smbios.h>
 #include <types.h>
 
 enum ddr5_speed_grade {
@@ -22,6 +21,7 @@ enum ddr5_speed_grade {
 	DDR5_5500,
 	DDR5_6000,
 	DDR5_6400,
+	DDR5_7500,
 };
 
 struct ddr5_speed_attr {
@@ -108,6 +108,11 @@ static const struct ddr5_speed_attr ddr5_speeds[] = {
 		.min_clock_mhz = 3001,
 		.max_clock_mhz = 3200,
 		.reported_mts = 6400
+	},
+	[DDR5_7500] = {
+		.min_clock_mhz = 3201,
+		.max_clock_mhz = 3750,
+		.reported_mts = 7500
 	},
 };
 

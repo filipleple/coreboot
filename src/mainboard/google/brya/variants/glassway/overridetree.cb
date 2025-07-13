@@ -3,20 +3,42 @@ fw_config
 		option THERMAL_SOLUTION_PASSIVE  0
 		option THERMAL_SOLUTION_ACTIVE   1
 	end
+	field AUDIO 2 4
+		option AUDIO_ALC1019_ALC5682IVS		0
+		option AUDIO_ALC5650_ALC5650		1
+	end
 	field DB_USB 5 7
-		option DB_NONE			 0
-		option DB_1C			 1
-		option DB_1A			 2
-		option DB_1C_1A			 3
+		option DB_NONE			0
+		option DB_1C			1
+		option DB_1A			2
+		option DB_1C_1A			3
+		option DB_1C_LTE		4
+		option DB_HDMI_LTE		5
 	end
 	field SD_CARD 8
 		option SD_ABSENT		 0
 		option SD_GL9750S		 1
 	end
-	field TOUCHSCREEN_SOURCE 32 33
-		option TOUCHSCREEN_UNPROVISIONED 0
-		option TOUCHSCREEN_ELAN0001      1
-		option TOUCHSCREEN_GTCH7503      2
+	field WIFI_SAR_ID 10 12
+		option WIFI_SAR_ID_0		 0
+		option WIFI_SAR_ID_1		 1
+		option WIFI_SAR_ID_INTEL_CONVERTIBLE		 2
+		option WIFI_SAR_ID_INTEL_CLAMSHELL		 3
+	end
+	field STYLUS 14
+		option STYLUS_ABSENT		0
+		option STYLUS_PRESENT		1
+	end
+	field WFC 16 17
+		option WFC_ABSENT		0
+		option WFC_PRESENT		1
+	end
+	field TOUCHSCREEN_SOURCE 32 34
+		option TOUCHSCREEN_UNPROVISIONED	0
+		option TOUCHSCREEN_ELAN0001		1
+		option TOUCHSCREEN_GTCH7503		2
+		option TOUCHSCREEN_ELAN9004		3
+		option TOUCHSCREEN_ILIT2901		4
 	end
 end
 
@@ -80,6 +102,7 @@ chip soc/intel/alderlake
 	register "typec_aux_bias_pads[0]" = "{.pad_auxp_dc = GPP_E22, .pad_auxn_dc = GPP_E23}"
 	register "typec_aux_bias_pads[1]" = "{.pad_auxp_dc = GPP_A21, .pad_auxn_dc = GPP_A22}"
 
+	register "usb2_ports[6]" = "USB2_PORT_MID(OC_SKIP)"     # WFC
 	register "usb2_ports[9]" = "USB2_PORT_MID(OC_SKIP)"	# Bluetooth port for CNVi WLAN
 
 	# Configure external V1P05/Vnn/VnnSx Rails
@@ -129,7 +152,7 @@ chip soc/intel/alderlake
 				.speed = I2C_SPEED_FAST,
 				.scl_lcnt = 157,
 				.scl_hcnt = 79,
-				.sda_hold = 7,
+				.sda_hold = 40,
 			}
 		},
 		.i2c[2] = {
@@ -156,7 +179,7 @@ chip soc/intel/alderlake
 				.speed = I2C_SPEED_FAST,
 				.scl_lcnt = 158,
 				.scl_hcnt = 79,
-				.sda_hold = 7,
+				.sda_hold = 40,
 			}
 		},
 	}"
@@ -303,7 +326,7 @@ chip soc/intel/alderlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 1 on
@@ -323,14 +346,15 @@ chip soc/intel/alderlake
 				register "desc" = ""ELAN Touchscreen""
 				register "irq" = "ACPI_IRQ_LEVEL_LOW(GPP_C7_IRQ)"
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
-				register "reset_delay_ms" = "25"
+				register "reset_delay_ms" = "20"
 				register "reset_off_delay_ms" = "4"
 				register "stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
-				register "stop_delay_ms" = "25"
-				register "stop_off_delay_ms" = "2"
+				register "stop_delay_ms" = "5"
+				register "stop_off_delay_ms" = "25"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
-				register "enable_delay_ms" = "7"
-				register "has_power_resource" = "1"
+				register "enable_delay_ms" = "25"
+				register "has_power_resource" = "true"
+				register "use_gpio_for_status" = "true"
 				device i2c 10 on
 					probe TOUCHSCREEN_SOURCE TOUCHSCREEN_UNPROVISIONED
 					probe TOUCHSCREEN_SOURCE TOUCHSCREEN_ELAN0001
@@ -350,12 +374,140 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "5"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 40  on
 					probe TOUCHSCREEN_SOURCE TOUCHSCREEN_GTCH7503
 				end
 			end
+			chip drivers/i2c/hid
+				register "generic.hid" = ""ELAN9004""
+				register "generic.desc" = ""ELAN Touchscreen""
+				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_C7_IRQ)"
+				register "generic.detect" = "1"
+				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
+				register "generic.reset_delay_ms" = "20"
+				register "generic.reset_off_delay_ms" = "2"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
+				register "generic.enable_delay_ms" = "6"
+				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
+				register "generic.stop_delay_ms" = "150"
+				register "generic.stop_off_delay_ms" = "2"
+				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
+				register "hid_desc_reg_offset" = "0x01"
+				device i2c 10 on
+					probe TOUCHSCREEN_SOURCE TOUCHSCREEN_ELAN9004
+				end
+			end
+			chip drivers/i2c/hid
+				register "generic.hid" = ""ILIT2901""
+				register "generic.desc" = ""ILI Touchscreen""
+				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_C7_IRQ)"
+				register "generic.detect" = "1"
+				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
+				register "generic.reset_delay_ms" = "10"
+				register "generic.reset_off_delay_ms" = "4"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
+				register "generic.enable_delay_ms" = "12"
+				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
+				register "generic.stop_delay_ms" = "105"
+				register "generic.stop_off_delay_ms" = "5"
+				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
+				register "hid_desc_reg_offset" = "0x01"
+				device i2c 41 on
+					probe TOUCHSCREEN_SOURCE TOUCHSCREEN_ILIT2901
+				end
+			end
+			chip drivers/generic/gpio_keys
+				register "name" = ""PENH""
+				register "gpio" = "ACPI_GPIO_INPUT_ACTIVE_LOW(GPP_F13)"
+				register "key.wake_gpe" = "GPE0_DW2_15"
+				register "key.wakeup_route" = "WAKEUP_ROUTE_SCI"
+				register "key.wakeup_event_action" = "EV_ACT_DEASSERTED"
+				register "key.dev_name" = ""EJCT""
+				register "key.linux_code" = "SW_PEN_INSERTED"
+				register "key.linux_input_type" = "EV_SW"
+				register "key.label" = ""pen_eject""
+				device generic 0 on
+					probe STYLUS STYLUS_PRESENT
+				end
+			end
 		end #I2C1
+		device ref i2c2 on
+			chip drivers/i2c/sx9324
+				register "desc" = ""SAR Proximity Sensor""
+				register "irq" = "ACPI_IRQ_LEVEL_LOW(GPP_H19_IRQ)"
+				register "speed" = "I2C_SPEED_FAST"
+				register "uid" = "1"
+				register "reg_gnrl_ctrl0" = "0x16"
+				register "reg_gnrl_ctrl1" = "0x21"
+				register "reg_afe_ctrl0" = "0x20"
+				register "reg_afe_ctrl3" = "0x00"
+				register "reg_afe_ctrl4" = "0x46"
+				register "reg_afe_ctrl6" = "0x00"
+				register "reg_afe_ctrl7" = "0x46"
+				register "reg_afe_ph0" = "0x3d"
+				register "reg_afe_ph1" = "0x1b"
+				register "reg_afe_ph2" = "0x1f"
+				register "reg_afe_ph3" = "0x3d"
+				register "reg_afe_ctrl8" = "0x12"
+				register "reg_afe_ctrl9" = "0x08"
+				register "reg_prox_ctrl0" = "0x0b"
+				register "reg_prox_ctrl1" = "0x0b"
+				register "reg_prox_ctrl2" = "0x20"
+				register "reg_prox_ctrl3" = "0x20"
+				register "reg_prox_ctrl4" = "0x0c"
+				register "reg_prox_ctrl5" = "0x00"
+				register "reg_prox_ctrl6" = "0x20"
+				register "reg_prox_ctrl7" = "0xc0"
+				register "reg_adv_ctrl0" = "0x00"
+				register "reg_adv_ctrl1" = "0x00"
+				register "reg_adv_ctrl2" = "0x00"
+				register "reg_adv_ctrl3" = "0x00"
+				register "reg_adv_ctrl4" = "0x00"
+				register "reg_adv_ctrl5" = "0x05"
+				register "reg_adv_ctrl6" = "0x00"
+				register "reg_adv_ctrl7" = "0x00"
+				register "reg_adv_ctrl8" = "0x00"
+				register "reg_adv_ctrl9" = "0x00"
+				register "reg_adv_ctrl10" = "0x00"
+				register "reg_adv_ctrl11" = "0x00"
+				register "reg_adv_ctrl12" = "0x00"
+				register "reg_adv_ctrl13" = "0x00"
+				register "reg_adv_ctrl14" = "0x80"
+				register "reg_adv_ctrl15" = "0x0c"
+				register "reg_adv_ctrl16" = "0x04"
+				register "reg_adv_ctrl17" = "0x70"
+				register "reg_adv_ctrl18" = "0x20"
+				register "reg_adv_ctrl19" = "0x00"
+				register "reg_adv_ctrl20" = "0x00"
+				register "reg_irq_msk" = "0x60"
+				register "reg_irq_cfg0" = "0x00"
+				register "reg_irq_cfg1" = "0x80"
+				register "reg_irq_cfg2" = "0x00"
+
+				register "ph0_pin" = "{1, 3, 3}"
+				register "ph1_pin" = "{3, 2, 1}"
+				register "ph2_pin" = "{3, 3, 1}"
+				register "ph3_pin" = "{1, 3, 3}"
+				register "ph01_resolution" = "512"
+				register "ph23_resolution" = "512"
+				register "startup_sensor" = "1"
+				register "ph01_proxraw_strength" = "3"
+				register "ph23_proxraw_strength" = "3"
+				register "avg_pos_strength" = "256"
+				register "cs_idle_sleep" = ""gnd""
+				register "int_comp_resistor" = ""lowest""
+				register "input_precharge_resistor_ohms" = "4000"
+				register "input_analog_gain" = "1"
+				device i2c 28 on
+					probe DB_USB DB_1C_LTE
+					probe DB_USB DB_HDMI_LTE
+				end
+			end
+		end #I2C2
 		device ref i2c3 on
 			chip drivers/i2c/generic
 				register "hid" = ""RTL5682""
@@ -367,12 +519,29 @@ chip soc/intel/alderlake
 				register "property_list[0].type" = "ACPI_DP_TYPE_INTEGER"
 				register "property_list[0].name" = ""realtek,jd-src""
 				register "property_list[0].integer" = "1"
-				device i2c 1a on end
+				device i2c 1a on
+					probe AUDIO AUDIO_ALC1019_ALC5682IVS
+				end
 			end
 			chip drivers/generic/alc1015
 				register "hid" = ""RTL1019""
 				register "sdb" =  "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_A11)"
-				device generic 1 on end
+				device generic 1 on
+					probe AUDIO AUDIO_ALC1019_ALC5682IVS
+				end
+			end
+			chip drivers/i2c/generic
+				register "hid" = ""10EC5650""
+				register "name" = ""RT58""
+				register "desc" = ""Realtek RT5650""
+				register "irq_gpio" = "ACPI_GPIO_IRQ_EDGE_BOTH(GPP_A23)"
+				register "property_count" = "1"
+				register "property_list[0].type" = "ACPI_DP_TYPE_INTEGER"
+				register "property_list[0].name" = ""realtek,jd-mode""
+				register "property_list[0].integer" = "2"
+				device i2c 1a on
+					probe AUDIO AUDIO_ALC5650_ALC5650
+				end
 			end
 		end #I2C3
 		device ref i2c5 on
@@ -383,6 +552,15 @@ chip soc/intel/alderlake
 				register "wake" = "GPE0_DW2_14"
 				register "detect" = "1"
 				device i2c 15 on end
+			end
+			chip drivers/i2c/hid
+				register "generic.hid" = ""PNP0C50""
+				register "generic.desc" = ""PIXART Touchpad""
+				register "generic.irq" = "ACPI_IRQ_WAKE_LEVEL_LOW(GPP_F14_IRQ)"
+				register "generic.wake" = "GPE0_DW2_14"
+				register "generic.detect" = "1"
+				register "hid_desc_reg_offset" = "0x20"
+				device i2c 2c on end
 			end
 		end #I2C5
 		device ref pcie_rp4 on
@@ -443,7 +621,12 @@ chip soc/intel/alderlake
 					chip drivers/intel/pmc_mux/conn
 						use usb2_port2 as usb2_port
 						use tcss_usb3_port2 as usb3_port
-						device generic 1 alias conn1 on end
+						device generic 1 alias conn1 on
+							probe DB_USB DB_1C
+							probe DB_USB DB_1A
+							probe DB_USB DB_1C_1A
+							probe DB_USB DB_1C_LTE
+						end
 					end
 				end
 			end
@@ -463,7 +646,11 @@ chip soc/intel/alderlake
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
                                                 register "use_custom_pld" = "true"
                                                 register "custom_pld" = "ACPI_PLD_TYPE_C(RIGHT, RIGHT, ACPI_PLD_GROUP(2, 1))"
-						device ref tcss_usb3_port2 on end
+						device ref tcss_usb3_port2 on
+							probe DB_USB DB_1C
+							probe DB_USB DB_1C_1A
+							probe DB_USB DB_1C_LTE
+						end
 					end
 				end
 			end
@@ -483,7 +670,11 @@ chip soc/intel/alderlake
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
                                                 register "use_custom_pld" = "true"
                                                 register "custom_pld" = "ACPI_PLD_TYPE_C(RIGHT, RIGHT, ACPI_PLD_GROUP(2, 1))"
-						device ref usb2_port2 on end
+						device ref usb2_port2 on
+							probe DB_USB DB_1C
+							probe DB_USB DB_1C_1A
+							probe DB_USB DB_1C_LTE
+						end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB2 Type-A Port A0 (MLB)""
@@ -498,7 +689,16 @@ chip soc/intel/alderlake
                                                 register "use_custom_pld" = "true"
                                                 register "custom_pld" = "ACPI_PLD_TYPE_A(RIGHT, LEFT, ACPI_PLD_GROUP(4, 1))"
 						device ref usb2_port4 on
+							probe DB_USB DB_1A
 							probe DB_USB DB_1C_1A
+						end
+					end
+					chip drivers/usb/acpi
+						register "desc" = ""USB2 WWAN""
+						register "type" = "UPC_TYPE_INTERNAL"
+						device ref usb2_port4 on
+							probe DB_USB DB_1C_LTE
+							probe DB_USB DB_HDMI_LTE
 						end
 					end
 					chip drivers/usb/acpi
@@ -507,9 +707,11 @@ chip soc/intel/alderlake
 						device ref usb2_port6 on end
 					end
 					chip drivers/usb/acpi
-						register "desc" = ""USB2 Camera""
+						register "desc" = ""USB2 WFC""
 						register "type" = "UPC_TYPE_INTERNAL"
-						device ref usb2_port7 on end
+						device ref usb2_port7 on
+							probe WFC WFC_PRESENT
+						end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB2 Bluetooth""
@@ -531,7 +733,16 @@ chip soc/intel/alderlake
                                                 register "use_custom_pld" = "true"
                                                 register "custom_pld" = "ACPI_PLD_TYPE_A(RIGHT, LEFT, ACPI_PLD_GROUP(4, 1))"
 						device ref usb3_port2 on
+							probe DB_USB DB_1A
 							probe DB_USB DB_1C_1A
+						end
+					end
+					chip drivers/usb/acpi
+						register "desc" = ""USB3 WWAN""
+						register "type" = "UPC_TYPE_INTERNAL"
+						device ref usb3_port2 on
+							probe DB_USB DB_1C_LTE
+							probe DB_USB DB_HDMI_LTE
 						end
 					end
 				end

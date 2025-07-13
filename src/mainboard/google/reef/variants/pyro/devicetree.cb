@@ -46,7 +46,7 @@ chip soc/intel/apollolake
 	register "emmc_rx_cmd_data_cntl2" = "0x10008"
 
 	# Enable DPTF
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# PL1 override 12 W: the energy calculation is wrong with the
 	# current VR solution. Experiments show that SoC TDP max (6W) can
@@ -63,7 +63,7 @@ chip soc/intel/apollolake
 	register "hdaudio_bios_config_lockdown" = "1"
 
 	# Enable lpss s0ix
-	register "lpss_s0ix_enable" = "1"
+	register "lpss_s0ix_enable" = "true"
 
 	# GPE configuration
 	# Note that GPE events called out in ASL code rely on this
@@ -212,7 +212,7 @@ chip soc/intel/apollolake
 				register "reset_delay_ms" = "20"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPIO_152)"
 				register "enable_delay_ms" = "1"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				device i2c 10 on end
 			end
 		end	# - I2C 3

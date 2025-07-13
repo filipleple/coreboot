@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-#include <assert.h>
 #include <commonlib/helpers.h>
+#include <console/console.h>
 #include <device/mmio.h>
 #include <types.h>
 #include <soc/socinfo.h>
@@ -80,5 +80,4 @@ uint16_t socinfo_pro_part(void)
 		return chipinfolut[ret].pro;
 
 	die("could not match jtagid\n");
-
 }

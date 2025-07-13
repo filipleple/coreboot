@@ -2,15 +2,10 @@
 
 #include <intelblocks/itss.h>
 #include <intelblocks/pcr.h>
-#include <soc/itss.h>
 #include <soc/pcr_ids.h>
 
 /* SoC PCR access */
 #include <soc/intel/common/acpi/pch_pcr.asl>
-/* IOE PCR access */
-#if CONFIG(SOC_INTEL_COMMON_BLOCK_IOE_P2SB)
-#include <soc/intel/common/acpi/ioe_pcr.asl>
-#endif
 
 /* PCIE src clock control */
 #include <soc/intel/common/acpi/pcie_clk.asl>
@@ -43,6 +38,12 @@
 
 /* USB XHCI 0:14.0 */
 #include "xhci.asl"
+
+/* PMC Shared SRAM 0:14.2 */
+#include <soc/intel/common/block/acpi/acpi/sram.asl>
+
+/* CSE/HECI #1 0:16.0 */
+#include <soc/intel/common/block/acpi/acpi/heci.asl>
 
 /* PCI _OSC */
 #include <soc/intel/common/acpi/pci_osc.asl>

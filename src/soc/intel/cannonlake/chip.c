@@ -2,6 +2,7 @@
 
 #include <device/device.h>
 #include <device/pci.h>
+#include <device/pci_ids.h>
 #include <fsp/api.h>
 #include <fsp/util.h>
 #include <gpio.h>
@@ -14,22 +15,10 @@
 #include <intelblocks/xdci.h>
 #include <soc/intel/common/vbt.h>
 #include <soc/pci_devs.h>
+#include <soc/pcie.h>
 #include <soc/ramstage.h>
 
 #include "chip.h"
-
-static const struct pcie_rp_group pch_lp_rp_groups[] = {
-	{ .slot = PCH_DEV_SLOT_PCIE,	.count = 8, .lcap_port_base = 1 },
-	{ .slot = PCH_DEV_SLOT_PCIE_1,	.count = 8, .lcap_port_base = 1 },
-	{ 0 }
-};
-
-static const struct pcie_rp_group pch_h_rp_groups[] = {
-	{ .slot = PCH_DEV_SLOT_PCIE,	.count = 8, .lcap_port_base = 1 },
-	{ .slot = PCH_DEV_SLOT_PCIE_1,	.count = 8, .lcap_port_base = 1 },
-	{ .slot = PCH_DEV_SLOT_PCIE_2,	.count = 8, .lcap_port_base = 1 },
-	{ 0 }
-};
 
 #if CONFIG(HAVE_ACPI_TABLES)
 const char *soc_acpi_name(const struct device *dev)
@@ -89,7 +78,7 @@ const char *soc_acpi_name(const struct device *dev)
 	case PCH_DEVFN_I2C1:	return "I2C1";
 	case PCH_DEVFN_I2C2:	return "I2C2";
 	case PCH_DEVFN_I2C3:	return "I2C3";
-	case PCH_DEVFN_CSE:	return "CSE1";
+	case PCH_DEVFN_CSE:	return "HECI";
 	case PCH_DEVFN_CSE_2:	return "CSE2";
 	case PCH_DEVFN_CSE_IDER:	return "CSED";
 	case PCH_DEVFN_CSE_KT:	return "CSKT";
@@ -153,10 +142,20 @@ void soc_init_pre_device(void *chip_info)
 	soc_gpio_pm_configuration();
 
 	/* swap enabled PCI ports in device tree if needed */
-	if (CONFIG(SOC_INTEL_CANNONLAKE_PCH_H))
-		pcie_rp_update_devicetree(pch_h_rp_groups);
-	else
-		pcie_rp_update_devicetree(pch_lp_rp_groups);
+	if (CONFIG(SOC_INTEL_CANNONLAKE_PCH_H)) {
+		pcie_rp_update_devicetree(get_pch_pcie_rp_table());
+
+		/*
+		 * Fix up device ID of hidden PCI device in devicetree.
+		 * This is used by soc/intel/common/block/uart.c to generate ACPI
+		 */
+		struct device *uart2 = PCH_DEV_UART2;
+		if (uart2->hidden)
+			uart2->device = PCI_DID_INTEL_CNP_H_UART2;
+
+	} else {
+		pcie_rp_update_devicetree(get_pch_pcie_rp_table());
+	}
 }
 
 static void cpu_fill_ssdt(const struct device *dev)

@@ -4,7 +4,7 @@ func NoEC(ctx Context) {
 	ap := Create(ctx, "acpi/platform.asl")
 	defer ap.Close()
 
-	Add_gpl(ap)
+	Add_SPDX(ap, ASL, GPL2_only)
 	ap.WriteString(
 		`Method(_WAK, 1)
 {
@@ -16,9 +16,6 @@ Method(_PTS, 1)
 }
 `)
 
-	si := Create(ctx, "acpi/superio.asl")
-	defer si.Close()
-
-	ec := Create(ctx, "acpi/ec.asl")
-	defer ec.Close()
+	Create_Empty(ctx, "acpi/superio.asl", ASL)
+	Create_Empty(ctx, "acpi/ec.asl", ASL)
 }

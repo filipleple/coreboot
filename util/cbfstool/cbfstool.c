@@ -324,19 +324,25 @@ struct mmap_window {
 static int mmap_window_table_size;
 static struct mmap_window mmap_window_table[MMAP_MAX_WINDOWS];
 
-static void add_mmap_window(size_t flash_offset, size_t host_offset,
-			    size_t window_size)
+static int add_mmap_window(unsigned long flash_offset, unsigned long host_offset, unsigned long window_size)
 {
 	if (mmap_window_table_size >= MMAP_MAX_WINDOWS) {
 		ERROR("Too many memory map windows\n");
-		return;
+		return 1;
 	}
 
-	mmap_window_table[mmap_window_table_size].flash_space.offset = flash_offset;
-	mmap_window_table[mmap_window_table_size].host_space.offset = host_offset;
-	mmap_window_table[mmap_window_table_size].flash_space.size = window_size;
-	mmap_window_table[mmap_window_table_size].host_space.size = window_size;
+	if (region_create_untrusted(
+			&mmap_window_table[mmap_window_table_size].flash_space,
+			flash_offset, window_size) != CB_SUCCESS ||
+	    region_create_untrusted(
+			&mmap_window_table[mmap_window_table_size].host_space,
+			host_offset, window_size) != CB_SUCCESS) {
+		ERROR("Invalid mmap window size %lu.\n", window_size);
+		return 1;
+	}
+
 	mmap_window_table_size++;
+	return 0;
 }
 
 
@@ -346,11 +352,11 @@ static int decode_mmap_arg(char *arg)
 		return 1;
 
 	union {
-		unsigned long int array[3];
+		unsigned long array[3];
 		struct {
-			unsigned long int flash_base;
-			unsigned long int mmap_base;
-			unsigned long int mmap_size;
+			unsigned long flash_base;
+			unsigned long mmap_base;
+			unsigned long mmap_size;
 		};
 	} mmap_args;
 	char *suffix = NULL;
@@ -377,7 +383,9 @@ static int decode_mmap_arg(char *arg)
 		return 1;
 	}
 
-	add_mmap_window(mmap_args.flash_base, mmap_args.mmap_base, mmap_args.mmap_size);
+	if (add_mmap_window(mmap_args.flash_base, mmap_args.mmap_base, mmap_args.mmap_size))
+		return 1;
+
 	return 0;
 }
 
@@ -403,7 +411,8 @@ static bool create_mmap_windows(void)
 		 * maximum of 16MiB. If the window is smaller than 16MiB, the SPI flash window is mapped
 		 * at the top of the host window just below 4G.
 		 */
-		add_mmap_window(std_window_flash_offset, DEFAULT_DECODE_WINDOW_TOP - std_window_size, std_window_size);
+		if (add_mmap_window(std_window_flash_offset, DEFAULT_DECODE_WINDOW_TOP - std_window_size, std_window_size))
+			return false;
 	} else {
 		/*
 		 * Check provided memory map
@@ -414,9 +423,9 @@ static bool create_mmap_windows(void)
 						   &mmap_window_table[j].flash_space)) {
 					ERROR("Flash space windows (base=0x%zx, limit=0x%zx) and (base=0x%zx, limit=0x%zx) overlap!\n",
 					      region_offset(&mmap_window_table[i].flash_space),
-					      region_end(&mmap_window_table[i].flash_space),
+					      region_last(&mmap_window_table[i].flash_space),
 					      region_offset(&mmap_window_table[j].flash_space),
-					      region_end(&mmap_window_table[j].flash_space));
+					      region_last(&mmap_window_table[j].flash_space));
 					return false;
 				}
 
@@ -424,9 +433,9 @@ static bool create_mmap_windows(void)
 						   &mmap_window_table[j].host_space)) {
 					ERROR("Host space windows (base=0x%zx, limit=0x%zx) and (base=0x%zx, limit=0x%zx) overlap!\n",
 					      region_offset(&mmap_window_table[i].flash_space),
-					      region_end(&mmap_window_table[i].flash_space),
+					      region_last(&mmap_window_table[i].flash_space),
 					      region_offset(&mmap_window_table[j].flash_space),
-					      region_end(&mmap_window_table[j].flash_space));
+					      region_last(&mmap_window_table[j].flash_space));
 					return false;
 				}
 			}
@@ -644,8 +653,10 @@ static int cbfs_add_integer_component(const char *name,
 	}
 
 	if (cbfs_get_entry(&image, name)) {
-		ERROR("'%s' already in ROM image.\n", name);
-		goto done;
+		if (cbfs_remove_entry(&image, name) != 0) {
+			ERROR("Removing file '%s' failed.\n", name);
+			goto done;
+		}
 	}
 
 	header = cbfs_create_file_header(CBFS_TYPE_RAW,
@@ -1156,23 +1167,26 @@ static int cbfstool_convert_mkstage(struct buffer *buffer, uint32_t *offset,
 	struct cbfs_file *header)
 {
 	struct buffer output;
-	size_t data_size;
 	int ret;
-
-	if (elf_program_file_size(buffer, &data_size) < 0) {
-		ERROR("Could not obtain ELF size\n");
-		return 1;
-	}
 
 	/*
 	 * We need a final location for XIP parsing, so we need to call do_cbfs_locate() early
 	 * here. That is okay because XIP stages may not be compressed, so their size cannot
 	 * change anymore at a later point.
 	 */
-	if (param.stage_xip &&
-	    do_cbfs_locate(offset, data_size))  {
-		ERROR("Could not find location for stage.\n");
-		return 1;
+	if (param.stage_xip) {
+		size_t data_size, alignment;
+		if (elf_program_file_size_align(buffer, &data_size, &alignment) < 0) {
+			ERROR("Could not obtain ELF size & alignment\n");
+			return 1;
+		}
+
+		param.alignment = MAX(alignment, param.alignment);
+
+		if (do_cbfs_locate(offset, data_size)) {
+			ERROR("Could not find location for stage.\n");
+			return 1;
+		}
 	}
 
 	struct cbfs_file_attr_stageheader *stageheader = (void *)
@@ -1956,16 +1970,12 @@ static void usage(char *name)
 	     "  -U               Unprocessed; don't decompress or make ELF\n"
 	     "  -v               Provide verbose output (-v=INFO -vv=DEBUG output)\n"
 	     "  -h               Display this help message\n\n"
-	     "  --ext-win-base   Base of extended decode window in host address\n"
-	     "                   space(x86 only)\n"
-	     "  --ext-win-size   Size of extended decode window in host address\n"
-	     "                   space(x86 only)\n"
 	     "COMMANDs:\n"
 	     " add [-r image,regions] -f FILE -n NAME -t TYPE [-A hash] \\\n"
 	     "        [-c compression] [-b base-address | -a alignment] \\\n"
 	     "        [-p padding size] [-y|--xip if TYPE is FSP]       \\\n"
 	     "        [-j topswap-size] (Intel CPUs only) [--ibb]       \\\n"
-	     "        [--ext-win-base win-base --ext-win-size win-size]     "
+	     "        [--mmap flash-base:mmio-base:size]                    "
 			"Add a component\n"
 	     "                                                         "
 	     "    -j valid size: 0x10000 0x20000 0x40000 0x80000 0x100000 \n"
@@ -1978,7 +1988,7 @@ static void usage(char *name)
 	     "        [-S comma-separated-section(s)-to-ignore] \\\n"
 	     "        [-a alignment] [-Q|--pow2page] \\\n"
 	     "        [-y|--xip] [--ibb]                                \\\n"
-	     "        [--ext-win-base win-base --ext-win-size win-size]     "
+	     "        [--mmap flash-base:mmio-base:size]                    "
 			"Add a stage to the ROM\n"
 	     " add-flat-binary [-r image,regions] -f FILE -n NAME \\\n"
 	     "        [-A hash] -l load-address -e entry-point \\\n"

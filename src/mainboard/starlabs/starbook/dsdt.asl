@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 #include <acpi/acpi.h>
+
 DefinitionBlock(
 	"dsdt.aml",
 	"DSDT",
@@ -34,7 +35,12 @@ DefinitionBlock(
 		#include <soc/intel/common/block/acpi/acpi/northbridge.asl>
 		#include <soc/intel/alderlake/acpi/southbridge.asl>
 		#include <soc/intel/alderlake/acpi/tcss.asl>
+#elif CONFIG(SOC_INTEL_METEORLAKE)
+		#include <soc/intel/common/block/acpi/acpi/northbridge.asl>
+		#include <soc/intel/meteorlake/acpi/southbridge.asl>
+		#include <soc/intel/meteorlake/acpi/tcss.asl>
 #endif
+		#include <drivers/intel/gma/acpi/default_brightness_levels.asl>
 
 		#include <soc/intel/common/block/acpi/acpi/gna.asl>
 

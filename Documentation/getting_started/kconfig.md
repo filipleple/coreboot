@@ -196,9 +196,9 @@ values to be set based on other values.
   visible in the front end.
 
 
-## Keywords
+### Keywords
 
-### bool
+#### bool
 
 The 'bool' keyword assigns a boolean type to a symbol. The allowable values for
 a boolean type are 'n' or 'y'. The keyword can be followed by an optional prompt
@@ -234,7 +234,7 @@ bool \[prompt\] \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### choice
+#### choice
 
 This creates a selection list of one or more boolean symbols. For bools, only
 one of the symbols can be selected, and one will be be forced to be selected,
@@ -297,7 +297,7 @@ choice \[symbol\]
 
 --------------------------------------------------------------------------------
 
-### comment
+#### comment
 
 This keyword defines a line of text that is displayed to the user in the
 configuration frontend and is additionally written to the output files.
@@ -322,7 +322,7 @@ comment &lt;prompt&gt;
 
 --------------------------------------------------------------------------------
 
-### config
+#### config
 
 This is the keyword that starts a block defining a Kconfig symbol. The symbol
 modifiers follow the 'config' statement.
@@ -359,7 +359,7 @@ config &lt;symbol&gt;
 
 --------------------------------------------------------------------------------
 
-### default
+#### default
 
 The ‘default’ keyword assigns a value to a symbol in the case where no preset
 value exists, i.e. the symbol is not present and assigned in .config.  If there
@@ -399,7 +399,7 @@ default &lt;expr&gt; \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### def_bool
+#### def_bool
 
 ‘def_bool’ is similar to the 'bool' keyword in that it sets a symbol’s type to
 boolean. It lets you set the type and default value at the same time, instead
@@ -433,7 +433,7 @@ def_bool &lt;expr&gt; \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### depends on
+#### depends on
 
 This defines a dependency for a menu entry, including symbols and comments.  It
 behaves the same as surrounding the menu entry with an if/endif block.  If the
@@ -462,28 +462,28 @@ depends on &lt;expr&gt;
 
 --------------------------------------------------------------------------------
 
-### endchoice
+#### endchoice
 
 This ends a choice block. See the 'choice' keyword for more information and an
 example.
 
 --------------------------------------------------------------------------------
 
-### endif
+#### endif
 
 This ends a block started by the 'if' keyword. See the 'if' keyword for more
 information and an example.
 
 --------------------------------------------------------------------------------
 
-### endmenu
+#### endmenu
 
 This ends a menu block. See the 'menu' keyword for more information and an
 example.
 
 --------------------------------------------------------------------------------
 
-### help
+#### help
 
 The 'help' keyword defines the subsequent block of text as help for a config or
 choice block. The help block is started by the 'help' keyword on a line by
@@ -515,7 +515,7 @@ help &lt;help text&gt;
 
 --------------------------------------------------------------------------------
 
-### hex
+#### hex
 
 This is another symbol type specifier, specifying an unsigned integer value
 formatted as hexadecimal.
@@ -551,7 +551,7 @@ hex &lt;expr&gt; \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### if
+#### if
 
 The 'if' keyword is overloaded, used in two different ways. The first definition
 enables and disables various other keywords, and follows the other keyword
@@ -592,7 +592,7 @@ endif
 
 --------------------------------------------------------------------------------
 
-### int
+#### int
 
 A type setting keyword, defines a symbol as an integer, accepting only signed
 numeric values.  The values can be further restricted with the ‘range’ keyword.
@@ -628,7 +628,7 @@ int &lt;expr&gt; \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### mainmenu
+#### mainmenu
 
 The 'mainmenu' keyword sets the title or title bar of the configuration front
   end, depending on how the configuration program decides to use it. It can only
@@ -648,7 +648,7 @@ mainmenu "coreboot configuration"
 
 --------------------------------------------------------------------------------
 
-### menu
+#### menu
 
 The 'menu' and 'endmenu' keywords tell the configuration front end that the
 enclosed statements are part of a group of related pieces.
@@ -695,7 +695,7 @@ endmenu
 
 --------------------------------------------------------------------------------
 
-### prompt
+#### prompt
 
 The 'prompt' keyword sets the text displayed for a config symbol or choice in
 configuration front end.
@@ -748,7 +748,7 @@ prompt &lt;prompt&gt; \[if &lt;expr&gt;\]
             prompt "Prompt value 2"
 --------------------------------------------------------------------------------
 
-### range
+#### range
 
 This sets the allowable minimum and maximum entries for hex or int type config
 symbols.
@@ -770,7 +770,7 @@ range &lt;symbol&gt; &lt;symbol&gt; \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### select
+#### select
 
 The ‘select’ keyword is used within a bool type config block.  In coreboot (and
 other projects that don't use modules), the 'select' keyword can force an
@@ -814,7 +814,7 @@ select &lt;symbol&gt; \[if &lt;expr&gt;\]
 
 --------------------------------------------------------------------------------
 
-### source
+#### source
 
 The 'source' keyword functions much the same as an 'include' statement in c.
 This pulls one or more files into Kconfig at the location of the 'source'
@@ -873,7 +873,7 @@ statements that generate a list of all the platform names:
 
 --------------------------------------------------------------------------------
 
-### string
+#### string
 
 The last of the symbol type assignment keywords. 'string' allows a text value to
 be entered.
@@ -919,7 +919,7 @@ keyword later. See the prompt keyword for more notes.
 
 
 
-## Keywords not used in coreboot at the time of writing:
+### Keywords not used in coreboot at the time of writing:
 
 - allnoconfig_y:
 - defconfig_list
@@ -944,7 +944,7 @@ statements:
     #define SYMBOL NAME XXX
 
 
-##### Symbol types:
+#### Symbol types:
 - bool, int, and hex types -  Every symbol of one of these types created in the
   Kconfig tree is defined.  It doesn’t matter whether they’re in an if/endif
   block, or have a ‘depends on’ statement - they ALL end up being defined in
@@ -1164,21 +1164,21 @@ saved .config file. As always, a 'select' statement overrides any specified
 
 ## Kconfig Editor Highlighting
 
-#### vim:
+### vim:
 
 vim has syntax highlighting for Kconfig built in (or at least as a part of
 vim-common), but most editors do not.
 
 
-#### ultraedit:
+### ultraedit:
 
-https://github.com/martinlroth/wordfiles/blob/master/kconfig.uew
+<https://github.com/martinlroth/wordfiles/blob/master/kconfig.uew>
 
 
 
-#### atom:
+### atom:
 
-https://github.com/martinlroth/language-kconfig
+<https://github.com/martinlroth/language-kconfig>
 
 
 ## Syntax Checking:
@@ -1217,7 +1217,7 @@ in.
 ## License:
 This work is licensed under the Creative Commons Attribution 4.0 International
 License. To view a copy of this license, visit
-https://creativecommons.org/licenses/by/4.0/ or send a letter to Creative
+<https://creativecommons.org/licenses/by/4.0/> or send a letter to Creative
 Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 Code examples snippets are licensed under GPLv2, and are used here under fair

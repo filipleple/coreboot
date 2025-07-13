@@ -2,29 +2,11 @@
 
 #include <bootblock_common.h>
 #include <northbridge/intel/sandybridge/raminit.h>
-#include <southbridge/intel/bd82x6x/pch.h>
 #include <superio/ite/common/ite.h>
 #include <superio/ite/it8728f/it8728f.h>
 
 #define SUPERIO_GPIO PNP_DEV(0x2e, IT8728F_GPIO)
 #define SERIAL_DEV PNP_DEV(0x2e, 0x01)
-
-const struct southbridge_usb_port mainboard_usb_ports[] = {
-	{ 1, 0, 0 },
-	{ 1, 0, 0 },
-	{ 1, 0, 1 },
-	{ 1, 0, 1 },
-	{ 1, 0, 2 },
-	{ 1, 0, 2 },
-	{ 1, 0, 3 },
-	{ 1, 0, 3 },
-	{ 1, 0, 4 },
-	{ 1, 0, 4 },
-	{ 1, 0, 6 },
-	{ 1, 0, 5 },
-	{ 1, 0, 5 },
-	{ 1, 0, 6 },
-};
 
 void bootblock_mainboard_early_init(void)
 {

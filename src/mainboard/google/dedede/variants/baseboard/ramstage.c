@@ -6,13 +6,13 @@
 #include <drivers/usb/acpi/chip.h>
 #include <fw_config.h>
 #include <gpio.h>
-#include <soc/pci_devs.h>
 #include <ec/google/chromeec/ec.h>
 #include <device/pci_ops.h>
 #include <intelblocks/power_limit.h>
 #include <chip.h>
 #include <drivers/intel/dptf/chip.h>
 #include <soc/pci_devs.h>
+#include <static.h>
 
 #define SET_PSYSPL2(e, w) ((e) * (w) / 100)
 #define MICROWATTS_TO_WATTS 1000000

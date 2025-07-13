@@ -2,7 +2,7 @@
 #
 #   make coreboot-sdk
 
-FROM debian:sid AS coreboot-sdk
+FROM debian:stable AS coreboot-sdk
 
 # The coreboot Commit-ID to build the toolchain from.
 ARG DOCKER_COMMIT
@@ -14,7 +14,7 @@ ARG CROSSGCC_PARAM
 RUN \
 	useradd -p locked -m coreboot && \
 	apt-get -qq update && \
-	apt-get -qqy install --no-install-recommends \
+	apt-get -y install --no-install-recommends \
 		bash-completion \
 		bc \
 		bison \
@@ -33,8 +33,9 @@ RUN \
 		g++ \
 		gawk \
 		gcc \
+		gettext \
 		git \
-		gnat-13 \
+		gnat \
 		golang \
 		graphicsmagick-imagemagick-compat \
 		graphviz \
@@ -42,7 +43,6 @@ RUN \
 		less \
 		libcapture-tiny-perl \
 		libcrypto++-dev \
-		libcurl4 \
 		libcurl4-openssl-dev \
 		libdatetime-perl \
 		libelf-dev \
@@ -62,7 +62,6 @@ RUN \
 		libusb-1.0-0-dev \
 		libxml2-dev \
 		libyaml-dev \
-		m4 \
 		make \
 		meson \
 		msitools \
@@ -73,7 +72,7 @@ RUN \
 		parted \
 		patch \
 		pbzip2 \
-		pkg-config \
+		pkgconf \
 		python3 \
 		python-is-python3 \
 		qemu-system-arm \
@@ -88,9 +87,11 @@ RUN \
 		uuid-dev \
 		vim-common \
 		wget \
+		xfonts-unifont \
 		xz-utils \
 		zlib1g-dev \
-	&& apt-get clean
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
 
 RUN \
 	cd /tmp && \

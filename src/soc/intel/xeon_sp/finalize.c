@@ -60,7 +60,6 @@ static void soc_finalize(void *unused)
 		setbits8(pmc_mmio_regs() + PCH_PWRM_ACPI_TMR_CTL, ACPI_TIM_DIS);
 
 	apm_control(APM_CNT_FINALIZE);
-	lock_pam0123();
 
 	if (CONFIG_MAX_SOCKET > 1) {
 		/* This MSR is package scope but run for all cpus for code simplicity */
@@ -82,7 +81,6 @@ static void bios_done_finalize(void *unused)
 	/* bios_done_msr() only defined for some Xeon-SP, such as SPR-SP */
 	if (mp_run_on_all_cpus(&bios_done_msr, NULL) != CB_SUCCESS)
 		printk(BIOS_ERR, "Fail to set BIOS_DONE MSR\n");
-
 }
 
 BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_LOAD, BS_ON_ENTRY, soc_finalize, NULL);

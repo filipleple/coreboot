@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 #include <boot_device.h>
-#include <fmap.h>
-#include <fmap_config.h>
 #include <commonlib/helpers.h>
 #include <commonlib/region.h>
 #include <console/console.h>
+#include <cpu/x86/smm.h>
+#include <fmap.h>
+#include <fmap_config.h>
 #include <smmstore.h>
 #include <types.h>
 
@@ -40,8 +41,43 @@ _Static_assert(SMM_BLOCK_SIZE <= FMAP_SECTION_SMMSTORE_SIZE,
  * crash/reboot could clear out all variables.
  */
 
+static int smmstore_use_full_flash;
+static int has_capsules = -1;
+
+int smmstore_preprocess_cmd(uint8_t *cmd, void *param)
+{
+	if (CONFIG(DRIVERS_EFI_UPDATE_CAPSULES)) {
+		if (has_capsules == -1 && *cmd == SMMSTORE_CMD_USE_FULL_FLASH) {
+			has_capsules = !!(uintptr_t)param;
+			/*
+			 * If we have capsules, return success, otherwise let smmstore_exec()
+			 * fail on !param check, which will be 0 in that case. This informs
+			 * the caller whether capsule handling was enabled or not.
+			 */
+			return has_capsules;
+		} else if (has_capsules == 1 && *cmd & SMMSTORE_CMD_USE_FULL_FLASH) {
+			smmstore_use_full_flash = 1;
+			*cmd &= ~SMMSTORE_CMD_USE_FULL_FLASH;
+		} else {
+			smmstore_use_full_flash = 0;
+		}
+	}
+
+	return 0;
+}
+
 static enum cb_err lookup_store_region(struct region *region)
 {
+	if (CONFIG(DRIVERS_EFI_UPDATE_CAPSULES) && smmstore_use_full_flash) {
+		const struct region_device *rdev = boot_device_rw();
+
+		if (rdev == NULL)
+			return CB_ERR;
+
+		*region = *region_device_region(rdev);
+		return CB_SUCCESS;
+	}
+
 	if (fmap_locate_area(SMMSTORE_REGION, region)) {
 		printk(BIOS_WARNING,
 		       "smm store: Unable to find SMM store FMAP region '%s'\n",
@@ -96,7 +132,6 @@ int smmstore_lookup_region(struct region_device *rstore)
 	static struct region_device rdev;
 
 	if (!done) {
-
 		done = 1;
 
 		if (fmap_locate_area_as_rdev_rw(SMMSTORE_REGION, &rdev)) {
@@ -283,14 +318,10 @@ int smmstore_clear_region(void)
 
 /* Implementation of Version 2 */
 
-static bool store_initialized;
 static struct region_device mdev_com_buf;
 
 static int smmstore_rdev_chain(struct region_device *rdev)
 {
-	if (!store_initialized)
-		return -1;
-
 	return rdev_chain_full(rdev, &mdev_com_buf);
 }
 
@@ -303,12 +334,10 @@ int smmstore_init(void *buf, size_t len)
 	if (!buf || len < SMM_BLOCK_SIZE)
 		return -1;
 
-	if (store_initialized)
+	if (smm_points_to_smram(buf, len))
 		return -1;
 
 	rdev_chain_mem_rw(&mdev_com_buf, buf, len);
-
-	store_initialized = true;
 
 	return 0;
 }

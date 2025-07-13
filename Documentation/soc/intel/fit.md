@@ -17,7 +17,7 @@ The first is called *FIT header* the other are called *FIT entry*.
 Each entry has a *type* that give the other bits in the entry a different
 meaning. The following types are known:
 
-```eval_rst
+```{eval-rst}
 +-----------+------------------------------------------------------------------+
 | no.       | Description                                                      |
 +===========+==================================================================+

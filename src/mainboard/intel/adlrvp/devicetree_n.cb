@@ -17,10 +17,10 @@ chip soc/intel/alderlake
 	register "sagv" = "SaGv_Enabled"
 
 	# Enable DPTF
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# eMMC HS400
-	register "emmc_enable_hs400_mode" = "1"
+	register "emmc_enable_hs400_mode" = "true"
 
 	register "usb2_ports[0]" = "USB2_PORT_MID(OC3)"		# Type-C Port1
 	register "usb2_ports[1]" = "USB2_PORT_MID(OC3)"		# Type-C Port2
@@ -70,7 +70,7 @@ chip soc/intel/alderlake
 	register "tcss_aux_ori" = "4"
 	register "typec_aux_bias_pads[1]" = "{.pad_auxp_dc = GPP_E20, .pad_auxn_dc = GPP_E21}"
 
-	register "s0ix_enable" = "1"
+	register "s0ix_enable" = "true"
 
 	register "serial_io_i2c_mode" = "{
 		[PchSerialIoIndexI2C0] = PchSerialIoPci,
@@ -244,7 +244,7 @@ chip soc/intel/alderlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 alias dptf_policy on end
@@ -302,7 +302,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "450000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "0" #IMGCLKOUT_0
 				register "clk_panel.clks[0].freq" = "1" #19.2 Mhz
@@ -353,7 +353,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "450000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "1" #IMGCLKOUT_1
 				register "clk_panel.clks[0].freq" = "1" #19.2 Mhz
@@ -390,6 +390,9 @@ chip soc/intel/alderlake
 					chip drivers/soundwire/alc711
 						# SoundWire Link 0 ID 1
 						register "desc" = ""Headset Codec""
+						register "alc711_address.version" = "SOUNDWIRE_VERSION_1_1"
+						register "alc711_address.class" = "MIPI_CLASS_NONE"
+						register "alc711_address.part_id" = "MIPI_DEV_ID_REALTEK_ALC711"
 						device generic 0.1 on end
 					end
 				end

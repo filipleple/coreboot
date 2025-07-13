@@ -1,15 +1,13 @@
 chip soc/intel/skylake
 
 	# Enable deep Sx states
-	register "deep_s3_enable_ac" = "0"
-	register "deep_s3_enable_dc" = "0"
-	register "deep_s5_enable_ac" = "1"
-	register "deep_s5_enable_dc" = "1"
+	register "deep_s3_enable_ac" = "false"
+	register "deep_s3_enable_dc" = "false"
+	register "deep_s5_enable_ac" = "true"
+	register "deep_s5_enable_dc" = "true"
 	register "deep_sx_config" = "DSX_EN_WAKE_PIN"
 
-	register "eist_enable" = "1"
-
-	register "serirq_mode" = "SERIRQ_CONTINUOUS"
+	register "eist_enable" = "true"
 
 	# Set the Thermal Control Circuit (TCC) activation value to 95C
 	# even though FSP integration guide says to set it to 100C for SKL-U
@@ -25,30 +23,12 @@ chip soc/intel/skylake
 	register "gpe0_dw1" = "GPP_D"
 	register "gpe0_dw2" = "GPP_E"
 
-	register "gen1_dec" = "0x007c0a01" # EC 0xa00-0xa7f
-	register "gen2_dec" = "0x000c03e1" # COM3 port 0x3e0 - 0x3ef
-	register "gen3_dec" = "0x00fc02e1" # COM2/4/5/6 ports 0x2e0 - 0x2ff
-
 	# Disable DPTF
-	register "dptf_enable" = "0"
+	register "dptf_enable" = "false"
 
 	# FSP Configuration
-	register "SataSalpSupport" = "0"
-	register "SataPortsEnable" = "{
-		[0] = 1,
-		[1] = 1,
-		[2] = 1,
-	}"
-	register "SataPortsDevSlp" = "{
-		[0] = 0,
-		[1] = 0,
-		[2] = 0,
-	}"
-	register "SataSpeedLimit" = "2"
-	register "DspEnable" = "1"
+	register "DspEnable" = "true"
 	register "IoBufferOwnership" = "0"
-	register "SsicPortEnable" = "0"
-	register "ScsEmmcHs400Enabled" = "0"
 	register "SkipExtGfxScan" = "1"
 	register "SaGv" = "SaGv_Enabled"
 	register "PmConfigSlpS3MinAssert" = "2"        # 50ms
@@ -117,39 +97,7 @@ chip soc/intel/skylake
 		.voltage_limit = 1520,
 	}"
 
-	register "PcieRpEnable[2]"  = "1"
-	register "PcieRpEnable[3]"  = "1"
-	register "PcieRpEnable[4]"  = "1"
-	register "PcieRpEnable[8]"  = "1"
-	register "PcieRpEnable[9]"  = "1"
-	register "PcieRpEnable[10]" = "1"
-	register "PcieRpEnable[11]" = "1"
-
 	register "PcieRpClkSrcNumber[0]"  = "0"
-	register "PcieRpClkSrcNumber[3]"  = "1"
-	register "PcieRpClkSrcNumber[4]"  = "2"
-	register "PcieRpClkSrcNumber[8]"  = "3"
-	register "PcieRpClkSrcNumber[9]"  = "3"
-	register "PcieRpClkSrcNumber[10]" = "3"
-	register "PcieRpClkSrcNumber[11]" = "3"
-
-	register "usb2_ports" = "{
-		[0] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (right) */
-		[1] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (right) */
-		[2] = USB2_PORT_MID(OC_SKIP),	/* WiFi */
-		[3] = USB2_PORT_MID(OC_SKIP),	/* F_USB3 header */
-		[4] = USB2_PORT_MID(OC_SKIP),	/* F_USB3 header */
-		[5] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (left) */
-		[6] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (left) */
-		[7] = USB2_PORT_MID(OC_SKIP),	/* GL850G for F_USB1 and F_USB2 headers */
-	}"
-
-	register "usb3_ports" = "{
-		[0] = USB3_PORT_DEFAULT(OC_SKIP),	/* Type-A Port (right) */
-		[1] = USB3_PORT_DEFAULT(OC_SKIP),	/* Type-A Port (right) */
-		[2] = USB3_PORT_DEFAULT(OC_SKIP),	/* F_USB3 header */
-		[3] = USB3_PORT_DEFAULT(OC_SKIP),	/* F_USB3 header */
-	}"
 
 	# PL2 override 25W
 	register "power_limits_config" = "{
@@ -159,29 +107,69 @@ chip soc/intel/skylake
 	# Send an extra VR mailbox command for the PS4 exit issue
 	register "SendVrMbxCmd" = "2"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		device ref igpu		on  end
 		device ref sa_thermal	on  end
-		device ref south_xhci	on  end
+		device ref south_xhci	on
+			register "usb2_ports" = "{
+				[0] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (right) */
+				[1] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (right) */
+				[2] = USB2_PORT_MID(OC_SKIP),	/* WiFi */
+				[3] = USB2_PORT_MID(OC_SKIP),	/* F_USB3 header */
+				[4] = USB2_PORT_MID(OC_SKIP),	/* F_USB3 header */
+				[5] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (left) */
+				[6] = USB2_PORT_MID(OC_SKIP),	/* Type-A Port (left) */
+				[7] = USB2_PORT_MID(OC_SKIP),	/* GL850G for F_USB1 and F_USB2 headers */
+			}"
+
+			register "usb3_ports" = "{
+				[0] = USB3_PORT_DEFAULT(OC_SKIP),	/* Type-A Port (right) */
+				[1] = USB3_PORT_DEFAULT(OC_SKIP),	/* Type-A Port (right) */
+				[2] = USB3_PORT_DEFAULT(OC_SKIP),	/* F_USB3 header */
+				[3] = USB3_PORT_DEFAULT(OC_SKIP),	/* F_USB3 header */
+			}"
+		end
 		device ref south_xdci	on  end
 		device ref thermal	on  end
 		device ref heci1	on  end
-		device ref sata		on  end
+		device ref sata		on
+			register "SataPortsEnable" = "{
+				[0] = 1,
+				[1] = 1,
+				[2] = 1,
+			}"
+			register "SataSpeedLimit" = "2"
+		end
 		device ref pcie_rp3	on  end
+		device ref pcie_rp4	on
+			register "PcieRpClkSrcNumber[3]"  = "1"
+		end
 		device ref pcie_rp5	on
+			register "PcieRpClkSrcNumber[4]"  = "2"
 			smbios_slot_desc "SlotTypePciExpressMini52pinWithoutBSKO"
 					 "SlotLengthOther" "MPCIE_WIFI1" "SlotDataBusWidth1X"
 		end
 		device ref pcie_rp6	on  end
 		device ref pcie_rp9	on
+			register "PcieRpClkSrcNumber[8]"  = "3"
 			smbios_slot_desc "SlotTypeM2Socket3" "SlotLengthOther"
 					 "SSD_M.2 2242/2280" "SlotDataBusWidth4X"
 		end
-		device ref pcie_rp10	on  end
-		device ref pcie_rp11	on  end
-		device ref pcie_rp12	on  end
+		device ref pcie_rp10	on
+			register "PcieRpClkSrcNumber[9]"  = "3"
+		end
+		device ref pcie_rp11	on
+			register "PcieRpClkSrcNumber[10]" = "3"
+		end
+		device ref pcie_rp12	on
+			register "PcieRpClkSrcNumber[11]" = "3"
+		end
 		device ref lpc_espi	on
+			register "serirq_mode" = "SERIRQ_CONTINUOUS"
+
+			register "gen1_dec" = "0x007c0a01" # EC 0xa00-0xa7f
+			register "gen2_dec" = "0x000c03e1" # COM3 port 0x3e0 - 0x3ef
+			register "gen3_dec" = "0x00fc02e1" # COM2/4/5/6 ports 0x2e0 - 0x2ff
 			chip drivers/pc80/tpm
 				device pnp 0c31.0 on end
 			end

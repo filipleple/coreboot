@@ -42,16 +42,6 @@
 
 Scope (\_SB)
 {
-	/* Device base address */
-	Method (BASE, 1)
-	{
-		Local0 = Arg0 & 0x7             /* Function number */
-		Local1 = (Arg0 >> 16) & 0x1F    /* Device number */
-		Local2 = (Local0 << 12) + (Local1 << 15)
-		Local3 = \_SB.PCI0.GPCB() + Local2
-		Return (Local3)
-	}
-
 	/*
 	 * Define PCH ACPIBASE IO as an ACPI operating region. The base address can be
 	 * found in Device 31, Function 2, Offset 40h.
@@ -321,7 +311,7 @@ Scope (_GPE)
 	}
 }
 
-Scope (\_SB.PCI0)
+Scope (\_SB)
 {
 	Device (IOM)
 	{
@@ -331,9 +321,18 @@ Scope (\_SB.PCI0)
 		Name (_CRS, ResourceTemplate () {
 			Memory32Fixed (ReadWrite, IOM_BASE_ADDRESS, IOM_BASE_SIZE)
 		})
+#if CONFIG(IOM_ACPI_DEVICE_VISIBLE)
+		/* ACPI_STATUS_DEVICE_ALL_ON */
 		Name (_STA, 0xF)
+#else
+		/* ACPI_STATUS_DEVICE_HIDDEN_ON */
+		Name (_STA, 0xB)
+#endif
 	}
+}
 
+Scope (\_SB.PCI0)
+{
 	/*
 	 * Operation region defined to access the TCSS_DEVEN. Get the MCHBAR in offset
 	 * 0x48 in B0:D0:F0. TCSS device enable base address is in offset 0x7090 of MCHBAR.

@@ -9,6 +9,8 @@
 #include <soc/spm_common.h>
 #include <types.h>
 
+#define SPM_SYSTEM_BASE_OFFSET	0x40000000
+
 /* SPM READ/WRITE CFG */
 #define SPM_PROJECT_CODE                    0xb16
 #define SPM_REGWR_CFG_KEY                   (SPM_PROJECT_CODE << 16)
@@ -603,9 +605,8 @@ struct mtk_spm_regs {
 	u32 spm_sw_flag_0;
 	u32 spm_sw_debug_0;
 	u32 spm_sw_flag_1;
-	u32 reserved11[8];
-	u32 spm_sw_rsv_7;
-	u32 spm_sw_rsv_8;
+	u32 spm_sw_debug_1;
+	u32 spm_sw_rsv[9];
 	u32 reserved12[203];
 	u32 spm_ack_chk_con_3;
 	u32 spm_ack_chk_pc_3;
@@ -645,8 +646,8 @@ check_member(mtk_spm_regs, ulposc_con, 0x420);
 check_member(mtk_spm_regs, spm_force_dvfs, 0x4fc);
 check_member(mtk_spm_regs, spm_sw_flag_0, 0x600);
 check_member(mtk_spm_regs, spm_sw_flag_1, 0x608);
-check_member(mtk_spm_regs, spm_sw_rsv_7, 0x62c);
-check_member(mtk_spm_regs, spm_sw_rsv_8, 0x630);
+check_member(mtk_spm_regs, spm_sw_rsv[7], 0x62c);
+check_member(mtk_spm_regs, spm_sw_rsv[8], 0x630);
 check_member(mtk_spm_regs, spm_ack_chk_con_3, 0x960);
 check_member(mtk_spm_regs, spm_ack_chk_timer_3, 0x96c);
 check_member(mtk_spm_regs, sys_timer_con, 0x98c);

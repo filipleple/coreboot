@@ -464,23 +464,21 @@ void fast_spi_set_bde(void)
 	pci_or_config32(dev, SPI_BIOS_DECODE_EN, SPI_BIOS_DECODE_LOCK);
 }
 
-/* Set FAST_SPIBAR + SPIBAR_SFDP0_VSCC0 (0xc4) Vendor Control Lock */
-void fast_spi_set_vcl(void)
-{
-	void *spibar = fast_spi_get_bar();
-	uint32_t vcss;
-
-	vcss = read32(spibar + SPIBAR_SFDP0_VSCC0);
-	vcss |= SPIBAR_SFDP0_VSCC0_VCL;
-	write32(spibar + SPIBAR_SFDP0_VSCC0, vcss);
-}
-
 void fast_spi_clear_outstanding_status(void)
 {
 	void *spibar = fast_spi_get_bar();
 
 	/* Make sure all W1C status bits get cleared. */
 	write32(spibar + SPIBAR_HSFSTS_CTL, SPIBAR_HSFSTS_W1C_BITS);
+}
+
+/* Check if flash descriptor override is asserted */
+bool fast_spi_flash_descriptor_override(void)
+{
+	void *spibar = fast_spi_get_bar();
+	uint32_t hsfsts = read32(spibar + SPIBAR_HSFSTS_CTL);
+	printk(BIOS_DEBUG, "HSFSTS: 0x%X\n", hsfsts);
+	return !(hsfsts & SPIBAR_HSFSTS_FDOPSS);
 }
 
 
@@ -502,17 +500,17 @@ static const char *fast_spi_acpi_name(const struct device *dev)
  */
 static void fast_spi_fill_ssdt(const struct device *dev)
 {
+	/* Do not add SSDT if the fast SPI device is hidden. */
+	if (!CONFIG(FAST_SPI_GENERATE_SSDT) || dev->hidden)
+		return;
+
 	const char *scope = acpi_device_scope(dev);
 	const char *hid = fast_spi_acpi_hid(dev);
-	struct resource *res;
 
-	/* Do not add SSDT if the fast SPI device is hidden. */
-	if (dev->hidden || !CONFIG(FAST_SPI_GENERATE_SSDT))
-		return;
 	if (!scope || !hid)
 		return;
 
-	res = probe_resource(dev, PCI_BASE_ADDRESS_0);
+	struct resource *res = probe_resource(dev, PCI_BASE_ADDRESS_0);
 	if (!res)
 		return;
 
@@ -579,9 +577,13 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_LWB_SPI_SUPER,
 	PCI_DID_INTEL_MCC_SPI0,
 	PCI_DID_INTEL_MTL_HWSEQ_SPI,
+	PCI_DID_INTEL_ARL_HWSEQ_SPI,
+	PCI_DID_INTEL_ARL_S_HWSEQ_SPI,
+	PCI_DID_INTEL_ARP_S_HWSEQ_SPI,
 	PCI_DID_INTEL_RPP_S_HWSEQ_SPI,
 	PCI_DID_INTEL_SPR_HWSEQ_SPI,
 	PCI_DID_INTEL_TGP_SPI0,
+	PCI_DID_INTEL_SNR_SPI,
 	0
 };
 

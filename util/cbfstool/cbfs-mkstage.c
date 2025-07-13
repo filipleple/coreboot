@@ -295,10 +295,10 @@ static int rmod_filter(struct reloc_filter *f, const Elf64_Rela *r)
 static Elf64_Phdr **find_loadable_segments(struct parsed_elf *pelf)
 {
 	Elf64_Phdr **phdrs = NULL;
-	Elf64_Phdr *prev = NULL, *cur;
+	Elf64_Phdr *prev = NULL, *cur = NULL;
 	size_t size = 1, i;
 
-	for (i = 0; i < pelf->ehdr.e_phnum; i++, prev = cur) {
+	for (i = 0; i < pelf->ehdr.e_phnum; i++) {
 		cur = &pelf->phdr[i];
 
 		if (cur->p_type != PT_LOAD || cur->p_memsz == 0)
@@ -311,16 +311,23 @@ static Elf64_Phdr **find_loadable_segments(struct parsed_elf *pelf)
 		}
 		phdrs[size - 2] = cur;
 
-		if (!prev)
-			continue;
+		if (prev) {
+			const bool bfd_is_consecutive = prev->p_paddr + prev->p_memsz == cur->p_paddr
+				&& prev->p_filesz == prev->p_memsz;
+			/*
+			 * lld pads the memsz of the .text vaddr till the vaddr of car.data.
+			 * Since we don't load XIP stages at runtime, we don't care.
+			 */
+			const bool lld_is_consecutive = prev->p_vaddr + prev->p_memsz == cur->p_vaddr;
 
-		if (prev->p_paddr + prev->p_memsz != cur->p_paddr ||
-		    prev->p_filesz != prev->p_memsz) {
-			ERROR("Loadable segments physical addresses should "
-			      "be consecutive\n");
-			free(phdrs);
-			return NULL;
+			if (!bfd_is_consecutive && !lld_is_consecutive) {
+				ERROR("Loadable segments physical addresses should "
+				      "be consecutive\n");
+				free(phdrs);
+				return NULL;
+			}
 		}
+		prev = cur;
 	}
 
 	if (phdrs)
@@ -405,11 +412,23 @@ int parse_elf_to_xip_stage(const struct buffer *input, struct buffer *output,
 		size_t reloc_offset;
 		uint32_t val;
 		struct buffer in, out;
+		Elf64_Addr reloc = rmodctx->emitted_relocs[i];
 
 		/* The relocations represent in-program addresses of the
 		 * linked program. Obtain the offset into the program to do
 		 * the adjustment. */
-		reloc_offset = rmodctx->emitted_relocs[i] - pelf->phdr->p_vaddr;
+		reloc_offset = 0;
+		for (phdr = toload; *phdr; phdr++) {
+			if (reloc >= (*phdr)->p_vaddr &&
+			    reloc < (*phdr)->p_vaddr + (*phdr)->p_memsz)
+				break;
+			reloc_offset += (*phdr)->p_filesz;
+		}
+		if (!*phdr) {
+			ERROR("Relocation outside of loadable segments\n");
+			goto out;
+		}
+		reloc_offset += reloc - (*phdr)->p_vaddr;
 
 		buffer_clone(&out, &boutput);
 		buffer_seek(&out, reloc_offset);

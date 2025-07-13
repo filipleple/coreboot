@@ -12,6 +12,8 @@ enum disp_path_sel {
 	DISP_PATH_MIPI,
 };
 
+#define PANEL_QUIRK_FORCE_MAX_SWING	BIT(0)
+
 struct panel_description {
 	const char *name;
 	void (*configure_backlight)(void);
@@ -21,10 +23,12 @@ struct panel_description {
 	enum lb_fb_orientation orientation;
 	enum disp_path_sel disp_path;
 	bool pwm_ctrl_gpio;
+	uint32_t quirks;
 };
 
-int mtk_display_init(void);
 struct panel_description *get_active_panel(void);
+void mtk_display_disable_secure_mode(void);
+int mtk_display_init(void);
 
 void mtk_ddp_init(void);
 void mtk_ddp_mode_set(const struct edid *edid, enum disp_path_sel path);

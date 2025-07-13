@@ -4,26 +4,8 @@
 #include <stdint.h>
 #include <arch/io.h>
 #include <superio/smsc/sio1007/sio1007.h>
-#include <southbridge/intel/bd82x6x/pch.h>
 
 #define SIO_PORT 0x164e
-
-const struct southbridge_usb_port mainboard_usb_ports[] = {
-	{ 1, 1, 0 },
-	{ 1, 1, 0 },
-	{ 1, 1, 1 },
-	{ 1, 1, 1 },
-	{ 1, 0, 2 },
-	{ 1, 0, 2 },
-	{ 1, 0, 3 },
-	{ 1, 0, 3 },
-	{ 1, 1, 4 },
-	{ 1, 1, 4 },
-	{ 1, 0, 5 },
-	{ 1, 0, 5 },
-	{ 1, 0, 6 },
-	{ 1, 0, 6 },
-};
 
 void bootblock_mainboard_early_init(void)
 {

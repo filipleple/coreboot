@@ -166,7 +166,12 @@ Method (_CRS, 0, Serialized)
 				0x00000000, 0x10000, 0x1ffff, 0x00000000,
 				0x10000,,, PM02)
 
-#if !((CONFIG_PCR_BASE_ADDRESS >= PCH_PRESERVED_BASE_ADDRESS) && \
+#if (CONFIG_PCR_BASE_ADDRESS >= (4ULL * GiB))
+		QWordMemory (ResourceProducer, PosDecode, MinFixed, MaxFixed,
+				NonCacheable, ReadWrite,
+				0x00000000, 0x000000000, 0x00000000, 0x00000000,
+				0x00000000,,, SM01)
+#elif !((CONFIG_PCR_BASE_ADDRESS >= PCH_PRESERVED_BASE_ADDRESS) && \
       (CONFIG_PCR_BASE_ADDRESS < PCH_PRESERVED_BASE_ADDRESS + PCH_PRESERVED_BASE_SIZE))
 		/* SBREG BAR if outside of PCH reserved resource */
 		DWordMemory (ResourceProducer, PosDecode, MinFixed, MaxFixed,
@@ -202,13 +207,19 @@ Method (_CRS, 0, Serialized)
 	PMIN = \_SB.PCI0.MCHC.TLUD & (0xfff << 20)
 	PLEN = PMAX - PMIN + 1
 
-#if !((CONFIG_PCR_BASE_ADDRESS >= PCH_PRESERVED_BASE_ADDRESS) && \
+#if (CONFIG_PCR_BASE_ADDRESS >= (4ULL * GiB))
+	CreateQwordField (MCRS, SM01._MIN, SMIN)
+	CreateQwordField (MCRS, SM01._MAX, SMAX)
+	CreateQwordField (MCRS, SM01._LEN, SLEN)
+	SMIN = P2SB_BAR
+	SLEN = P2SB_SIZE
+	SMAX = SMIN + SLEN - 1
+#elif !((CONFIG_PCR_BASE_ADDRESS >= PCH_PRESERVED_BASE_ADDRESS) && \
       (CONFIG_PCR_BASE_ADDRESS < PCH_PRESERVED_BASE_ADDRESS + PCH_PRESERVED_BASE_SIZE))
 	/* Fix up SBREG BAR memory region if outside PCH reserved resource */
 	CreateDwordField (MCRS, SM01._MIN, SMIN)
 	CreateDwordField (MCRS, SM01._MAX, SMAX)
 	CreateDwordField (MCRS, SM01._LEN, SLEN)
-
 	SMIN = P2SB_BAR
 	SLEN = P2SB_SIZE
 	SMAX = SMIN + SLEN - 1
@@ -266,6 +277,16 @@ Method (GDMB, 0, Serialized)
 	Return (Local0)
 }
 
+/* Device base address */
+Method (BASE, 1)
+{
+	Local0 = Arg0 & 0x7             /* Function number */
+	Local1 = (Arg0 >> 16) & 0x1F    /* Device number */
+	Local2 = (Local0 << 12) + (Local1 << 15)
+	Local3 = \_SB.PCI0.GPCB() + Local2
+	Return (Local3)
+}
+
 /* PCI Device Resource Consumption */
 Device (PDRC)
 {
@@ -280,12 +301,12 @@ Device (PDRC)
 			 * B0:D0:F0:Reg.48h
 			 */
 			Memory32Fixed (ReadWrite, 0, MCH_BASE_SIZE, MCHB)
-
+#if DMI_BASE_SIZE
 			/* DMI BAR _BAS will be updated in _CRS below according to
 			 * B0:D0:F0:Reg.68h
 			 */
 			Memory32Fixed (ReadWrite, 0, DMI_BASE_SIZE, DMIB)
-
+#endif
 			/* EP BAR _BAS will be updated in _CRS below according to
 			 * B0:D0:F0:Reg.40h
 			 */
@@ -311,10 +332,10 @@ Device (PDRC)
 
 		CreateDwordField (BUF0, MCHB._BAS, MBR0)
 		MBR0 = \_SB.PCI0.GMHB ()
-
+#if DMI_BASE_SIZE
 		CreateDwordField (BUF0, DMIB._BAS, DBR0)
 		DBR0 = \_SB.PCI0.GDMB ()
-
+#endif
 		CreateDwordField (BUF0, EGPB._BAS, EBR0)
 		EBR0 = \_SB.PCI0.GEPB ()
 

@@ -7,8 +7,8 @@
 #include <acpi/acpigen.h>
 #include <acpi/acpigen_pci.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <types.h>
 #include <crc_byte.h>
 
@@ -39,6 +39,23 @@
  */
 #define ACPI_DSD_STORAGE_D3_UUID "5025030F-842F-4AB4-A561-99A5189762D0"
 #define ACPI_DSD_STORAGE_D3_NAME "StorageD3Enable"
+
+/* Write GPIO descriptor of DSD property */
+int acpi_device_write_dsd_gpio(struct acpi_gpio *gpio, int *curr_index)
+{
+	int ret = -1;
+
+	if (!gpio || !curr_index)
+		return ret;
+
+	if (gpio->pin_count == 0)
+		return ret;
+
+	acpi_device_write_gpio(gpio);
+	ret = (*curr_index)++;
+
+	return ret;
+}
 
 /* Write empty word value and return pointer to it */
 static void *acpi_device_write_zero_len(void)
@@ -1158,7 +1175,6 @@ struct acpi_dp *acpi_dp_add_gpio_array(struct acpi_dp *dp, const char *name,
 	acpi_dp_add_array(dp, gpio);
 
 	return gpio;
-
 }
 
 

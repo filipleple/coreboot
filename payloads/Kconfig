@@ -68,8 +68,8 @@ config PAYLOAD_FILE
 choice
 	prompt "Payload compression algorithm"
 	default COMPRESSED_PAYLOAD_LZMA
-	default COMPRESSED_PAYLOAD_NONE if PAYLOAD_LINUX || PAYLOAD_LINUXBOOT || PAYLOAD_FIT
-	depends on !PAYLOAD_LINUX && !PAYLOAD_LINUXBOOT && !PAYLOAD_FIT
+	default COMPRESSED_PAYLOAD_NONE if PAYLOAD_FIT
+	depends on !PAYLOAD_FIT
 	help
 	  Choose the compression algorithm for the chosen payloads.
 	  You can choose between None, LZMA, or LZ4.
@@ -102,17 +102,6 @@ config PAYLOAD_OPTIONS
 config PAYLOAD_IS_FLAT_BINARY
 	bool
 	default n
-
-config PAYLOAD_FIT_SUPPORT
-	bool "FIT support"
-	default n
-	default y if PAYLOAD_LINUX && (ARCH_ARM || ARCH_ARM64 || ARCH_RISCV)
-	depends on ARCH_ARM64 || ARCH_RISCV || ARCH_ARM
-	select FLATTENED_DEVICE_TREE
-	help
-	  Select this option if your payload is of type FIT.
-	  Enables FIT parser and devicetree patching. The FIT is non
-	  self-extracting and needs to have a compatible compression format.
 
 config COMPRESS_SECONDARY_PAYLOAD
 	bool "Use LZMA compression for secondary payloads"
@@ -190,5 +179,16 @@ source "payloads/external/*/Kconfig.secondary"
 endmenu # "Secondary Payloads"
 
 endif # !PAYLOAD_NONE
+
+config PAYLOAD_FIT_SUPPORT
+	bool "FIT support"
+	default n
+	default y if PAYLOAD_LINUX && (ARCH_ARM || ARCH_ARM64 || ARCH_RISCV)
+	depends on ARCH_ARM64 || ARCH_RISCV || ARCH_ARM
+	select FLATTENED_DEVICE_TREE
+	help
+	  Select this option if your payload is of type FIT.
+	  Enables FIT parser and devicetree patching. The FIT is non
+	  self-extracting and needs to have a compatible compression format.
 
 endmenu

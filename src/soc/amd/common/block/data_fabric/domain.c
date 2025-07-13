@@ -22,7 +22,7 @@ void amd_pci_domain_scan_bus(struct device *domain)
 
 	if (segment_group >= PCI_SEGMENT_GROUP_COUNT) {
 		printk(BIOS_ERR, "Skipping domain %u due to too large segment group %u.\n",
-		       domain->path.domain.domain, segment_group);
+		       dev_get_domain_id(domain), segment_group);
 		return;
 	}
 
@@ -206,7 +206,7 @@ void amd_pci_domain_read_resources(struct device *domain)
 	read_non_pci_resources(domain, &idx);
 
 	/* Only add the SoC's DRAM memory map and fixed resources once */
-	if (domain->path.domain.domain == 0) {
+	if (is_domain0(domain)) {
 		add_pci_cfg_resources(domain, &idx);
 
 		read_soc_memmap_resources(domain, &idx);

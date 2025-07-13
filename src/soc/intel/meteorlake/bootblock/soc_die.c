@@ -13,8 +13,8 @@
 #include <intelblocks/systemagent.h>
 #include <intelblocks/tco.h>
 #include <intelblocks/uart.h>
+#include <intelpch/espi.h>
 #include <soc/bootblock.h>
-#include <soc/espi.h>
 #include <soc/iomap.h>
 #include <soc/p2sb.h>
 #include <soc/pci_devs.h>
@@ -55,8 +55,10 @@ static void soc_die_config_pwrmbase(void)
 
 static void soc_die_early_iorange_init(void)
 {
-	uint16_t io_enables = LPC_IOE_SUPERIO_2E_2F | LPC_IOE_KBC_60_64 |
-		LPC_IOE_EC_62_66 | LPC_IOE_LGE_200;
+	uint16_t io_enables = LPC_IOE_LPT_EN | LPC_IOE_FDD_EN |
+			      LPC_IOE_LGE_200 | LPC_IOE_HGE_208 |
+			      LPC_IOE_KBC_60_64 | LPC_IOE_EC_62_66 |
+			      LPC_IOE_SUPERIO_2E_2F | LPC_IOE_EC_4E_4F;
 
 	/* IO Decode Range */
 	if (CONFIG(DRIVERS_UART_8250IO))

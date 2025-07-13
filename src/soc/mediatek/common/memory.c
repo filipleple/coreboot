@@ -5,6 +5,7 @@
 #include <cbmem.h>
 #include <commonlib/bsd/mem_chip_info.h>
 #include <console/console.h>
+#include <fmap_config.h>
 #include <soc/dramc_common.h>
 #include <mrc_cache.h>
 #include <soc/dramc_param.h>
@@ -13,12 +14,8 @@
 #include <symbols.h>
 #include <timer.h>
 
-/* This must be defined in chromeos.fmd in same name and size. */
-#define CAL_REGION_RW_MRC_CACHE			"RW_MRC_CACHE"
-#define CAL_REGION_RW_MRC_CACHE_SIZE		0x2000
-
-_Static_assert(sizeof(struct dramc_param) <= CAL_REGION_RW_MRC_CACHE_SIZE,
-	       "sizeof(struct dramc_param) exceeds " CAL_REGION_RW_MRC_CACHE);
+_Static_assert(sizeof(struct dramc_param) <= FMAP_SECTION_RW_MRC_CACHE_SIZE,
+	       "sizeof(struct dramc_param) exceeds RW_MRC_CACHE size");
 
 const char *get_dram_geometry_str(u32 ddr_geometry);
 const char *get_dram_type_str(u32 ddr_type);
@@ -109,6 +106,11 @@ size_t mtk_dram_size(void)
 	return size;
 }
 
+__weak enum mem_chip_type map_to_lpddr_dram_type(uint16_t lpddr_type)
+{
+	return MEM_CHIP_LPDDR4X;
+}
+
 static void fill_dram_info(struct mem_chip_info *mc, const struct ddr_base_info *ddr)
 {
 	unsigned int c, r;
@@ -121,7 +123,7 @@ static void fill_dram_info(struct mem_chip_info *mc, const struct ddr_base_info 
 		for (r = 0; r < ddr->mrr_info.rank_nums; r++) {
 			entry->channel = c;
 			entry->rank = r;
-			entry->type = MEM_CHIP_LPDDR4X;
+			entry->type = map_to_lpddr_dram_type(ddr->lpddr_type);
 			entry->channel_io_width = DQ_DATA_WIDTH_LP4;
 			entry->density_mbits = ddr->mrr_info.mr8_density[r] / CHANNEL_MAX /
 					       (MiB / 8);

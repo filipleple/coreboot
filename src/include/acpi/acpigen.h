@@ -506,10 +506,13 @@ void acpigen_write_debug_sprintf(const char *fmt, ...) __printf(1, 2);
 void acpigen_write_if(void);
 void acpigen_write_if_and(uint8_t arg1, uint8_t arg2);
 void acpigen_write_if_lequal_op_op(uint8_t op, uint8_t val);
+void acpigen_write_if_lnotequal_op_op(uint8_t op, uint8_t val);
 void acpigen_write_if_lgreater_op_op(uint8_t op1, uint8_t op2);
 void acpigen_write_if_lequal_op_int(uint8_t op, uint64_t val);
+void acpigen_write_if_lnotequal_op_int(uint8_t op, uint64_t val);
 void acpigen_write_if_lgreater_op_int(uint8_t op, uint64_t val);
 void acpigen_write_if_lequal_namestr_int(const char *namestr, uint64_t val);
+void acpigen_write_if_lnotequal_namestr_int(const char *namestr, uint64_t val);
 void acpigen_write_if_lgreater_namestr_int(const char *namestr, uint64_t val);
 __always_inline void acpigen_write_if_end(void)
 {
@@ -532,10 +535,16 @@ void acpigen_write_pld(const struct acpi_pld *pld);
 void acpigen_write_ADR(uint64_t adr);
 struct soundwire_address;
 void acpigen_write_ADR_soundwire_device(const struct soundwire_address *address);
+void acpigen_write_create_bit_field(uint8_t op, size_t bit_offset, const char *name);
 void acpigen_write_create_byte_field(uint8_t op, size_t byte_offset, const char *name);
 void acpigen_write_create_word_field(uint8_t op, size_t byte_offset, const char *name);
 void acpigen_write_create_dword_field(uint8_t op, size_t byte_offset, const char *name);
 void acpigen_write_create_qword_field(uint8_t op, size_t byte_offset, const char *name);
+void acpigen_write_create_buffer_bit_field(const char *src_buf, size_t bit_offset, const char *field);
+void acpigen_write_create_buffer_byte_field(const char *src_buf, size_t byte_offset, const char *name);
+void acpigen_write_create_buffer_word_field(const char *src_buf, size_t byte_offset, const char *name);
+void acpigen_write_create_buffer_dword_field(const char *src_buf, size_t byte_offset, const char *name);
+void acpigen_write_create_buffer_qword_field(const char *src_buf, size_t byte_offset, const char *name);
 void acpigen_write_field_name(const char *name, uint32_t size);
 /*
  * Generate ACPI AML code for _DSM method.

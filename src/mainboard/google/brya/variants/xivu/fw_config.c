@@ -2,7 +2,6 @@
 
 #include <baseboard/gpio.h>
 #include <baseboard/variants.h>
-#include <bootstate.h>
 #include <console/console.h>
 #include <fw_config.h>
 
@@ -24,5 +23,4 @@ void fw_config_gpio_padbased_override(struct pad_config *padbased_table)
 		gpio_padbased_override(padbased_table, wfc_disable_pads,
 						ARRAY_SIZE(wfc_disable_pads));
 	}
-
 }

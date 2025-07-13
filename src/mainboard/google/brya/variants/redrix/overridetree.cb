@@ -42,7 +42,7 @@ chip soc/intel/alderlake
 	register "fivr_spread_spectrum" = "FIVR_SS_6"
 
 	# Acoustic settings
-	register "acoustic_noise_mitigation" = "1"
+	register "acoustic_noise_mitigation" = "true"
 	register "slow_slew_rate[VR_DOMAIN_IA]" = "SLEW_FAST_8"
 	register "slow_slew_rate[VR_DOMAIN_GT]" = "SLEW_FAST_8"
 	register "fast_pkg_c_ramp_disable[VR_DOMAIN_IA]" = "1"
@@ -162,6 +162,41 @@ chip soc/intel/alderlake
 				register "options.tsr[2].desc" = ""Charger""
 				register "options.tsr[3].desc" = ""5V regulator""
 
+				## Active Policy
+				# NOTE: Copy from EC. Only to enable acpi-fan.
+				register "policies.active" = "{
+					[0] = {
+						.target = DPTF_TEMP_SENSOR_0,
+						.thresholds = {
+								TEMP_PCT(100, 85),
+								TEMP_PCT( 58, 78),
+								TEMP_PCT( 57, 71),
+								TEMP_PCT( 56, 68),
+								TEMP_PCT( 55, 66),
+								TEMP_PCT( 54, 53),
+						}
+					},
+					[1] = {
+						.target = DPTF_CPU,
+						.thresholds = {
+								TEMP_PCT(100, 85),
+								TEMP_PCT( 58, 78),
+								TEMP_PCT( 57, 71),
+								TEMP_PCT( 56, 68),
+								TEMP_PCT( 55, 66),
+								TEMP_PCT( 54, 53),
+						}
+					},
+					[2] = {
+						.target = DPTF_TEMP_SENSOR_2,
+						.thresholds = {
+								TEMP_PCT(100, 100),
+								TEMP_PCT( 58,  63),
+								TEMP_PCT( 57,  61),
+						}
+					}
+				}"
+
 				# TODO: below values are initial reference values only
 				## Passive Policy
 				register "policies.passive" = "{
@@ -194,6 +229,27 @@ chip soc/intel/alderlake
 					[2] = {  16, 1000 },
 					[3] = {   8,  500 }
 				}"
+
+				## Fan Performance Control (Percent, Speed, Noise, Power)
+				# NOTE: Noise and Power numbers are placeholders.
+				register "controls.fan_perf" = "{
+					[ 0] = { 100, 9500, 200, 2000, },
+					[ 1] = {  90, 8700, 180, 1800, },
+					[ 2] = {  80, 8000, 160, 1600, },
+					[ 3] = {  70, 7200, 140, 1400, },
+					[ 4] = {  60, 6300, 120, 1200, },
+					[ 5] = {  50, 5400, 100, 1000, },
+					[ 6] = {  40, 4400,  80,  800, },
+					[ 7] = {  30, 3300,  60,  600, },
+					[ 8] = {  20, 2100,  40,  400, },
+					[ 9] = {  10,  800,  20,  200, },
+					[10] = {   0,    0,   0,    0, },
+				}"
+
+				## Fan options
+				register "options.fan.fine_grained_control" = "true"
+				register "options.fan.step_size" = "2"
+
 				device generic 0 alias dptf_policy on end
 			end
 		end
@@ -271,6 +327,15 @@ chip soc/intel/alderlake
 				device generic 0 on end
 			end
 		end	#PCIE8 SD card
+		device ref pcie_rp9 on
+			chip soc/intel/common/block/pcie/rtd3
+				register "is_storage" = "true"
+				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_D11)"
+				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_B4)"
+				register "srcclk_pin" = "1"
+				device generic 0 on end
+			end
+		end	#PCIE9-12 SSD
 		device ref i2c0 on
 			chip drivers/i2c/generic
 				register "hid" = ""RTL5682""
@@ -361,7 +426,7 @@ chip soc/intel/alderlake
 				register "remote_name" = ""IPU0""
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "IMGCLKOUT_3"
 				register "clk_panel.clks[0].freq" = "FREQ_19_2_MHZ"
@@ -400,7 +465,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "437000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "IMGCLKOUT_3"
 				register "clk_panel.clks[0].freq" = "FREQ_19_2_MHZ"
@@ -458,6 +523,7 @@ chip soc/intel/alderlake
 							"ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
 				register "generic.stop_off_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 0x15 on end
 			end
@@ -493,7 +559,7 @@ chip soc/intel/alderlake
 				register "compat_string" = ""google,cros-ec-spi""
 				register "irq" = "ACPI_IRQ_WAKE_LEVEL_LOW(GPP_F15_IRQ)"
 				register "wake" = "GPE0_DW2_15"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_D1)"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_D2)"
 				register "enable_delay_ms" = "3"

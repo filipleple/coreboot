@@ -4,10 +4,10 @@
 #include <acpi/acpigen.h>
 #include <console/console.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <device/spi.h>
 #include <spi-generic.h>
-#include <string.h>
+#include <stdio.h>
+
 #include "chip.h"
 
 static int spi_acpi_get_bus(const struct device *dev)
@@ -131,7 +131,7 @@ static void spi_acpi_fill_ssdt_generator(const struct device *dev)
 
 	/* Write device properties if needed */
 	if (config->compat_string || irq_gpio_index >= 0 ||
-	    reset_gpio_index >= 0 || enable_gpio_index >= 0) {
+	    reset_gpio_index >= 0 || enable_gpio_index >= 0 || config->property_count) {
 		struct acpi_dp *dsd = acpi_dp_new_table("_DSD");
 		if (config->compat_string)
 			acpi_dp_add_string(dsd, "compatible",
@@ -148,6 +148,10 @@ static void spi_acpi_fill_ssdt_generator(const struct device *dev)
 			acpi_dp_add_gpio(dsd, "enable-gpios", path,
 					 enable_gpio_index, 0,
 					 config->enable_gpio.active_low);
+		/* Add generic property list */
+		if (config->property_count > 0)
+			acpi_dp_add_property_list(dsd, config->property_list,
+					 config->property_count);
 		acpi_dp_write(dsd);
 	}
 
@@ -162,7 +166,8 @@ static void spi_acpi_fill_ssdt_generator(const struct device *dev)
 			config->enable_off_delay_ms,
 			&config->stop_gpio,
 			config->stop_delay_ms,
-			config->stop_off_delay_ms
+			config->stop_off_delay_ms,
+			config->use_gpio_for_status
 		};
 		acpi_device_add_power_res(&power_res_params);
 	}

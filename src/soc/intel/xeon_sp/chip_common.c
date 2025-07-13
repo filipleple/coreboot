@@ -1,29 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include <acpi/acpigen_pci.h>
-#include <assert.h>
 #include <console/console.h>
 #include <device/pci.h>
 #include <intelblocks/acpi.h>
-#include <post.h>
 #include <soc/acpi.h>
 #include <soc/chip_common.h>
 #include <soc/soc_util.h>
 #include <soc/util.h>
-#include <stdlib.h>
-
-static const STACK_RES *domain_to_stack_res(const struct device *dev)
-{
-	assert(dev->path.type == DEVICE_PATH_DOMAIN);
-	const union xeon_domain_path dn = {
-		.domain_path = dev->path.domain.domain
-	};
-
-	const IIO_UDS *hob = get_iio_uds();
-	assert(hob != NULL);
-
-	return &hob->PlatformData.IIO_resource[dn.socket].StackRes[dn.stack];
-}
 
 /**
  * Find all device of a given vendor and type for the specified socket.
@@ -56,14 +40,15 @@ struct device *dev_find_device_on_socket(uint8_t socket, u16 vendor, u16 device)
 static int filter_device_on_stack(struct device *dev, uint8_t socket, uint8_t stack,
 	u16 vendor, u16 device)
 {
-	struct device *domain = dev_get_pci_domain(dev);
-	if (!domain)
-		return 0;
 	if (dev->path.type != DEVICE_PATH_PCI)
 		return 0;
 
+	const struct device *domain = dev_get_domain(dev);
+	if (!domain)
+		return 0;
+
 	union xeon_domain_path dn;
-	dn.domain_path = domain->path.domain.domain;
+	dn.domain_path = dev_get_domain_id(domain);
 
 	if (socket != XEONSP_SOCKET_MAX && dn.socket != socket)
 		return 0;
@@ -145,20 +130,16 @@ struct device *dev_find_all_devices_on_domain(struct device *domain, u16 vendor,
  *
  * @return Socket ID the device is attached to, negative number on error.
  */
-int iio_pci_domain_socket_from_dev(struct device *dev)
+int iio_pci_domain_socket_from_dev(const struct device *dev)
 {
-	struct device *domain;
+	const struct device *domain;
 	union xeon_domain_path dn;
 
-	if (dev->path.type == DEVICE_PATH_DOMAIN)
-		domain = dev;
-	else
-		domain = dev_get_pci_domain(dev);
-
+	domain = dev_get_domain(dev);
 	if (!domain)
 		return -1;
 
-	dn.domain_path = domain->path.domain.domain;
+	dn.domain_path = dev_get_domain_id(domain);
 
 	return dn.socket;
 }
@@ -171,101 +152,24 @@ int iio_pci_domain_socket_from_dev(struct device *dev)
  *
  * @return Stack ID the device is attached to, negative number on error.
  */
-int iio_pci_domain_stack_from_dev(struct device *dev)
+int iio_pci_domain_stack_from_dev(const struct device *dev)
 {
-	struct device *domain;
+	const struct device *domain;
 	union xeon_domain_path dn;
 
-	if (dev->path.type == DEVICE_PATH_DOMAIN)
-		domain = dev;
-	else
-		domain = dev_get_pci_domain(dev);
-
+	domain = dev_get_domain(dev);
 	if (!domain)
 		return -1;
 
-	dn.domain_path = domain->path.domain.domain;
+	dn.domain_path = dev_get_domain_id(domain);
 
 	return dn.stack;
 }
 
-void iio_pci_domain_read_resources(struct device *dev)
-{
-	struct resource *res;
-	const STACK_RES *sr = domain_to_stack_res(dev);
-
-	if (!sr)
-		return;
-
-	int index = 0;
-
-	if (is_domain0(dev)) {
-		/* The 0 - 0xfff IO range is not reported by the HOB but still gets decoded */
-		res = new_resource(dev, index++);
-		res->base = 0;
-		res->size = 0x1000;
-		res->limit = 0xfff;
-		res->flags = IORESOURCE_IO | IORESOURCE_SUBTRACTIVE | IORESOURCE_ASSIGNED;
-	}
-
-	if (sr->PciResourceIoBase < sr->PciResourceIoLimit) {
-		res = new_resource(dev, index++);
-		res->base = sr->PciResourceIoBase;
-		res->limit = sr->PciResourceIoLimit;
-		res->size = res->limit - res->base + 1;
-		res->flags = IORESOURCE_IO | IORESOURCE_ASSIGNED;
-	}
-
-	if (sr->PciResourceMem32Base < sr->PciResourceMem32Limit) {
-		res = new_resource(dev, index++);
-		res->base = sr->PciResourceMem32Base;
-		res->limit = sr->PciResourceMem32Limit;
-		res->size = res->limit - res->base + 1;
-		res->flags = IORESOURCE_MEM | IORESOURCE_ASSIGNED;
-	}
-
-	if (sr->PciResourceMem64Base < sr->PciResourceMem64Limit) {
-		res = new_resource(dev, index++);
-		res->base = sr->PciResourceMem64Base;
-		res->limit = sr->PciResourceMem64Limit;
-		res->size = res->limit - res->base + 1;
-		res->flags = IORESOURCE_MEM | IORESOURCE_ASSIGNED;
-	}
-}
-
-/*
- * Used by IIO stacks for PCIe bridges. Those contain 1 PCI host bridges,
- *  all the bus numbers on the IIO stack can be used for this bridge
- */
-static struct device_operations iio_pcie_domain_ops = {
-	.read_resources = iio_pci_domain_read_resources,
-	.set_resources = pci_domain_set_resources,
-	.scan_bus = pci_host_bridge_scan_bus,
-#if CONFIG(HAVE_ACPI_TABLES)
-	.acpi_name        = soc_acpi_name,
-	.write_acpi_tables = northbridge_write_acpi_tables,
-	.acpi_fill_ssdt	   = pci_domain_fill_ssdt,
-#endif
-};
-
-/*
- * Used by UBOX stacks. Those contain multiple PCI host bridges, each having
- * only one bus with UBOX devices. UBOX devices have no resources.
- */
-static struct device_operations ubox_pcie_domain_ops = {
-	.read_resources = noop_read_resources,
-	.set_resources = noop_set_resources,
-	.scan_bus = pci_host_bridge_scan_bus,
-#if CONFIG(HAVE_ACPI_TABLES)
-	.acpi_name        = soc_acpi_name,
-	.write_acpi_tables = northbridge_write_acpi_tables,
-	.acpi_fill_ssdt	   = pci_domain_fill_ssdt,
-#endif
-};
-
-static void soc_create_domains(const union xeon_domain_path dp, struct bus *upstream,
-				int bus_base, int bus_limit, const char *type,
-				struct device_operations *ops)
+void create_domain(const union xeon_domain_path dp, struct bus *upstream,
+			       int bus_base, int bus_limit, const char *type,
+			       struct device_operations *ops,
+			       const size_t pci_segment_group)
 {
 	struct device_path path;
 	init_xeon_domain_path(&path, dp.socket, dp.stack, bus_base);
@@ -281,92 +185,8 @@ static void soc_create_domains(const union xeon_domain_path dp, struct bus *upst
 	bus->secondary = bus_base;
 	bus->subordinate = bus_base;
 	bus->max_subordinate = bus_limit;
+	bus->segment_group = pci_segment_group;
 }
-
-
-static void soc_create_pcie_domains(const union xeon_domain_path dp, struct bus *upstream,
-				const STACK_RES *sr)
-{
-	soc_create_domains(dp, upstream, sr->BusBase, sr->BusLimit, DOMAIN_TYPE_PCIE,
-				&iio_pcie_domain_ops);
-}
-
-/*
- * On the first Xeon-SP generations there are no separate UBOX stacks,
- * and the UBOX devices reside on the first and second IIO. Starting
- * with 3rd gen Xeon-SP the UBOX devices are located on their own IIO.
- */
-static void soc_create_ubox_domains(const union xeon_domain_path dp, struct bus *upstream,
-				const STACK_RES *sr)
-{
-	/* Only expect 2 UBOX buses here */
-	assert(sr->BusBase + 1 == sr->BusLimit);
-
-	soc_create_domains(dp, upstream, sr->BusBase, sr->BusBase, DOMAIN_TYPE_UBX0,
-				&ubox_pcie_domain_ops);
-	soc_create_domains(dp, upstream, sr->BusLimit, sr->BusLimit, DOMAIN_TYPE_UBX1,
-				&ubox_pcie_domain_ops);
-}
-
-#if CONFIG(SOC_INTEL_HAS_CXL)
-void iio_cxl_domain_read_resources(struct device *dev)
-{
-	struct resource *res;
-	const STACK_RES *sr = domain_to_stack_res(dev);
-
-	if (!sr)
-		return;
-
-	int index = 0;
-
-	if (sr->IoBase < sr->PciResourceIoBase) {
-		res = new_resource(dev, index++);
-		res->base = sr->IoBase;
-		res->limit = sr->PciResourceIoBase - 1;
-		res->size = res->limit - res->base + 1;
-		res->flags = IORESOURCE_IO | IORESOURCE_ASSIGNED;
-	}
-
-	if (sr->Mmio32Base < sr->PciResourceMem32Base) {
-		res = new_resource(dev, index++);
-		res->base = sr->Mmio32Base;
-		res->limit = sr->PciResourceMem32Base - 1;
-		res->size = res->limit - res->base + 1;
-		res->flags = IORESOURCE_MEM | IORESOURCE_ASSIGNED;
-	}
-
-	if (sr->Mmio64Base < sr->PciResourceMem64Base) {
-		res = new_resource(dev, index++);
-		res->base = sr->Mmio64Base;
-		res->limit = sr->PciResourceMem64Base - 1;
-		res->size = res->limit - res->base + 1;
-		res->flags = IORESOURCE_MEM | IORESOURCE_ASSIGNED;
-	}
-}
-
-static struct device_operations iio_cxl_domain_ops = {
-	.read_resources = iio_cxl_domain_read_resources,
-	.set_resources = pci_domain_set_resources,
-	.scan_bus = pci_host_bridge_scan_bus,
-#if CONFIG(HAVE_ACPI_TABLES)
-	.acpi_name        = soc_acpi_name,
-	.write_acpi_tables = northbridge_write_acpi_tables,
-	.acpi_fill_ssdt	   = pci_domain_fill_ssdt,
-#endif
-};
-
-void soc_create_cxl_domains(const union xeon_domain_path dp, struct bus *bus,
-				const STACK_RES *sr)
-{
-	assert(sr->BusBase + 1 <= sr->BusLimit);
-	/* 1st domain contains PCIe RCiEPs */
-	soc_create_domains(dp, bus, sr->BusBase, sr->BusBase, DOMAIN_TYPE_PCIE,
-				&iio_pcie_domain_ops);
-	/* 2nd domain contains CXL 1.1 end-points */
-	soc_create_domains(dp, bus, sr->BusBase + 1, sr->BusLimit, DOMAIN_TYPE_CXL,
-				&iio_cxl_domain_ops);
-}
-#endif //CONFIG(SOC_INTEL_HAS_CXL)
 
 /* Attach stack as domains */
 void attach_iio_stacks(void)
@@ -381,7 +201,9 @@ void attach_iio_stacks(void)
 		if (!soc_cpu_is_enabled(s))
 			continue;
 		for (int x = 0; x < MAX_LOGIC_IIO_STACK; ++x) {
-			const STACK_RES *ri = &hob->PlatformData.IIO_resource[s].StackRes[x];
+			const xSTACK_RES *ri = &hob->PlatformData.IIO_resource[s].StackRes[x];
+			const size_t seg = hob->PlatformData.CpuQpiInfo[s].PcieSegment;
+
 			if (ri->BusBase > ri->BusLimit)
 				continue;
 
@@ -389,19 +211,12 @@ void attach_iio_stacks(void)
 			dn.socket = s;
 			dn.stack = x;
 
-			if (is_ubox_stack_res(ri))
-				soc_create_ubox_domains(dn, root_bus, ri);
-			else if (CONFIG(SOC_INTEL_HAS_CXL) && is_iio_cxl_stack_res(ri))
-				soc_create_cxl_domains(dn, root_bus, ri);
-			else if (is_pcie_iio_stack_res(ri))
-				soc_create_pcie_domains(dn, root_bus, ri);
-			else if (CONFIG(HAVE_IOAT_DOMAINS) && is_ioat_iio_stack_res(ri))
-				soc_create_ioat_domains(dn, root_bus, ri);
+			create_xeonsp_domains(dn, root_bus, ri, seg);
 		}
 	}
 }
 
-bool is_pcie_domain(struct device *dev)
+bool is_pcie_domain(const struct device *dev)
 {
 	if ((!dev) || (dev->path.type != DEVICE_PATH_DOMAIN))
 		return false;
@@ -409,7 +224,7 @@ bool is_pcie_domain(struct device *dev)
 	return strstr(dev->name, DOMAIN_TYPE_PCIE);
 }
 
-bool is_ioat_domain(struct device *dev)
+bool is_ioat_domain(const struct device *dev)
 {
 	if ((!dev) || (dev->path.type != DEVICE_PATH_DOMAIN))
 		return false;
@@ -421,17 +236,16 @@ bool is_ioat_domain(struct device *dev)
 		strstr(dev->name, DOMAIN_TYPE_HQM1));
 }
 
-bool is_ubox_domain(struct device *dev)
+bool is_ubox_domain(const struct device *dev)
 {
 	if ((!dev) || (dev->path.type != DEVICE_PATH_DOMAIN))
 		return false;
 
 	return (strstr(dev->name, DOMAIN_TYPE_UBX0) ||
 		strstr(dev->name, DOMAIN_TYPE_UBX1));
-
 }
 
-bool is_cxl_domain(struct device *dev)
+bool is_cxl_domain(const struct device *dev)
 {
 	if ((!dev) || (dev->path.type != DEVICE_PATH_DOMAIN))
 		return false;

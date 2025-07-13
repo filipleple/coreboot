@@ -3,7 +3,7 @@
 #include <memory_info.h>
 #include <smbios.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 
 /* this function will fill the corresponding locator */
 __weak void smbios_fill_dimm_locator(const struct dimm_info *dimm, struct smbios_type17 *t)
@@ -99,6 +99,12 @@ __weak smbios_enclosure_type smbios_mainboard_enclosure_type(void)
 		return SMBIOS_ENCLOSURE_CONVERTIBLE;
 	else if (CONFIG(SYSTEM_TYPE_DETACHABLE))
 		return SMBIOS_ENCLOSURE_DETACHABLE;
+	else if (CONFIG(SYSTEM_TYPE_SERVER))
+		return SMBIOS_ENCLOSURE_MAIN_SERVER_CHASSIS;
+	else if (CONFIG(SYSTEM_TYPE_MINIPC))
+		return SMBIOS_ENCLOSURE_MINI_PC;
+	else if (CONFIG(SYSTEM_TYPE_ALL_IN_ONE))
+		return SMBIOS_ENCLOSURE_ALL_IN_ONE;
 	else
 		return SMBIOS_ENCLOSURE_DESKTOP;
 }

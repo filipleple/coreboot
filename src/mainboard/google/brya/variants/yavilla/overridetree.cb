@@ -76,7 +76,7 @@ chip soc/intel/alderlake
 	# [22:16] steps of delay for DDR50, each 125ps, range: 0 - 78.
 	# [14:8] steps of delay for SDR25/HS50, each 125ps, range: 0 - 119.
 	# [6:0] steps of delay for SDR12, each 125ps, range: 0 - 119.
-	register "common_soc_config.emmc_dll.emmc_rx_cmd_data_cntl1" = "0x1C171733"
+	register "common_soc_config.emmc_dll.emmc_rx_cmd_data_cntl1" = "0x1C17171B"
 
 	# EMMC RX CMD/DATA Delay 2
 	# Refer to EDS-Vol2-42.3.12.
@@ -261,7 +261,8 @@ chip soc/intel/alderlake
 				register "stop_off_delay_ms" = "2"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "enable_delay_ms" = "1"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
+				register "use_gpio_for_status" = "true"
 				device i2c 10 on
 					probe TOUCH_PANEL TOUCH_ELAN_I2C
 				end
@@ -280,6 +281,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 10 on
 					probe TOUCH_PANEL TOUCH_ELAN_HID_I2C
@@ -299,6 +301,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 15 on end
 			end
@@ -314,6 +317,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 10 on
 					probe TOUCH_PANEL TOUCH_G2_HID_I2c
@@ -329,6 +333,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 40 on end
 			end
@@ -354,7 +359,7 @@ chip soc/intel/alderlake
 				register "acpi_name" = ""CAM0""
 				register "chip_name" = ""Ov 8856 Camera""
 				register "device_type" = "INTEL_ACPI_CAMERA_SENSOR"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
 				register "ssdb.lanes_used" = "4"
@@ -399,22 +404,25 @@ chip soc/intel/alderlake
 				register "device_type" = "INTEL_ACPI_CAMERA_VCM"
 
 				register "vcm_compat" = ""dongwoon,dw9714""
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
 				#Controls
 				register "gpio_panel.gpio[0].gpio_num" = "GPP_D15"  # EN_PP2800_WCAM_X
-				register "gpio_panel.gpio[1].gpio_num" = "GPP_D3"   # WCAM_RST_L
+				register "gpio_panel.gpio[1].gpio_num" = "GPP_D16"  # EN_PP1800_PP1200_WCAM_X
+				register "gpio_panel.gpio[2].gpio_num" = "GPP_D3"   # WCAM_RST_L
 
 				#_ON
-				register "on_seq.ops_cnt" = "2"
+				register "on_seq.ops_cnt" = "3"
 				register "on_seq.ops[0]" = "SEQ_OPS_GPIO_ENABLE(0, 5)"
 				register "on_seq.ops[1]" = "SEQ_OPS_GPIO_ENABLE(1, 5)"
+				register "on_seq.ops[2]" = "SEQ_OPS_GPIO_ENABLE(2, 5)"
 
 				#_OFF
-				register "off_seq.ops_cnt" = "2"
+				register "off_seq.ops_cnt" = "3"
+				register "off_seq.ops[0]" = "SEQ_OPS_GPIO_DISABLE(2, 0)"
 				register "off_seq.ops[1]" = "SEQ_OPS_GPIO_DISABLE(1, 0)"
-				register "off_seq.ops[0]" = "SEQ_OPS_GPIO_DISABLE(0, 0)"
+				register "off_seq.ops[2]" = "SEQ_OPS_GPIO_DISABLE(0, 0)"
 
 				device i2c 0C on
 					probe WFC WFC_MIPI_OVTI8856

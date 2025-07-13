@@ -1,7 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-/* TODO: Update for Phoenix */
-
 #ifndef PHOENIX_CHIP_H
 #define PHOENIX_CHIP_H
 
@@ -15,6 +13,8 @@
 #include <types.h>
 #if CONFIG(PLATFORM_USES_FSP2_0)
 #include <vendorcode/amd/fsp/phoenix/FspUsb.h>
+#else
+#include "chip_opensil.h"
 #endif
 
 struct soc_amd_phoenix_config {
@@ -105,9 +105,11 @@ struct soc_amd_phoenix_config {
 		DXIO_PSPP_POWERSAVE,
 	} pspp_policy;
 
-#if CONFIG(PLATFORM_USES_FSP2_0)
-	uint8_t usb_phy_custom;
+	bool usb_phy_custom;
 	struct usb_phy_config usb_phy;
+
+#if !CONFIG(PLATFORM_USES_FSP2_0)
+	struct ddi_descriptor ddi[DDI_DESCRIPTOR_COUNT];
 #endif
 };
 

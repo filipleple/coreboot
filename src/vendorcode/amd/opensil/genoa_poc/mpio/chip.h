@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+#ifndef OPENSIL_GENOA_POC_MPIO_CHIP_H
+#define OPENSIL_GENOA_POC_MPIO_CHIP_H
+
 #include <stdint.h>
 
 /*
@@ -17,8 +20,9 @@
  */
 
 enum mpio_type {
-	PCIE,
-	SATA,
+	IFTYPE_UNUSED,
+	IFTYPE_PCIE,
+	IFTYPE_SATA,
 };
 
 /* Sync with PCIE_HOTPLUG_TYPE */
@@ -50,7 +54,7 @@ enum pcie_aspm {
 	L0sL1,
 };
 
-struct vendorcode_amd_opensil_genoa_poc_mpio_config {
+struct drivers_amd_opensil_mpio_config {
 	enum mpio_type type;
 	uint8_t start_lane;
 	uint8_t end_lane;
@@ -63,3 +67,5 @@ struct vendorcode_amd_opensil_genoa_poc_mpio_config {
 	uint8_t clock_pm : 1;
 	uint8_t bmc : 1;
 };
+
+#endif /* OPENSIL_GENOA_POC_MPIO_CHIP_H */

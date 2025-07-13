@@ -5,7 +5,7 @@
 #
 
 BUILDDIR ?= _build
-SPHINXOPTS ?= -j auto
+SPHINXOPTS ?= -j auto -W --keep-going
 
 export SPHINXOPTS
 
@@ -31,8 +31,7 @@ livesphinx: $(BUILDDIR)
 
 test:
 	@echo "Test for logging purposes - Failing tests will not fail the build"
-	-$(MAKE) -f Makefile.sphinx clean && $(MAKE) -K -f Makefile.sphinx html
-	-$(MAKE) -f Makefile.sphinx clean && $(MAKE) -K -f Makefile.sphinx doctest
+	-$(MAKE) -f Makefile.sphinx clean && $(MAKE) -k -f Makefile.sphinx html
 
 help:
 	@echo "all            - Builds all documentation targets"

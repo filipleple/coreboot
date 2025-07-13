@@ -22,6 +22,7 @@
 #include <southbridge/intel/common/rtc.h>
 #include <southbridge/intel/lynxpoint/iobp.h>
 #include <southbridge/intel/lynxpoint/lp_gpio.h>
+#include <stdbool.h>
 
 static void pch_enable_ioapic(struct device *dev)
 {
@@ -368,7 +369,6 @@ static void pch_pm_init(struct device *dev)
 	/* Set RCBA 0x2b1c[29]=1 if DSP disabled */
 	if (RCBA32(FD) & PCH_DISABLE_ADSPD)
 		RCBA32_OR(0x2b1c, (1 << 29));
-
 }
 
 static void pch_cg_init(struct device *dev)

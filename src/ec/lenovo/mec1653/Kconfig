@@ -1,0 +1,11 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config EC_LENOVO_MEC1653
+	bool
+
+if EC_LENOVO_MEC1653
+
+config MEC1653_SEND_DEBUG_UNLOCK
+	bool
+
+endif

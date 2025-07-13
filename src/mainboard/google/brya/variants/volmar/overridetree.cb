@@ -204,7 +204,7 @@ chip soc/intel/alderlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 alias dptf_policy on end
@@ -240,7 +240,7 @@ chip soc/intel/alderlake
 				register "sar_threshold[2]" = "0x38"
 				register "sar_threshold[3]" = "0x60"
 				register "sar_hysteresis" = "1"
-				register "sar_voltage" = "6"
+				register "sar_voltage" = "0"          # VDDA
 				register "sar_compare_time" = "0"     # 500ns
 				register "sar_sampling_time" = "0"    # 2us
 				register "short_key_debounce" = "2"   # 100ms
@@ -295,6 +295,7 @@ chip soc/intel/alderlake
 							"ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
 				register "generic.stop_off_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 0x10 on end
 			end
@@ -345,7 +346,7 @@ chip soc/intel/alderlake
 				register "compat_string" = ""google,cros-ec-spi""
 				register "irq" = "ACPI_IRQ_WAKE_LEVEL_LOW(GPP_F15_IRQ)"
 				register "wake" = "GPE0_DW2_15"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_D1)"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_D2)"
 				register "enable_delay_ms" = "3"

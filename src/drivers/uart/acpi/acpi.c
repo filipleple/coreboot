@@ -3,8 +3,8 @@
 #include <acpi/acpi_device.h>
 #include <acpi/acpigen.h>
 #include <console/console.h>
-#include <device/path.h>
-#include <string.h>
+#include <stdio.h>
+
 #include "chip.h"
 
 static bool uart_acpi_add_gpios_to_crs(struct drivers_uart_acpi_config *config)

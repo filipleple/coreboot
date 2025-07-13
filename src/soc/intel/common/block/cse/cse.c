@@ -11,6 +11,7 @@
 #include <device/pci_ids.h>
 #include <device/pci_ops.h>
 #include <intelblocks/cse.h>
+#include <intelblocks/fast_spi.h>
 #include <intelblocks/me.h>
 #include <intelblocks/pmclib.h>
 #include <intelblocks/post_codes.h>
@@ -40,6 +41,8 @@
 #define HECI_CIP_TIMEOUT_US	1000
 /* Wait up to 5 seconds for CSE to boot from RO(BP1) */
 #define CSE_DELAY_BOOT_TO_RO_MS	(5 * 1000)
+/* Wait up to 5 sec for CSE FW init to complete */
+#define CSE_FW_INIT_TIMEOUT_MS	(5 * 1000)
 
 #define SLOT_SIZE		sizeof(uint32_t)
 
@@ -265,6 +268,13 @@ bool cse_is_hfs1_cws_normal(void)
 	return false;
 }
 
+bool cse_is_hfs1_cws_m3_no_uma(void)
+{
+	union me_hfsts1 hfs1;
+	hfs1.data = me_read_config32(PCI_ME_HFSTS1);
+	return hfs1.fields.working_state == ME_HFS1_CWS_M3_NO_UMA;
+}
+
 bool cse_is_hfs1_com_normal(void)
 {
 	return cse_check_hfs1_com(ME_HFS1_COM_NORMAL);
@@ -296,6 +306,28 @@ bool cse_is_hfs1_spi_protected(void)
 	union me_hfsts1 hfs1;
 	hfs1.data = me_read_config32(PCI_ME_HFSTS1);
 	return !hfs1.fields.mfg_mode;
+}
+
+#define ME_HFSTS2_CUR_PM_EVENT_SHIFT 24
+#define ME_HFSTS2_CUR_PM_EVENT_MASK (0xf << ME_HFSTS2_CUR_PM_EVENT_SHIFT)
+
+static uint8_t cse_get_hfs2_current_pm_event(void)
+{
+	uint32_t data = me_read_config32(PCI_ME_HFSTS2);
+	return (uint8_t)((data & ME_HFSTS2_CUR_PM_EVENT_MASK) >>
+						ME_HFSTS2_CUR_PM_EVENT_SHIFT);
+}
+
+bool cse_check_host_cold_reset(void)
+{
+	uint8_t event = cse_get_hfs2_current_pm_event();
+
+	switch (event) {
+	case PWR_CYCLE_RESET_CMOFF:
+		return true;
+	default:
+		return false;
+	}
 }
 
 bool cse_is_hfs3_fw_sku_lite(void)
@@ -861,23 +893,8 @@ int cse_hmrfpo_get_status(void)
 	return resp.status;
 }
 
-void print_me_fw_version(void *unused)
-{
-	struct me_fw_ver_resp resp = {0};
-
-	/* Ignore if UART debugging is disabled */
-	if (!CONFIG(CONSOLE_SERIAL))
-		return;
-
-	if (get_me_fw_version(&resp) == CB_SUCCESS) {
-		printk(BIOS_DEBUG, "ME: Version: %d.%d.%d.%d\n", resp.code.major,
-			resp.code.minor, resp.code.hotfix, resp.code.build);
-		return;
-	}
-	printk(BIOS_DEBUG, "ME: Version: Unavailable\n");
-}
-
-enum cb_err get_me_fw_version(struct me_fw_ver_resp *resp)
+/* Queries and gets ME firmware version */
+static enum cb_err get_me_fw_version(struct me_fw_ver_resp *resp)
 {
 	const struct mkhi_hdr fw_ver_msg = {
 		.group_id = MKHI_GROUP_ID_GEN,
@@ -892,13 +909,6 @@ enum cb_err get_me_fw_version(struct me_fw_ver_resp *resp)
 
 	/* Ignore if CSE is disabled */
 	if (!is_cse_enabled())
-		return CB_ERR;
-
-	/*
-	 * Ignore if ME Firmware SKU type is Lite since
-	 * print_boot_partition_info() logs RO(BP1) and RW(BP2) versions.
-	 */
-	if (cse_is_hfs3_fw_sku_lite())
 		return CB_ERR;
 
 	/*
@@ -922,6 +932,29 @@ enum cb_err get_me_fw_version(struct me_fw_ver_resp *resp)
 
 
 	return CB_SUCCESS;
+}
+
+void print_me_fw_version(void *unused)
+{
+	struct me_fw_ver_resp resp = {0};
+
+	/* Ignore if UART debugging is disabled */
+	if (!CONFIG(CONSOLE_SERIAL))
+		return;
+
+	/*
+	 * Skip if ME firmware is Lite SKU, as RO/RW versions are
+	 * already logged by `cse_print_boot_partition_info()`
+	 */
+	if (cse_is_hfs3_fw_sku_lite())
+		return;
+
+	if (get_me_fw_version(&resp) == CB_SUCCESS) {
+		printk(BIOS_DEBUG, "ME: Version: %d.%d.%d.%d\n", resp.code.major,
+			resp.code.minor, resp.code.hotfix, resp.code.build);
+		return;
+	}
+	printk(BIOS_DEBUG, "ME: Version: Unavailable\n");
 }
 
 void cse_trigger_vboot_recovery(enum csme_failure_reason reason)
@@ -1170,10 +1203,8 @@ void cse_enable_ptt(bool state)
 	 * 4) HFSTS1 FW Init Complete is set
 	 * 5) Before EOP issued to CSE
 	 */
-	if (!cse_is_hfs1_cws_normal() || !cse_is_hfs1_com_normal() ||
-	    !cse_is_hfs1_fw_init_complete() || !ENV_RAMSTAGE) {
-		printk(BIOS_ERR, "HECI: Unmet prerequisites for"
-				 "FW FEATURE SHIPMENT TIME STATE OVERRIDE\n");
+	if (!cse_is_hfs1_cws_normal() || !cse_is_hfs1_com_normal() || !ENV_RAMSTAGE) {
+		printk(BIOS_ERR, "HECI: Could not set PTT state because ME is not ready\n");
 		return;
 	}
 
@@ -1186,6 +1217,14 @@ void cse_enable_ptt(bool state)
 		printk(BIOS_DEBUG, "HECI: PTT is already in the requested state\n");
 		return;
 	}
+
+	int elapsed = wait_ms(CSE_FW_INIT_TIMEOUT_MS, cse_is_hfs1_fw_init_complete());
+	if (!elapsed) {
+		printk(BIOS_ERR, "HECI: Could not set PTT state because ME is not ready\n");
+		return;
+	}
+
+	printk(BIOS_DEBUG, "HECI: CSE took %d ms to become ready\n", elapsed);
 
 	printk(BIOS_DEBUG, "HECI: Send FW FEATURE SHIPMENT TIME STATE OVERRIDE Command\n");
 
@@ -1258,7 +1297,6 @@ static void me_reset_with_count(void)
 			 */
 			printk(BIOS_ERR, "Failed to change ME state in %u attempts!\n",
 									 ME_DISABLE_ATTEMPTS);
-
 		}
 	} else {
 		printk(BIOS_DEBUG, "ME: Resetting");
@@ -1268,6 +1306,8 @@ static void me_reset_with_count(void)
 
 static void cse_set_state(struct device *dev)
 {
+	if (CONFIG(SOC_INTEL_CSE_LITE_SYNC_BY_PAYLOAD))
+		return;
 
 	/* (CS)ME Disable Command */
 	struct me_disable_command {
@@ -1316,6 +1356,13 @@ static void cse_set_state(struct device *dev)
 
 	int send;
 	int result;
+
+	if (fast_spi_flash_descriptor_override()) {
+		printk(BIOS_WARNING, "HECI: not setting ME state because "
+			"flash descriptor override is enabled\n");
+		return;
+	}
+
 	/*
 	 * Check if the CMOS value "me_state" exists, if it doesn't, then
 	 * don't do anything.
@@ -1420,6 +1467,9 @@ void cse_late_finalize(void)
 
 static void intel_cse_get_rw_version(void)
 {
+	if (CONFIG(SOC_INTEL_CSE_LITE_SYNC_BY_PAYLOAD))
+		return;
+
 	struct cse_specific_info *info = cbmem_find(CBMEM_ID_CSE_INFO);
 	if (info == NULL)
 		return;
@@ -1477,8 +1527,19 @@ struct device_operations cse_ops = {
 };
 
 static const unsigned short pci_device_ids[] = {
+	PCI_DID_INTEL_WCL_CSE0,
+	PCI_DID_INTEL_PTL_H_CSE0,
+	PCI_DID_INTEL_PTL_U_H_CSE0,
 	PCI_DID_INTEL_LNL_CSE0,
 	PCI_DID_INTEL_MTL_CSE0,
+	PCI_DID_INTEL_ARL_CSE0,
+	PCI_DID_INTEL_ARL_S_CSE0,
+	PCI_DID_INTEL_ARL_S_CSE1,
+	PCI_DID_INTEL_ARL_S_CSE2,
+	PCI_DID_INTEL_ARP_S_CSE0,
+	PCI_DID_INTEL_ARP_S_CSE1,
+	PCI_DID_INTEL_ARP_S_CSE2,
+	PCI_DID_INTEL_ARP_S_CSE3,
 	PCI_DID_INTEL_APL_CSE0,
 	PCI_DID_INTEL_GLK_CSE0,
 	PCI_DID_INTEL_CNL_CSE0,

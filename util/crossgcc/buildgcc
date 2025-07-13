@@ -34,31 +34,44 @@ FETCH_ONLY=0
 USE_COREBOOT_MIRROR=0
 COREBOOT_MIRROR_URL="https://www.coreboot.org/releases/crossgcc-sources"
 
-# GCC toolchain version numbers
+# GCC Toolchain (built first)
+# Math libraries (GCC dependencies)
 GMP_VERSION=6.3.0
-MPFR_VERSION=4.2.1
+MPFR_VERSION=4.2.2
 MPC_VERSION=1.3.1
-GCC_VERSION=13.2.0
-BINUTILS_VERSION=2.42
-IASL_VERSION="R06_28_23"
-# CLANG version number
-CLANG_VERSION=17.0.6
-CMAKE_VERSION=3.28.3
-NASM_VERSION=2.16.01
+# Core GCC components
+GCC_VERSION=14.2.0
+BINUTILS_VERSION=2.44
+LIBSTDCXX_VERSION="${GCC_VERSION}"	# GCC-specific C++ library
+
+# Low-level Tools (built after GCC)
+NASM_VERSION=2.16.03	# x86 assembly
+IASL_VERSION=20250404	# ACPI compiler
+
+# Clang/LLVM Toolchain (alternative to GCC, built separately)
+CLANG_VERSION=18.1.8
+CMAKE_VERSION=4.0.3	# Required for building Clang
+
+# Architecture-specific options
+RISCV_ISA_SPEC=20191213
 
 # Filename for each package
 GMP_ARCHIVE="gmp-${GMP_VERSION}.tar.xz"
 MPFR_ARCHIVE="mpfr-${MPFR_VERSION}.tar.xz"
 MPC_ARCHIVE="mpc-${MPC_VERSION}.tar.gz"
 GCC_ARCHIVE="gcc-${GCC_VERSION}.tar.xz"
+LIBSTDCXX_ARCHIVE="${GCC_ARCHIVE}"
 BINUTILS_ARCHIVE="binutils-${BINUTILS_VERSION}.tar.xz"
-IASL_ARCHIVE="${IASL_VERSION}.tar.gz"
+IASL_ARCHIVE="acpica-unix-${IASL_VERSION}.tar.gz"
 # CLANG toolchain FILE locations
+LLD_ARCHIVE="lld-${CLANG_VERSION}.src.tar.xz"
 LLVM_ARCHIVE="llvm-${CLANG_VERSION}.src.tar.xz"
 CLANG_ARCHIVE="clang-${CLANG_VERSION}.src.tar.xz"
 CRT_ARCHIVE="compiler-rt-${CLANG_VERSION}.src.tar.xz"
 CTE_ARCHIVE="clang-tools-extra-${CLANG_VERSION}.src.tar.xz"
 LLVMCMAKE_ARCHIVE="cmake-${CLANG_VERSION}.src.tar.xz"
+LIBUNWIND_ARCHIVE="libunwind-${CLANG_VERSION}.src.tar.xz"
+RUNTIMES_ARCHIVE="runtimes-${CLANG_VERSION}.src.tar.xz"
 CMAKE_ARCHIVE="cmake-${CMAKE_VERSION}.tar.gz"
 NASM_ARCHIVE="nasm-${NASM_VERSION}.tar.bz2"
 
@@ -71,21 +84,27 @@ GMP_BASE_URL="https://ftpmirror.gnu.org/gmp"
 MPFR_BASE_URL="https://ftpmirror.gnu.org/mpfr"
 MPC_BASE_URL="https://ftpmirror.gnu.org/mpc"
 GCC_BASE_URL="https://ftpmirror.gnu.org/gcc/gcc-${GCC_VERSION}"
+LIBSTDCXX_BASE_URL="${GCC_BASE_URL}"
 BINUTILS_BASE_URL="https://ftpmirror.gnu.org/binutils"
-IASL_BASE_URL="https://github.com/acpica/acpica/archive/refs/tags"
+IASL_BASE_URL="https://downloadmirror.intel.com/852044"
 # CLANG toolchain archive locations
 LLVM_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
 CLANG_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
 CRT_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
 CTE_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
 LLVMCMAKE_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
+LLD_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
+LIBUNWIND_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
+RUNTIMES_BASE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_VERSION}"
 CMAKE_BASE_URL="https://cmake.org/files/v${CMAKE_VERSION%.*}"
 NASM_BASE_URL="https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}"
 
 ALL_ARCHIVES="$GMP_BASE_URL/$GMP_ARCHIVE $MPFR_BASE_URL/$MPFR_ARCHIVE $MPC_BASE_URL/$MPC_ARCHIVE \
 	$GCC_BASE_URL/$GCC_ARCHIVE $BINUTILS_BASE_URL/$BINUTILS_ARCHIVE $IASL_BASE_URL/$IASL_ARCHIVE \
-	$LLVM_BASE_URL/$LLVM_ARCHIVE $CLANG_BASE_URL/$CLANG_ARCHIVE $LLVMCMAKE_BASE_URL/$LLVMCMAKE_ARCHIVE \
-	$CRT_BASE_URL/$CRT_ARCHIVE $CTE_BASE_URL/$CTE_ARCHIVE $CMAKE_BASE_URL/$CMAKE_ARCHIVE $NASM_BASE_URL/$NASM_ARCHIVE"
+	$LLD_BASE_URL/$LLD_ARCHIVE $LLVM_BASE_URL/$LLVM_ARCHIVE $CLANG_BASE_URL/$CLANG_ARCHIVE \
+	$LLVMCMAKE_BASE_URL/$LLVMCMAKE_ARCHIVE $CRT_BASE_URL/$CRT_ARCHIVE $CTE_BASE_URL/$CTE_ARCHIVE \
+	$LIBUNWIND_BASE_URL/$LIBUNWIND_ARCHIVE $RUNTIMES_BASE_URL/$RUNTIMES_ARCHIVE \
+	$CMAKE_BASE_URL/$CMAKE_ARCHIVE $NASM_BASE_URL/$NASM_ARCHIVE $LIBSTDCXX_BASE_URL/$LIBSTDCXX_ARCHIVE"
 
 # GCC toolchain directories
 GMP_DIR="gmp-${GMP_VERSION}"
@@ -93,15 +112,19 @@ MPFR_DIR="mpfr-${MPFR_VERSION}"
 MPC_DIR="mpc-${MPC_VERSION}"
 # shellcheck disable=SC2034
 GCC_DIR="gcc-${GCC_VERSION}"
+LIBSTDCXX_DIR="${GCC_DIR}"
 # shellcheck disable=SC2034
 BINUTILS_DIR="binutils-${BINUTILS_VERSION}"
-IASL_DIR="acpica-${IASL_VERSION}"
+IASL_DIR="acpica-unix-${IASL_VERSION}"
 # CLANG toolchain directories
+LLD_DIR="lld-${CLANG_VERSION}.src"
 LLVM_DIR="llvm-${CLANG_VERSION}.src"
 CLANG_DIR="clang-${CLANG_VERSION}.src"
 CRT_DIR="compiler-rt-${CLANG_VERSION}.src"
 CTE_DIR="clang-tools-extra-${CLANG_VERSION}.src"
 LLVMCMAKE_DIR="cmake-${CLANG_VERSION}.src"
+LIBUNWIND_DIR="libunwind-${CLANG_VERSION}.src"
+RUNTIMES_DIR="runtimes-${CLANG_VERSION}.src"
 CMAKE_DIR="cmake-${CMAKE_VERSION}"
 NASM_DIR="nasm-${NASM_VERSION}"
 
@@ -473,7 +496,7 @@ is_package_enabled()
 
 package_uses_targetarch()
 {
-	if [ "$1" = "GCC" ] || [ "$1" = "BINUTILS" ]; then
+	if [ "$1" = "GCC" ] || [ "$1" = "BINUTILS" ] || [ "$1" = "LIBSTDCXX" ]; then
 		true
 	else
 		false
@@ -491,6 +514,10 @@ generic_build()
 	fn_exists "build_$package" || return
 
 	mkdir -p "$builddir"
+
+	if [ "$package" = "GMP" ] && [ -f "$DESTDIR$TARGETDIR/include/gmp.h" ]; then
+		set_hostcflags_from_gmp
+	fi
 
 	if [ -f "$success" ]; then
 		printf "Skipping $package v$version for $host_target as it is already built\n"
@@ -767,7 +794,7 @@ bootstrap_GCC() {
 		DESTDIR=$DESTDIR || touch .failed
 }
 
-build_cross_GCC() {
+configure_GCC(){
 	# Work around crazy code generator in GCC that confuses CLANG.
 	$CC --version | grep clang >/dev/null 2>&1 && \
 		CLANGFLAGS="-fbracket-depth=1024"
@@ -825,7 +852,11 @@ build_cross_GCC() {
 		--with-gnu-as \
 		--with-gnu-ld \
 		--with-pkgversion="coreboot toolchain v$CROSSGCC_VERSION" \
-		&& \
+		"$@"
+}
+
+build_cross_GCC() {
+	configure_GCC && \
 	mkdir -p gcc/$TARGETARCH && \
 	rm -f "gcc/$TARGETARCH/$GCC_VERSION" && \
 	ln -s "$DESTDIR$TARGETDIR/$TARGETARCH/bin" "gcc/$TARGETARCH/$GCC_VERSION" && \
@@ -837,6 +868,24 @@ build_cross_GCC() {
 		$MAKE $JOBS CFLAGS_FOR_BUILD="$HOSTCFLAGS" all-target-libgcc && \
 		$MAKE install-target-libgcc DESTDIR=$DESTDIR || touch .failed
 	fi
+}
+
+build_LIBSTDCXX() {
+	if [ ! -d "${LIBSTDCXX_INCLUDE_PATH}" ]; then
+		touch .failed
+		printf "libstdcxx include path \"%s\" does not exist" "${LIBSTDCXX_INCLUDE_PATH}"
+		return
+	fi
+	configure_GCC \
+		--with-gxx-include-dir="${LIBSTDCXX_INCLUDE_PATH}/coreboot-${TARGETARCH}/include/" \
+		--with-sysroot="${LIBSTDCXX_INCLUDE_PATH}/" && \
+	mkdir -p gcc/$TARGETARCH && \
+	# shellcheck disable=SC2086
+	$MAKE $JOBS CFLAGS_FOR_BUILD="$HOSTCFLAGS" all-target-libgcc && \
+	$MAKE install-target-libgcc DESTDIR="$DESTDIR" && \
+	# shellcheck disable=SC2086
+	$MAKE $JOBS CFLAGS_FOR_BUILD="$HOSTCFLAGS" all-target-libstdc++-v3 && \
+	$MAKE install-target-libstdc++-v3 DESTDIR="$DESTDIR" || touch .failed
 }
 
 build_GCC() {
@@ -851,6 +900,7 @@ build_IASL() {
 	RDIR=$PWD
 	cd ../$IASL_DIR/generate/unix || exit 1
 	CFLAGS="$HOSTCFLAGS"
+	OPT_LDFLAGS=""
 	HOST="_LINUX"
 	test "$UNAME" = "Darwin" && HOST="_APPLE" && OPT_LDFLAGS="-Wl,-no_fixup_chains"
 	test "$UNAME" = "FreeBSD" && HOST="_FreeBSD"
@@ -866,36 +916,36 @@ build_IASL() {
 
 build_LLVM() {
 
+	ln -nsf "$LLD_DIR" ../lld
 	ln -nsf "$LLVM_DIR" ../llvm
 	ln -nsf "$CLANG_DIR" ../clang
 	ln -nsf "$CTE_DIR" ../clang-tools-extra
 	ln -nsf "$CRT_DIR" ../compiler-rt
 	ln -nsf "$LLVMCMAKE_DIR" ../cmake
+	ln -nsf "$LIBUNWIND_DIR" ../libunwind
+	ln -nsf "$RUNTIMES_DIR" ../runtimes
 
 	$CMAKE -G "Unix Makefiles" \
 		-DCMAKE_INSTALL_PREFIX="$DESTDIR$TARGETDIR" \
 		-DCLANG_VENDOR="coreboot toolchain v$CROSSGCC_VERSION - " \
-		-DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt" \
+		-DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" \
 		-DLLVM_INCLUDE_BENCHMARKS="OFF" \
 		-DLLVM_INCLUDE_TESTS="OFF" \
 		-DLLVM_INCLUDE_EXAMPLES="OFF" \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DLLVM_TARGETS_TO_BUILD="AArch64;ARM;PowerPC;RISCV;X86" \
+		-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 		../llvm || touch .failed
 	# shellcheck disable=SC2086
 	$MAKE $JOBS || touch .failed
 	$MAKE install || touch .failed
 
-	rm -f ../llvm ../clang ../clang-tools-extra ../compiler-rt ../cmake
-
-	cp -a ../$CLANG_DIR/tools/scan-build/* "$DESTDIR$TARGETDIR/bin"
-	cp -a ../$CLANG_DIR/tools/scan-view/* "$DESTDIR$TARGETDIR/bin"
+	rm -f ../llvm ../clang ../clang-tools-extra ../compiler-rt ../cmake ../lld ../libunwind ../runtimes
 }
 
 build_CMAKE() {
 	CC="$(hostcc host)" CXX="$(hostcxx host)" CFLAGS="$HOSTCFLAGS" \
 	../${CMAKE_DIR}/configure \
-		--parallel=${THREADS} \
 		--prefix="$TARGETDIR" || touch .failed
 	# shellcheck disable=SC2086
 	$MAKE $JOBS || touch .failed
@@ -937,12 +987,12 @@ getopt - > /dev/null 2>/dev/null || gcc -o getopt getopt.c
 getoptbrand="$(getopt -V 2>/dev/null | sed -e '1!d' -e 's,^\(......\).*,\1,')"
 if [ "${getoptbrand}" = "getopt" ]; then
 	# Detected GNU getopt that supports long options.
-	args=$(getopt -l print-version,version,help,clean,directory:,bootstrap,bootstrap-only,platform:,languages:,package:,jobs:,destdir:,savetemps,scripting,ccache,supported:,urls,nocolor,mirror,fetch -o WVhcd:bBp:l:P:j:D:tSys:unmf -- "$@")
+	args=$(getopt -l print-version,version,help,clean,directory:,bootstrap,bootstrap-only,platform:,languages:,package:,libstdcxx_include:,jobs:,destdir:,savetemps,scripting,ccache,supported:,urls,nocolor,mirror,fetch -o WVhcd:bBp:l:P:L:j:D:tSys:unmf -- "$@")
 	getopt_ret=$?
 	eval set -- "$args"
 else
 	# Detected non-GNU getopt
-	args=$(getopt WVhcd:bBp:l:P:j:D:tSys:unm $*)
+	args=$(getopt WVhcd:bBp:l:P:L:j:D:tSys:unm $*)
 	getopt_ret=$?
 	# shellcheck disable=SC2086
 	set -- $args
@@ -970,6 +1020,7 @@ while true ; do
 		-f|--fetch)		shift; FETCH_ONLY=1;;
 		-j|--jobs)		shift; THREADS="$1"; JOBS="-j $1"; shift;;
 		-P|--package)		shift; PACKAGE="$1"; shift;;
+		-L|--libstdcxx_include)	shift; LIBSTDCXX_INCLUDE_PATH="$1"; shift;;
 		-y|--ccache)		shift; USECCACHE=1;;
 		-s|--supported)		shift; PRINTSUPPORTED="$1"; shift;;
 		-u|--urls)		shift; printf "%s\n" "$ALL_ARCHIVES"; exit 0;;
@@ -1001,9 +1052,10 @@ case "$TARGETARCH" in
 	x86_64*)		TARGETARCH=x86_64-elf;;
 	i386-elf)		;;
 	i386-mingw32)		;;
-	riscv-elf)		TARGETARCH=riscv64-elf
-				TARGET_GCC_OPTIONS="$TARGET_GCC_OPTIONS --with-isa-spec=20191213"
-				TARGET_BINUTILS_OPTIONS="$TARGET_BINUTILS_OPTIONS --with-isa-spec=20191213";;
+	riscv-elf | riscv64-elf)
+				TARGETARCH=riscv64-elf
+				TARGET_GCC_OPTIONS="$TARGET_GCC_OPTIONS --with-isa-spec=${RISCV_ISA_SPEC}"
+				TARGET_BINUTILS_OPTIONS="$TARGET_BINUTILS_OPTIONS --with-isa-spec=${RISCV_ISA_SPEC}";;
 	powerpc64*-linux*)	;;
 	i386*)			TARGETARCH=i386-elf;;
 	arm*)			TARGETARCH=arm-eabi;;
@@ -1020,10 +1072,15 @@ case "$PACKAGE" in
 		NAME="${TARGETARCH} cross GCC"
 		PACKAGES="GMP MPFR MPC BINUTILS GCC"
 		;;
+	LIBSTDCXX|libstdcxx)
+		echo "Target architecture is $TARGETARCH"
+		NAME="${TARGETARCH} cross libstdcxx"
+		PACKAGES=LIBSTDCXX
+		;;
 	CLANG|clang)
 		NAME="LLVM clang"
 		LLVM_VERSION=${CLANG_VERSION}
-		PACKAGES="CMAKE LLVM CLANG CRT CTE LLVMCMAKE"
+		PACKAGES="CMAKE LLVM CLANG CRT CTE LLVMCMAKE LLD LIBUNWIND RUNTIMES"
 		CMAKE=${DESTDIR}${TARGETDIR}/bin/cmake
 		;;
 	IASL|iasl)
@@ -1067,7 +1124,7 @@ if searchtool wget "GNU" nofail > /dev/null; then
 		url=$1
 		printf "... ${red}  0%%"
 		wget --tries=3 "$url" 2>&1 | while read -r line; do
-			echo "$line" | grep -o "[0-9]\+%" | awk '{printf("\b\b\b\b%4s", $1)}'
+			echo "$line" | grep -o "\<[0-9]\{1,3\}%" | awk '{printf("\b\b\b\b%4s", $1)}'
 		done
 		printf "${NC}... "
 	}

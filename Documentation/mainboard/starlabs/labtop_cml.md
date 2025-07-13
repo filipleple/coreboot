@@ -2,7 +2,7 @@
 
 ## Specs
 
-- CPU (full processor specs available at https://ark.intel.com)
+- CPU (full processor specs available at <https://ark.intel.com>)
     - Intel i7-10710U (Comet Lake)
     - Intel i3-10110U (Comet Lake)
 - EC
@@ -18,7 +18,7 @@
     - HDMI video
     - USB-C DisplayPort video
 - Memory
-    - 16GB on-board *1
+    - 16GB on-board [^1]
 - Networking
     - AX201 CNVi WiFi / Bluetooth soldered to PCBA
 - Sound
@@ -37,7 +37,7 @@
     - USB 3.1 Gen 2 Type-A (left)
     - USB 3.1 Gen 1 Type-A (right)
 
-[^1] The Comet Lake PCB supports multiple memory variations that are based on hardware configuration resistors see `src/mainboard/starlabs/labtop/variants/cml/romstage.c`
+[^1]: The Comet Lake PCB supports multiple memory variations that are based on hardware configuration resistors see `src/mainboard/starlabs/labtop/variants/cml/romstage.c`
 
 ## Building coreboot
 
@@ -45,7 +45,7 @@ Please follow the [Star Labs build instructions](common/building.md) to build co
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+------------+
 | Type                | Value      |
 +=====================+============+

@@ -11,6 +11,7 @@
 #include <ec/ec.h>
 #include <security/tpm/tss.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 #include <timer.h>
 #include <vb2_api.h>
 
@@ -128,18 +129,15 @@ static void mainboard_generate_s0ix_hook(void)
 
 static void mainboard_fill_ssdt(const struct device *dev)
 {
-
 	acpigen_write_scope("\\_SB");
 	acpigen_write_method_serialized("MS0X", 1);
 	mainboard_generate_s0ix_hook();
 	acpigen_write_method_end(); /* Method */
 	acpigen_write_scope_end(); /* Scope */
-
 }
 
 void __weak variant_generate_s0ix_hook(enum s0ix_entry entry)
 {
-
 	/* Add board-specific MS0X entries */
 	/*
 	if (s0ix_entry == S0IX_ENTRY) {

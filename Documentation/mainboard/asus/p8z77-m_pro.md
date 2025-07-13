@@ -4,7 +4,7 @@ This page describes how to run coreboot on the [ASUS P8Z77-M PRO]
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+----------------+
 | Type                | Value          |
 +=====================+================+
@@ -143,7 +143,7 @@ easy to remove and reflash.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | Northbridge      | :doc:`../../northbridge/intel/sandybridge/index` |
 +------------------+--------------------------------------------------+
@@ -165,4 +165,4 @@ easy to remove and reflash.
 
 [ASUS P8Z77-M PRO]: https://www.asus.com/Motherboards/P8Z77M_PRO/
 [W25Q64FVA1Q]: https://www.winbond.com/resource-files/w25q64fv%20revs%2007182017.pdf
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/

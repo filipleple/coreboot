@@ -13,6 +13,7 @@
 #include <intelblocks/msr.h>
 #include <smp/node.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 #include <types.h>
 
 #define CPUID_PROCESSOR_FREQUENCY		0X16
@@ -154,7 +155,6 @@ void cpu_set_p_state_to_min_clock_ratio(void)
  */
 int cpu_get_burst_mode_state(void)
 {
-
 	msr_t msr;
 	unsigned int eax;
 	int burst_en, burst_cap, burst_state = BURST_MODE_UNKNOWN;
@@ -320,7 +320,7 @@ void configure_tcc_thermal_target(void)
 	 */
 	if (CONFIG(SOC_INTEL_APOLLOLAKE) || CONFIG(SOC_INTEL_SKYLAKE) ||
 	    CONFIG(SOC_INTEL_KABYLAKE) || CONFIG(SOC_INTEL_BRASWELL) ||
-	    CONFIG(SOC_INTEL_BROADWELL))
+	    CONFIG(SOC_INTEL_BROADWELL) || CONFIG(SOC_INTEL_SKYLAKE_SP))
 		return;
 
 	/* Time Window Tau Bits [6:0] */

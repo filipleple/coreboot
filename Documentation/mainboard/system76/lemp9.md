@@ -6,7 +6,7 @@
     - Intel i7-10510U
     - Intel i5-10210U
 - EC
-    - ITE IT5570E running https://github.com/system76/ec
+    - ITE IT5570E running <https://github.com/system76/ec>
     - Backlit Keyboard, with standard PS/2 keycodes and SCI hotkeys
     - Battery
     - Charger, using AC adapter or USB-C PD
@@ -52,7 +52,7 @@ make
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+------------+
 | Type                | Value      |
 +=====================+============+

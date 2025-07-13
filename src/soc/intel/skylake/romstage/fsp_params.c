@@ -4,12 +4,15 @@
 #include <cpu/x86/msr.h>
 #include <fsp/util.h>
 #include <intelblocks/cpulib.h>
+#include <intelblocks/pcie_rp.h>
 #include <option.h>
 #include <soc/iomap.h>
 #include <soc/msr.h>
 #include <soc/pci_devs.h>
+#include <soc/pcie.h>
 #include <soc/romstage.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 
 static void cpu_flex_override(FSP_M_CONFIG *m_cfg)
 {
@@ -74,9 +77,6 @@ static void soc_peg_init_params(FSP_M_CONFIG *m_cfg,
 static void soc_memory_init_params(FSP_M_CONFIG *m_cfg,
 			const struct soc_intel_skylake_config *config)
 {
-	int i;
-	uint32_t mask = 0;
-
 	m_cfg->MmioSize = 0x800; /* 2GB in MB */
 	m_cfg->TsegSize = CONFIG_SMM_TSEG_SIZE;
 	m_cfg->IedSize = CONFIG_IED_REGION_SIZE;
@@ -91,11 +91,7 @@ static void soc_memory_init_params(FSP_M_CONFIG *m_cfg,
 	m_cfg->DdrFreqLimit = 0;
 	m_cfg->VmxEnable = CONFIG(ENABLE_VMX);
 	m_cfg->PrmrrSize = get_valid_prmrr_size();
-	for (i = 0; i < ARRAY_SIZE(config->PcieRpEnable); i++) {
-		if (config->PcieRpEnable[i])
-			mask |= (1<<i);
-	}
-	m_cfg->PcieRpEnableMask = mask;
+	m_cfg->PcieRpEnableMask = pcie_rp_enable_mask(get_pch_pcie_rp_table());
 
 	cpu_flex_override(m_cfg);
 
@@ -120,7 +116,14 @@ static void soc_primary_gfx_config_params(FSP_M_CONFIG *m_cfg,
 	 *
 	 * If disabled, don't reserve memory for it.
 	 */
-	m_cfg->IgdDvmt50PreAlloc = m_cfg->InternalGfx ? 2 : 0;
+	if (m_cfg->InternalGfx) {
+		/* IGD is enabled, set IGD stolen size to 64MB. */
+		m_cfg->IgdDvmt50PreAlloc = get_uint_option("igd_dvmt_prealloc", IGD_SM_64MB);
+		m_cfg->ApertureSize = get_uint_option("igd_aperture_size", IGD_AP_SZ_256MB);
+	} else {
+		/* IGD is disabled, skip IGD init in FSP. */
+		m_cfg->IgdDvmt50PreAlloc = 0;
+	}
 
 	m_cfg->PrimaryDisplay = config->PrimaryDisplay;
 }

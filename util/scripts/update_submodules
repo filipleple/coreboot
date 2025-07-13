@@ -65,7 +65,7 @@ get_args() {
 			exit 0
 			;;
 		-R | --repo)
-			submodule_dirs=("$(readlink -f "${1}")")
+			submodule_dirs="${1%/}"
 			shift
 			if [[ ! -d "${submodule_dirs[0]}" ]]; then
 				echo "Error: ${submodule_dirs[0]} is not valid."
@@ -92,38 +92,36 @@ main() {
 	get_args "$@"
 
 	if (( ${#submodule_dirs[@]} == 0 )); then
-		readarray -t submodule_dirs < <(git submodule foreach pwd | grep -v "Entering")
+		readarray -t submodule_dirs < <(git submodule foreach 'echo ${sm_path}'|grep -v Entering)
 	fi
 
 	for submodule in "${submodule_dirs[@]}"; do
+		cd "${TOP}"
+
+		echo ""
 		echo "Checking submodule ${submodule}"
+
 		if ! cd "$submodule"; then
  			echo "Error: could not cd to $submodule"
 			exit 1
 		fi
 
-		initial_commit_id="$(git log --pretty='%h' -n 1)"
+		initial_commit_id="$(git log --pretty='%h' -n 1 --abbrev=12)"
 		initial_commit_description="$(git log --pretty='%ci - (%s)' -n 1)"
 		if [[ ${skip_sync} != "1" ]]; then
 			git fetch 2>/dev/null
 		fi
 
-		declare -a branches=("origin/main" "origin/master" "origin/trunk")
-		for branch in "${branches[@]}"; do
-			if git branch -a | grep "${branch}" > /dev/null; then
-				branch_name="${branch}"
-				break
-			fi
-		done
+		branch_name="$(git symbolic-ref refs/remotes/origin/HEAD --short)"
 
-		updated_commit_id="$(git log --pretty='%h' -n 1 "${branch_name}" -- )"
+		updated_commit_id="$(git log --pretty='%h' -n 1 --abbrev=12 "${branch_name}" -- )"
 		updated_commit_description="$(git log --pretty='%ci - (%s)' -n 1 "${updated_commit_id}")"
 		if [ "${initial_commit_id}" = "${updated_commit_id}" ]; then
 			echo "No updates for ${submodule}"
 			continue
 		fi
 		SUBMODULES_WITH_UPDATES+=1
-		update_log="$(git log --oneline "${initial_commit_id}..${updated_commit_id}")"
+		update_log="$(git log --oneline --abbrev=12 "${initial_commit_id}..${updated_commit_id}")"
 		update_count="$(echo "${update_log}" | wc -l)"
 		if [[ "${update_count}" -gt "${max_commits_to_list}" ]]; then
 			update_log=""
@@ -138,7 +136,7 @@ main() {
 			cd "${TOP}" || exit 1
 			git add "${submodule}" > /dev/null 2>&1 || exit 1
 			git commit -s -F- > /dev/null 2>&1 <<-EOF
-	Update ${submodule##*/} submodule to upstream ${branch##*/}
+	${submodule}: Update to upstream ${branch_name##*/}
 
 	Updating from commit id ${initial_commit_id}:
 	$initial_commit_description

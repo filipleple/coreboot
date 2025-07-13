@@ -1,22 +1,26 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
+#include <assert.h>
 #include <console/console.h>
 #include <console/debug.h>
-#include <intelblocks/cpulib.h>
 #include <cpu/cpu.h>
 #include <cpu/intel/cpu_ids.h>
 #include <cpu/x86/mtrr.h>
 #include <cpu/x86/mp.h>
+#include <cpu/intel/common/common.h>
+#include <cpu/intel/microcode.h>
 #include <cpu/intel/turbo.h>
+#include <cpu/intel/smm_reloc.h>
+#include <cpu/intel/em64t101_save_state.h>
+#include <intelblocks/cpulib.h>
+#include <intelpch/lockdown.h>
 #include <soc/msr.h>
+#include <soc/pm.h>
 #include <soc/soc_util.h>
 #include <soc/smmrelocate.h>
 #include <soc/util.h>
-#include <assert.h>
-#include "chip.h"
-#include <cpu/intel/smm_reloc.h>
-#include <cpu/intel/em64t101_save_state.h>
 #include <types.h>
+#include "chip.h"
 
 static const config_t *chip_config = NULL;
 
@@ -55,24 +59,44 @@ static void xeon_configure_mca(void)
 	mca_configure();
 }
 
+/*
+ * By providing a pointer to the microcode MPinit will update the MCU
+ * when necessary and skip the update if microcode already has been loaded.
+ *
+ * When FSP-S is provided with UPD PcdCpuMicrocodePatchBase it will update
+ * the microcode. Since coreboot is able to do the same, don't set the UPD
+ * and let coreboot handle microcode updates.
+ *
+ * FSP-S updates microcodes serialized, so do the same.
+ *
+ */
+static void get_microcode_info(const void **microcode, int *parallel)
+{
+	*microcode = intel_microcode_find();
+	*parallel = 0;
+}
+
 static void xeon_sp_core_init(struct device *cpu)
 {
 	msr_t msr;
 
-	printk(BIOS_INFO, "%s dev: %s, cpu: %lu, apic_id: 0x%x, package_id: 0x%x\n",
-	       __func__, dev_path(cpu), cpu_index(), cpu->path.apic.apic_id,
+	printk(BIOS_INFO, "%s: cpu: %lu, apic_id: 0x%x, package_id: 0x%x\n",
+	       __func__, cpu_index(), cpu->path.apic.apic_id,
 	       cpu->path.apic.package_id);
 	assert(chip_config);
 
-	/* set MSR_PKG_CST_CONFIG_CONTROL - scope per core*/
+	/* set MSR_PKG_CST_CONFIG_CONTROL - scope per core */
 	msr.hi = 0;
 	msr.lo = (PKG_CSTATE_NO_LIMIT | CFG_LOCK_ENABLE);
 	wrmsr(MSR_PKG_CST_CONFIG_CONTROL, msr);
 
 	/* Enable Energy Perf Bias Access, Dynamic switching and lock MSR */
 	msr = rdmsr(MSR_POWER_CTL);
-	msr.lo |= (ENERGY_PERF_BIAS_ACCESS_ENABLE | PWR_PERF_TUNING_DYN_SWITCHING_ENABLE
-		| PROCHOT_LOCK_ENABLE);
+	msr.lo &= ~(POWER_CTL_C1E_MASK | BIT2);
+	msr.lo |= ENERGY_PERF_BIAS_ACCESS_ENABLE;
+	msr.lo |= PWR_PERF_TUNING_DYN_SWITCHING_ENABLE;
+	msr.lo |= LTR_IIO_DISABLE;
+	msr.lo |= PROCHOT_LOCK_ENABLE;
 	wrmsr(MSR_POWER_CTL, msr);
 
 	/* Set P-State ratio */
@@ -95,7 +119,9 @@ static void xeon_sp_core_init(struct device *cpu)
 		wrmsr(MSR_MISC_PWR_MGMT, msr);
 	}
 
-	/* TODO MSR_VR_MISC_CONFIG */
+	msr = rdmsr(MSR_VR_MISC_CONFIG);
+	msr.hi |= BIT20;
+	wrmsr(MSR_VR_MISC_CONFIG, msr);
 
 	/* Set current limit lock */
 	msr = rdmsr(MSR_VR_CURRENT_CONFIG);
@@ -112,14 +138,19 @@ static void xeon_sp_core_init(struct device *cpu)
 	msr.hi = (chip_config->turbo_ratio_limit_cores >> 32) & 0xffffffff;
 	wrmsr(MSR_TURBO_RATIO_LIMIT_CORES, msr);
 
-	/* set Turbo Activation ratio */
-	msr.hi = 0;
+	/* set Turbo Activation ratio - scope package */
 	msr = rdmsr(MSR_TURBO_ACTIVATION_RATIO);
 	msr.lo |= MAX_NON_TURBO_RATIO;
+	msr.lo |= BIT31;	/* Lock it */
 	wrmsr(MSR_TURBO_ACTIVATION_RATIO, msr);
 
-	/* Enable Fast Strings */
+	/* Scope package */
+	msr = rdmsr(MSR_CONFIG_TDP_CONTROL);
+	msr.lo |= BIT31;	/* Lock it */
+	wrmsr(MSR_CONFIG_TDP_CONTROL, msr);
+
 	msr = rdmsr(IA32_MISC_ENABLE);
+	/* Enable Fast Strings */
 	msr.lo |= FAST_STRINGS_ENABLE_BIT;
 	wrmsr(IA32_MISC_ENABLE, msr);
 
@@ -129,8 +160,17 @@ static void xeon_sp_core_init(struct device *cpu)
 	msr.hi = 0;
 	wrmsr(MSR_IA32_ENERGY_PERF_BIAS, msr);
 
+	if (!intel_ht_sibling()) {
+		/* scope per core */
+		msr = rdmsr(MSR_SNC_CONFIG);
+		msr.lo |= BIT28;	/* Lock it */
+		wrmsr(MSR_SNC_CONFIG, msr);
+	}
+
 	/* Enable Turbo */
 	enable_turbo();
+
+	configure_tcc_thermal_target();
 
 	/* Enable speed step. */
 	if (get_turbo_state() == TURBO_ENABLED) {
@@ -141,6 +181,12 @@ static void xeon_sp_core_init(struct device *cpu)
 
 	/* Clear out pending MCEs */
 	xeon_configure_mca();
+
+	/* Enable Vmx */
+	set_vmx_and_lock();
+	set_aesni_lock();
+
+	enable_lapic_tpr();
 }
 
 static struct device_operations cpu_dev_ops = {
@@ -161,8 +207,6 @@ static const struct cpu_driver driver __cpu_driver = {
 	.ops = &cpu_dev_ops,
 	.id_table = cpu_table,
 };
-
-#define CPU_BCLK 100
 
 static void set_max_turbo_freq(void)
 {
@@ -187,7 +231,7 @@ static void set_max_turbo_freq(void)
 	wrmsr(IA32_PERF_CTL, perf_ctl);
 
 	printk(BIOS_DEBUG, "cpu: frequency set to %d\n",
-	       ((perf_ctl.lo >> 8) & 0xff) * CPU_BCLK);
+	       ((perf_ctl.lo >> 8) & 0xff) * CONFIG_CPU_BCLK_MHZ);
 	FUNC_EXIT();
 }
 
@@ -211,16 +255,15 @@ static void post_mp_init(void)
 	/* Set Max Ratio */
 	set_max_turbo_freq();
 
-	if (CONFIG(HAVE_SMI_HANDLER))
+	if (CONFIG(HAVE_SMI_HANDLER)) {
 		global_smi_enable();
+		if (get_lockdown_config() == CHIPSET_LOCKDOWN_COREBOOT)
+			pmc_lock_smi();
+	}
 }
 
 /*
  * CPU initialization recipe
- *
- * Note that no microcode update is passed to the init function. CSE updates
- * the microcode on all cores before releasing them from reset. That means that
- * the BSP and all APs will come up with the same microcode revision.
  */
 static const struct mp_ops mp_ops = {
 	.pre_mp_init = pre_mp_init,
@@ -228,6 +271,7 @@ static const struct mp_ops mp_ops = {
 	.get_smm_info = get_smm_info,
 	.pre_mp_smm_init = smm_southbridge_clear_state,
 	.relocation_handler = smm_relocation_handler,
+	.get_microcode_info = get_microcode_info,
 	.post_mp_init = post_mp_init,
 };
 
@@ -235,14 +279,19 @@ void mp_init_cpus(struct bus *bus)
 {
 	FUNC_ENTER();
 
+	const void *microcode_patch = intel_microcode_find();
+
+	if (!microcode_patch)
+		printk(BIOS_ERR, "microcode not found in CBFS!\n");
+
+	intel_microcode_load_unlocked(microcode_patch);
+
 	/*
 	 * This gets used in cpu device callback. Other than cpu 0,
 	 * rest of the CPU devices do not have
 	 * chip_info updated. Global chip_config is used as workaround
 	 */
 	chip_config = bus->dev->chip_info;
-
-	config_reset_cpl3_csrs();
 
 	/* calls src/cpu/x86/mp_init.c */
 	/* TODO: Handle mp_init_with_smm failure? */

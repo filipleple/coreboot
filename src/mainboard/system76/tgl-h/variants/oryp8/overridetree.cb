@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 chip soc/intel/tigerlake
 	# Power limits
 	register "power_limits_config[POWER_LIMITS_H_8_CORE]" = "{
@@ -34,6 +36,7 @@ chip soc/intel/tigerlake
 			# PCIe PEG0 x4, Clock 7 (SSD1)
 			register "PcieClkSrcUsage[7]" = "0x40"
 			register "PcieClkSrcClkReq[7]" = "7"
+			smbios_slot_desc "SlotTypeM2Socket3" "SlotLengthOther" "M.2/M 2280 (J_SSD1)" "SlotDataBusWidth4X"
 		end
 		device ref tbt_pcie_rp0 on end # TYPEC1
 		device ref north_xhci on # TYPEC1
@@ -62,29 +65,31 @@ chip soc/intel/tigerlake
 		end
 		device ref pcie_rp5 on
 			# PCIe root port #5 x1, Clock 8 (GLAN)
-			register "PcieRpLtrEnable[4]" = "1"
+			register "PcieRpLtrEnable[4]" = "true"
 			register "PcieClkSrcUsage[8]" = "4"
 			register "PcieClkSrcClkReq[8]" = "8"
 		end
 		device ref pcie_rp6 on
 			# PCIe root port #6 x1, Clock 10 (CARD)
-			register "PcieRpLtrEnable[5]" = "1"
+			register "PcieRpLtrEnable[5]" = "true"
 			register "PcieClkSrcUsage[10]" = "5"
 			register "PcieClkSrcClkReq[10]" = "10"
 		end
 		device ref pcie_rp8 on
 			# PCIe root port #8 x1, Clock 2 (WLAN)
-			register "PcieRpLtrEnable[7]" = "1"
+			register "PcieRpLtrEnable[7]" = "true"
 			register "PcieClkSrcUsage[2]" = "7"
 			register "PcieClkSrcClkReq[2]" = "2"
-			register "PcieRpSlotImplemented[7]" = "1"
+			register "PcieRpSlotImplemented[7]" = "true"
+			smbios_slot_desc "SlotTypeM2Socket1_SD" "SlotLengthOther" "M.2/E 2230 (J_WLAN1)" "SlotDataBusWidth1X"
 		end
 		device ref pcie_rp9 on
 			# PCIe root port #9 x4, Clock 6 (SSD2)
-			register "PcieRpLtrEnable[8]" = "1"
+			register "PcieRpLtrEnable[8]" = "true"
 			register "PcieClkSrcUsage[6]" = "8"
 			register "PcieClkSrcClkReq[6]" = "6"
-			register "PcieRpSlotImplemented[8]" = "1"
+			register "PcieRpSlotImplemented[8]" = "true"
+			smbios_slot_desc "SlotTypeM2Socket3" "SlotLengthOther" "M.2/M 2280 (J_SSD2)" "SlotDataBusWidth4X"
 		end
 		device ref smbus on
 			chip drivers/i2c/tas5825m

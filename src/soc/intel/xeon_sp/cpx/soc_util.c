@@ -35,62 +35,6 @@ bool is_ubox_stack_res(const STACK_RES *res)
 	return res->Personality == TYPE_UBOX;
 }
 
-/* Returns the UBOX(stack) bus number when called from socket0 */
-uint8_t socket0_get_ubox_busno(const uint8_t stack)
-{
-	if (stack >= MAX_IIO_STACK) {
-		printk(BIOS_ERR, "%s: Stack %u does not exist!\n", __func__, stack);
-		return 0;
-	}
-	const pci_devfn_t dev = PCI_DEV(UBOX_DECS_BUS, UBOX_DECS_DEV, UBOX_DECS_FUNC);
-	const uint16_t offset = stack / 4 ? UBOX_DECS_CPUBUSNO1_CSR : UBOX_DECS_CPUBUSNO_CSR;
-	return pci_io_read_config32(dev, offset) >> (8 * (stack % 4)) & 0xff;
-}
-
-/*
- * EX: CPX-SP
- * Ports    Stack   Stack(HOB)  IioConfigIou
- * ==========================================
- * 0        CSTACK      stack 0     IOU0
- * 1A..1D   PSTACKZ     stack 1     IOU1
- * 2A..2D   PSTACK1     stack 2     IOU2
- * 3A..3D   PSTACK2     stack 4     IOU3
- */
-int soc_get_stack_for_port(int port)
-{
-	if (port == PORT_0)
-		return CSTACK;
-	else if (port >= PORT_1A && port <= PORT_1D)
-		return PSTACK0;
-	else if (port >= PORT_2A && port <= PORT_2D)
-		return PSTACK1;
-	else if (port >= PORT_3A && port <= PORT_3D)
-		return PSTACK2;
-	else
-		return -1;
-}
-
-uint8_t soc_get_iio_ioapicid(int socket, int stack)
-{
-	uint8_t ioapic_id = socket ? 0xf : 0x9;
-	switch (stack) {
-	case CSTACK:
-		break;
-	case PSTACK0:
-		ioapic_id += 1;
-		break;
-	case PSTACK1:
-		ioapic_id += 2;
-		break;
-	case PSTACK2:
-		ioapic_id += 3;
-		break;
-	default:
-		return 0xff;
-	}
-	return ioapic_id;
-}
-
 void soc_set_mrc_cold_boot_flag(bool cold_boot_required)
 {
 	uint8_t mrc_status = cmos_read(CMOS_OFFSET_MRC_STATUS);
@@ -135,4 +79,14 @@ bool is_memtype_non_volatile(uint16_t mem_type)
 bool is_memtype_processor_attached(uint16_t mem_type)
 {
 	return true;
+}
+
+uint8_t get_cxl_node_count(void)
+{
+	return 0;
+}
+
+bool get_mmio_high_base_size(resource_t *base, resource_t *size)
+{
+	return false;
 }

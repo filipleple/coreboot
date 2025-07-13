@@ -1,7 +1,7 @@
 # coreboot Console
 
 coreboot supports multiple ways to access its console.
-https://www.coreboot.org/Console_and_outputs
+<https://www.coreboot.org/Console_and_outputs>
 
 
 ## SMBus Console
@@ -22,7 +22,7 @@ those SMBus pins. Some mainboard have SMBus pins in the PCIe slot as
 well.
 
 This feature has been tested on the following platforms:
-```eval_rst
+```{eval-rst}
 +------------------------------------+
 | Tested platforms                   |
 +====================================+

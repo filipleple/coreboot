@@ -86,7 +86,8 @@ static const struct pad_config gpio_table[] = {
 	/* GPP_B21 : net NC is not present in the given design */
 	PAD_NC(GPP_B21, NONE),
 	/* GPP_B22 : [] ==> USB_C_FORCE_PWR */
-	PAD_CFG_GPO(GPP_B22, 0, DEEP),
+	/* TODO: Set back to 0 when the Hayden Bridge Re-timer issue is fixed (b/386019934) */
+	PAD_CFG_GPO(GPP_B22, 1, DEEP),
 	/* GPP_B23 : net NC is not present in the given design */
 	PAD_NC(GPP_B23, NONE),
 
@@ -409,7 +410,6 @@ static const struct pad_config romstage_gpio_table[] = {
 
 const struct pad_config *variant_gpio_table(size_t *num)
 {
-
 	*num = ARRAY_SIZE(gpio_table);
 	return gpio_table;
 }

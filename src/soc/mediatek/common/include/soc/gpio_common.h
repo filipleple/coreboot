@@ -50,6 +50,18 @@ struct gpio_drv_info {
 	uint8_t width;
 };
 
+struct pad_func {
+	gpio_t gpio;
+	u8 func;
+	enum pull_select select;
+};
+
+#define GPIO_FUNC(name, func)		PAD_##name##_FUNC_##func
+#define PAD_FUNC(name, func, select)	{ GPIO(name), GPIO_FUNC(name, func), select }
+#define PAD_FUNC_DOWN(name, func)	PAD_FUNC(name, func, GPIO_PULL_DOWN)
+#define PAD_FUNC_UP(name, func)		PAD_FUNC(name, func, GPIO_PULL_UP)
+#define PAD_FUNC_GPIO(name)		{ GPIO(name), 0 }
+
 void gpio_set_pull(gpio_t gpio, enum pull_enable enable,
 		   enum pull_select select);
 void gpio_set_mode(gpio_t gpio, int mode);
@@ -102,8 +114,6 @@ struct eint_regs {
 
 check_member(eint_regs, d1en, 0x420);
 
-static struct eint_regs *const mtk_eint = (void *)(EINT_BASE);
-
 /*
  * Firmware never enables interrupts on this platform.  This function
  * reads current EINT status and clears the pending interrupt.
@@ -116,5 +126,12 @@ int gpio_eint_poll(gpio_t gpio);
  * Configure a GPIO to handle external interrupts (EINT) of given irq type.
  */
 void gpio_eint_configure(gpio_t gpio, enum gpio_irq_type type);
+
+enum {
+	MAX_EINT_REG_BITS = 32,
+};
+
+void gpio_calc_eint_pos_bit(gpio_t gpio, u32 *pos, u32 *bit);
+struct eint_regs *gpio_get_eint_reg(gpio_t gpio);
 
 #endif

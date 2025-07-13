@@ -13,10 +13,10 @@ chip soc/intel/skylake
 	}"
 
 	# Deep Sx states
-	register "deep_s3_enable_ac" = "0"
-	register "deep_s3_enable_dc" = "1"
-	register "deep_s5_enable_ac" = "1"
-	register "deep_s5_enable_dc" = "1"
+	register "deep_s3_enable_ac" = "false"
+	register "deep_s3_enable_dc" = "true"
+	register "deep_s5_enable_ac" = "true"
+	register "deep_s5_enable_dc" = "true"
 	register "deep_sx_config" = "DSX_EN_LAN_WAKE_PIN | DSX_DIS_AC_PRESENT_PD"
 
 	# GPE configuration
@@ -27,23 +27,15 @@ chip soc/intel/skylake
 	register "gpe0_dw1" = "GPP_D"
 	register "gpe0_dw2" = "GPP_E"
 
-	# EC host command ranges are in 0x800-0x8ff & 0x200-0x20f
-	register "gen1_dec" = "0x00fc0801"
-	register "gen2_dec" = "0x000c0201"
-	# EC memory map range is 0x900-0x9ff
-	register "gen3_dec" = "0x00fc0901"
-
 	# Enable DPTF
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# Enable S0ix
 	register "s0ix_enable" = true
 
 	# FSP Configuration
-	register "SataSalpSupport" = "0"
-	register "DspEnable" = "1"
+	register "DspEnable" = "true"
 	register "IoBufferOwnership" = "3"
-	register "SsicPortEnable" = "0"
 	register "ScsEmmcHs400Enabled" = "1"
 	register "SkipExtGfxScan" = "1"
 	register "SaGv" = "SaGv_Enabled"
@@ -126,61 +118,6 @@ chip soc/intel/skylake
 		.ac_loadline = 310,
 		.dc_loadline = 310,
 	}"
-
-	# Root port 4 (x1)
-	#  PcieRpEnable:                 Enable root port
-	#  PcieRpClkReqSupport:          Enable CLKREQ#
-	#  PcieRpClkReqNumber:           Uses SRCCLKREQ1#
-	#  PcieRpClkSrcNumber:           Uses 1
-	#  PcieRpAdvancedErrorReporting: Enable Advanced Error Reporting
-	#  PcieRpLtrEnable:              Enable Latency Tolerance Reporting Mechanism
-	register "PcieRpEnable[3]" = "1"
-	register "PcieRpClkReqSupport[3]" = "1"
-	register "PcieRpClkReqNumber[3]" = "1"
-	register "PcieRpClkSrcNumber[3]" = "1"
-	register "PcieRpAdvancedErrorReporting[3]" = "1"
-	register "PcieRpLtrEnable[3]" = "1"
-
-	# Root port 5 (x4)
-	#  PcieRpEnable:                 Enable root port
-	#  PcieRpClkReqSupport:          Enable CLKREQ#
-	#  PcieRpClkReqNumber:           Uses SRCCLKREQ3#
-	#  PcieRpClkSrcNumber:           Uses 3
-	#  PcieRpAdvancedErrorReporting: Enable Advanced Error Reporting
-	#  PcieRpLtrEnable:              Enable Latency Tolerance Reporting Mechanism
-	register "PcieRpEnable[4]" = "1"
-	register "PcieRpClkReqSupport[4]" = "1"
-	register "PcieRpClkReqNumber[4]" = "3"
-	register "PcieRpClkSrcNumber[4]" = "3"
-	register "PcieRpAdvancedErrorReporting[4]" = "1"
-	register "PcieRpLtrEnable[4]" = "1"
-
-	# Root port 9 (x2)
-	#  PcieRpEnable:                 Enable root port
-	#  PcieRpClkReqSupport:          Enable CLKREQ#
-	#  PcieRpClkReqNumber:           Uses SRCCLKREQ2#
-	#  PcieRpClkSrcNumber:           Uses 2
-	#  PcieRpAdvancedErrorReporting: Enable Advanced Error Reporting
-	#  PcieRpLtrEnable:              Enable Latency Tolerance Reporting Mechanism
-	register "PcieRpEnable[8]" = "1"
-	register "PcieRpClkReqSupport[8]" = "1"
-	register "PcieRpClkReqNumber[8]" = "2"
-	register "PcieRpClkSrcNumber[8]" = "2"
-	register "PcieRpAdvancedErrorReporting[8]" = "1"
-	register "PcieRpLtrEnable[8]" = "1"
-
-	register "usb2_ports[0]" = "USB2_PORT_LONG(OC0)"	# Type-C Port 0
-	register "usb2_ports[1]" = "USB2_PORT_LONG(OC1)"	# Type-C Port 1
-	register "usb2_ports[2]" = "USB2_PORT_MID(OC2)"	# Type-A Port
-	register "usb2_ports[3]" = "USB2_PORT_MID(OC_SKIP)"	# Card reader
-	register "usb2_ports[4]" = "USB2_PORT_MID(OC_SKIP)"	# WiFi
-	register "usb2_ports[5]" = "USB2_PORT_MID(OC_SKIP)"	# Rear camera
-	register "usb2_ports[6]" = "USB2_PORT_MID(OC_SKIP)"	# Front camera
-
-	register "usb3_ports[0]" = "USB3_PORT_DEFAULT(OC0)"	# Type-C Port 0
-	register "usb3_ports[1]" = "USB3_PORT_DEFAULT(OC1)"	# Type-C Port 1
-	register "usb3_ports[2]" = "USB3_PORT_DEFAULT(OC2)"	# Type-A Port
-	register "usb3_ports[3]" = "USB3_PORT_DEFAULT(OC_SKIP)" # Card reader
 
 	# Touchscreen
 	register "i2c_voltage[0]" = "I2C_VOLTAGE_3V3"
@@ -273,16 +210,29 @@ chip soc/intel/skylake
 		.psys_pmax = 101,
 	}"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
-		device ref system_agent		on  end
 		device ref igpu			on  end
 		device ref sa_thermal		on  end
-		device ref imgu			off end
-		device ref south_xhci		on  end
+		device ref south_xhci		on
+			register "usb2_ports" = "{
+				[0] = USB2_PORT_LONG(OC0),	// Type-C Port 0
+				[1] = USB2_PORT_LONG(OC1),	// Type-C Port 1
+				[2] = USB2_PORT_MID(OC2),	// Type-A Port
+				[3] = USB2_PORT_MID(OC_SKIP),	// Card reader
+				[4] = USB2_PORT_MID(OC_SKIP),	// WiFi
+				[5] = USB2_PORT_MID(OC_SKIP),	// Rear camera
+				[6] = USB2_PORT_MID(OC_SKIP),	// Front camera
+			}"
+
+			register "usb3_ports" = "{
+				[0] = USB3_PORT_DEFAULT(OC0),	// Type-C Port 0
+				[1] = USB3_PORT_DEFAULT(OC1),	// Type-C Port 1
+				[2] = USB3_PORT_DEFAULT(OC2),	// Type-A Port
+				[3] = USB3_PORT_DEFAULT(OC_SKIP), // Card reader
+			}"
+		end
 		device ref south_xdci		on  end
 		device ref thermal		on  end
-		device ref cio			off end
 		device ref i2c0			on
 			chip drivers/i2c/generic
 				register "hid" = ""ELAN0001""
@@ -295,7 +245,7 @@ chip soc/intel/skylake
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B4)"
 				register "enable_delay_ms" = "5"
 				register "enable_off_delay_ms" = "100"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C3)"
 				register "stop_off_delay_ms" = "2"
 				device i2c 10 on end
@@ -311,7 +261,7 @@ chip soc/intel/skylake
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B4)"
 				register "enable_delay_ms" = "10"
 				register "enable_off_delay_ms" = "100"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C3)"
 				register "stop_delay_ms" = "20"
 				register "stop_off_delay_ms" = "2"
@@ -412,33 +362,37 @@ chip soc/intel/skylake
 			end
 		end
 		device ref heci1		on  end
-		device ref heci2		off end
-		device ref csme_ider		off end
-		device ref csme_ktr		off end
-		device ref heci3		off end
-		device ref sata			off end
 		device ref uart2		on  end
-		device ref i2c5			off end
-		device ref i2c4			off end
 		device ref pcie_rp1		on  end
-		device ref pcie_rp2		off end
-		device ref pcie_rp3		off end
 		device ref pcie_rp4		on
+			# x1
+			register "PcieRpClkReqSupport[3]" = "1"
+			register "PcieRpClkReqNumber[3]" = "1"
+			register "PcieRpClkSrcNumber[3]" = "1"
+			register "PcieRpAdvancedErrorReporting[3]" = "1"
+			register "PcieRpLtrEnable[3]" = "true"
 			chip drivers/wifi/generic
 				register "wake" = "GPE0_DW2_22" # Wake pin = GPP_E22
 				device pci 00.0 on end
 			end
 		end
-		device ref pcie_rp5		on  end
-		device ref pcie_rp6		off end
-		device ref pcie_rp7		off end
-		device ref pcie_rp8		off end
-		device ref pcie_rp9		on  end
-		device ref pcie_rp10		off end
-		device ref pcie_rp11		off end
-		device ref pcie_rp12		off end
+		device ref pcie_rp5		on
+			# x4
+			register "PcieRpClkReqSupport[4]" = "1"
+			register "PcieRpClkReqNumber[4]" = "3"
+			register "PcieRpClkSrcNumber[4]" = "3"
+			register "PcieRpAdvancedErrorReporting[4]" = "1"
+			register "PcieRpLtrEnable[4]" = "true"
+		end
+		device ref pcie_rp9		on
+			# x2
+			register "PcieRpClkReqSupport[8]" = "1"
+			register "PcieRpClkReqNumber[8]" = "2"
+			register "PcieRpClkSrcNumber[8]" = "2"
+			register "PcieRpAdvancedErrorReporting[8]" = "1"
+			register "PcieRpLtrEnable[8]" = "true"
+		end
 		device ref uart0		on  end
-		device ref uart1		off end
 		device ref gspi0		on
 			chip drivers/spi/acpi
 				register "hid" = "ACPI_DT_NAMESPACE_HID"
@@ -459,18 +413,19 @@ chip soc/intel/skylake
 			end # FPMCU
 		end
 		device ref emmc 		on  end
-		device ref sdio			off end
-		device ref sdxc			off end
 		device ref lpc_espi		on
+			# EC host command ranges are in 0x800-0x8ff & 0x200-0x20f
+			register "gen1_dec" = "0x00fc0801"
+			register "gen2_dec" = "0x000c0201"
+			# EC memory map range is 0x900-0x9ff
+			register "gen3_dec" = "0x00fc0901"
+
 			chip ec/google/chromeec
 				device pnp 0c09.0 on end
 			end
 		end
-		device ref p2sb			on  end
-		device ref pmc			on  end
 		device ref hda			on  end
 		device ref smbus		on  end
 		device ref fast_spi		on  end
-		device ref gbe			off end
 	end
 end

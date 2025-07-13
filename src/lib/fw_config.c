@@ -34,8 +34,8 @@ uint64_t fw_config_get(void)
 
 	/* Look in CBFS to allow override of value. */
 	if (CONFIG(FW_CONFIG_SOURCE_CBFS) && fw_config_value == UNDEFINED_FW_CONFIG) {
-		if (cbfs_load(CONFIG_CBFS_PREFIX "/fw_config", &fw_config_value,
-			      sizeof(fw_config_value)) != sizeof(fw_config_value))
+		if (cbfs_ro_load(CONFIG_CBFS_PREFIX "/fw_config", &fw_config_value,
+				 sizeof(fw_config_value)) != sizeof(fw_config_value))
 			printk(BIOS_WARNING, "%s: Could not get fw_config from CBFS\n",
 				__func__);
 		else
@@ -102,6 +102,10 @@ bool fw_config_probe_dev(const struct device *dev, const struct fw_config **matc
 
 	/* If the device does not have a probe list, then probing is not required. */
 	if (!dev->probe_list)
+		return true;
+
+	/* If the device wants to be enabled during unprovisioned fw_config */
+	if (!fw_config_is_provisioned() && dev->enable_on_unprovisioned_fw_config)
 		return true;
 
 	for (probe = dev->probe_list; probe && probe->mask != 0; probe++) {

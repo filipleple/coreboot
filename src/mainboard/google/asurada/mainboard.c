@@ -11,7 +11,7 @@
 #include <gpio.h>
 #include <soc/bl31.h>
 #include <soc/ddp.h>
-#include <soc/dpm.h>
+#include <soc/dpm_v1.h>
 #include <soc/dsi.h>
 #include <soc/gpio_common.h>
 #include <soc/i2c.h>
@@ -83,7 +83,7 @@ static bool configure_display(void)
 	printk(BIOS_INFO, "%s: Starting display init\n", __func__);
 
 	configure_backlight_and_bridge();
-	mtk_i2c_bus_init(i2c_bus);
+	mtk_i2c_bus_init(i2c_bus, I2C_SPEED_FAST);
 
 	if (anx7625_init(i2c_bus)) {
 		printk(BIOS_ERR, "%s: Can't init ANX7625 bridge\n", __func__);

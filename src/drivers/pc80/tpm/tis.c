@@ -24,7 +24,9 @@
 #include <device/pnp.h>
 #include <drivers/tpm/tpm_ppi.h>
 #include <timer.h>
+
 #include "chip.h"
+#include "tpm.h"
 
 #define PREFIX "lpc_tpm: "
 
@@ -77,12 +79,6 @@
 
  /* 1 second is plenty for anything TPM does.*/
 #define MAX_DELAY_US	USECS_PER_SEC
-
-enum tpm_family {
-	TPM_UNKNOWN = 0,
-	TPM_1 = 1,
-	TPM_2 = 2,
-};
 
 /*
  * Structures defined below allow creating descriptions of TPM vendor/device
@@ -290,6 +286,14 @@ static inline tpm_result_t tis_wait_valid_data(int locality)
 static inline int tis_has_valid_data(int locality)
 {
 	const u8 has_data = TIS_STS_DATA_AVAILABLE | TIS_STS_VALID;
+
+	/*
+	 * Certain TPMs require a small delay here, as they have set
+	 * TIS_STS_VALID first and TIS_STS_DATA_AVAILABLE few clocks later.
+	 */
+	if ((tpm_read_status(locality) & has_data) == has_data)
+		return 1;
+
 	return (tpm_read_status(locality) & has_data) == has_data;
 }
 
@@ -380,8 +384,10 @@ static tpm_result_t tis_command_ready(u8 locality)
  * Returns TPM_SUCCESS on success (the device is found or was found during
  * an earlier invocation) or TPM_CB_FAIL if the device is not found.
  */
-static tpm_result_t pc80_tis_probe(void)
+static tpm_result_t pc80_tpm_probe(enum tpm_family *family)
 {
+	static enum tpm_family tpm_family;
+
 	const char *device_name = NULL;
 	const char *vendor_name = NULL;
 	const struct device_name *dev;
@@ -389,11 +395,13 @@ static tpm_result_t pc80_tis_probe(void)
 	u16 vid, did;
 	u8 locality = 0, intf_type;
 	int i;
-	enum tpm_family family;
 	const char *family_str;
 
-	if (vendor_dev_id)
+	if (vendor_dev_id) {
+		if (family != NULL)
+			*family = tpm_family;
 		return TPM_SUCCESS;  /* Already probed. */
+	}
 
 	didvid = tpm_read_did_vid(0);
 	if (!didvid || (didvid == 0xffffffff)) {
@@ -409,10 +417,10 @@ static tpm_result_t pc80_tis_probe(void)
 		switch (intf_version) {
 		case 0:
 		case 2:
-			family = TPM_1;
+			tpm_family = TPM_1;
 			break;
 		case 3:
-			family = TPM_2;
+			tpm_family = TPM_2;
 			break;
 		default:
 			printf("%s: Unexpected TPM interface version: %d\n", __func__,
@@ -420,7 +428,7 @@ static tpm_result_t pc80_tis_probe(void)
 			return TPM_CB_PROBE_FAILURE;
 		}
 	} else if (intf_type == 0) {
-		family = TPM_2;
+		tpm_family = TPM_2;
 	} else {
 		printf("%s: Unexpected TPM interface type: %d\n", __func__, intf_type);
 		return TPM_CB_PROBE_FAILURE;
@@ -439,7 +447,7 @@ static tpm_result_t pc80_tis_probe(void)
 		}
 		dev = &vendor_names[i].dev_names[j];
 		while (dev->dev_id != 0xffff) {
-			if (dev->dev_id == did && dev->family == family) {
+			if (dev->dev_id == did && dev->family == tpm_family) {
 				device_name = dev->dev_name;
 				break;
 			}
@@ -449,7 +457,7 @@ static tpm_result_t pc80_tis_probe(void)
 		break;
 	}
 
-	family_str = (family == TPM_1 ? "TPM 1.2" : "TPM 2.0");
+	family_str = (tpm_family == TPM_1 ? "TPM 1.2" : "TPM 2.0");
 	if (vendor_name == NULL) {
 		printk(BIOS_INFO, "Found %s 0x%04x by 0x%04x\n", family_str, did, vid);
 	} else if (device_name == NULL) {
@@ -460,6 +468,8 @@ static tpm_result_t pc80_tis_probe(void)
 		       device_name, did, vendor_name, vid);
 	}
 
+	if (family != NULL)
+		*family = tpm_family;
 	return TPM_SUCCESS;
 }
 
@@ -633,14 +643,6 @@ static tpm_result_t tis_readresponse(u8 *buffer, size_t *len)
 		if (offset == expected_count)
 			break;	/* We got all we need */
 
-		/*
-		 * Certain TPMs seem to need some delay between tis_wait_valid()
-		 * and tis_has_valid_data(), or some race-condition-related
-		 * issue will occur.
-		 */
-		if (CONFIG(TPM_RDRESP_NEED_DELAY))
-			udelay(10);
-
 	} while (tis_has_valid_data(locality));
 
 	/* * Make sure we indeed read all there was. */
@@ -718,14 +720,17 @@ static tpm_result_t pc80_tpm_sendrecv(const uint8_t *sendbuf, size_t send_size,
 }
 
 /*
- * tis_probe()
+ * pc80_tis_probe()
  *
- * Probe for the TPM device and set it up for use within locality 0. Returns
- * pointer to send-receive function on success or NULL on failure.
+ * Probe for the TPM device and set it up for use within locality 0.
+ *
+ * @tpm_family - pointer to tpm_family which is set to TPM family of the device.
+ *
+ * Returns pointer to send-receive function on success or NULL on failure.
  */
-tis_sendrecv_fn tis_probe(void)
+tis_sendrecv_fn pc80_tis_probe(enum tpm_family *family)
 {
-	if (pc80_tis_probe())
+	if (pc80_tpm_probe(family))
 		return NULL;
 
 	if (pc80_tis_open())
@@ -774,8 +779,10 @@ static void lpc_tpm_read_resources(struct device *dev)
 
 static void lpc_tpm_set_resources(struct device *dev)
 {
-	tpm_config_t *config = (tpm_config_t *)dev->chip_info;
+	struct drivers_pc80_tpm_config *config;
 	DEVTREE_CONST struct resource *res;
+
+	config = (struct drivers_pc80_tpm_config *)dev->chip_info;
 
 	for (res = dev->resource_list; res; res = res->next) {
 		if (!(res->flags & IORESOURCE_ASSIGNED))
@@ -806,7 +813,7 @@ static void lpc_tpm_fill_ssdt(const struct device *dev)
 	acpigen_write_scope(path);
 	acpigen_write_device(acpi_device_name(dev));
 
-	if (CONFIG(TPM2)) {
+	if (tlcl_get_family() == TPM_2) {
 		acpigen_write_name_string("_HID", "MSFT0101");
 		acpigen_write_name_string("_CID", "MSFT0101");
 	} else {
@@ -900,11 +907,16 @@ static struct pnp_info pnp_dev_info[] = {
 
 static void enable_dev(struct device *dev)
 {
-	if (CONFIG(TPM))
-		pnp_enable_devices(dev, &lpc_tpm_ops,
-			ARRAY_SIZE(pnp_dev_info), pnp_dev_info);
-	else
+	if (CONFIG(TPM)) {
+		if (pc80_tis_probe(NULL) == NULL) {
+			dev->enabled = 0;
+			return;
+		}
+
+		pnp_enable_devices(dev, &lpc_tpm_ops, ARRAY_SIZE(pnp_dev_info), pnp_dev_info);
+	} else {
 		pnp_enable_devices(dev, &noop_tpm_ops, ARRAY_SIZE(pnp_dev_info), pnp_dev_info);
+	}
 }
 
 struct chip_operations drivers_pc80_tpm_ops = {

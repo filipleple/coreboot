@@ -2,11 +2,11 @@
 
 chip soc/intel/skylake
 	# Enable deep Sx states
-	register "deep_s5_enable_ac" = "1"
-	register "deep_s5_enable_dc" = "1"
+	register "deep_s5_enable_ac" = "true"
+	register "deep_s5_enable_dc" = "true"
 	register "deep_sx_config" = "DSX_EN_LAN_WAKE_PIN | DSX_EN_WAKE_PIN"
 
-	register "eist_enable" = "1"
+	register "eist_enable" = "true"
 
 	# GPE configuration
 	# Note that GPE events called out in ASL code rely on this
@@ -117,7 +117,6 @@ chip soc/intel/skylake
 	# Send an extra VR mailbox command for the PS4 exit issue
 	register "SendVrMbxCmd" = "2"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		subsystemid 0x17aa 0x30d0 inherit
 		device ref igpu on
@@ -162,20 +161,14 @@ chip soc/intel/skylake
 			}"
 		end
 		device ref pcie_rp17 on # M.2 2280 / 2242 - SSD
-			register "PcieRpEnable[16]"			= "1"
-			register "PcieRpClkReqSupport[16]"		= "1"
-			register "PcieRpClkReqNumber[16]"		= "1"
 			register "PcieRpAdvancedErrorReporting[16]"	= "1"
-			register "PcieRpLtrEnable[16]"			= "1"
+			register "PcieRpLtrEnable[16]"			= "true"
 			register "PcieRpClkSrcNumber[16]"		= "7"
 			register "PcieRpHotPlug[16]"			= "1"
 		end
 		device ref pcie_rp7 on # M.2 2230 - WLAN
-			register "PcieRpEnable[6]"			= "1"
-			register "PcieRpClkReqSupport[6]"		= "1"
-			register "PcieRpClkReqNumber[6]"		= "11"
 			register "PcieRpAdvancedErrorReporting[6]"	= "1"
-			register "PcieRpLtrEnable[6]"			= "1"
+			register "PcieRpLtrEnable[6]"			= "true"
 			register "PcieRpClkSrcNumber[6]"		= "1"
 			register "PcieRpHotPlug[6]"			= "1"
 			chip drivers/wifi/generic

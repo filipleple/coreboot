@@ -20,7 +20,7 @@
 #include <soc/pm.h>
 #include <soc/soc_chip.h>
 #include <soc/systemagent.h>
-#include <string.h>
+#include <static.h>
 #include <types.h>
 
 /*
@@ -104,7 +104,7 @@ static const acpi_cstate_t cstate_map[NUM_C_STATES] = {
 static int cstate_set_non_s0ix[] = {
 	C_STATE_C1,
 	C_STATE_C6_LONG_LAT,
-	C_STATE_C7S_LONG_LAT
+	C_STATE_C8
 };
 
 static int cstate_set_s0ix[] = {
@@ -211,6 +211,7 @@ static struct min_sleep_state min_pci_sleep_states[] = {
 	{ PCI_DEVFN_ESPI,	ACPI_DEVICE_SLEEP_D0 },
 	{ PCH_DEVFN_PMC,	ACPI_DEVICE_SLEEP_D0 },
 	{ PCI_DEVFN_HDA,	ACPI_DEVICE_SLEEP_D0 },
+	{ PCI_DEVFN_SMBUS,	ACPI_DEVICE_SLEEP_D0 },
 	{ PCI_DEVFN_SPI,	ACPI_DEVICE_SLEEP_D3 },
 	{ PCI_DEVFN_GBE,	ACPI_DEVICE_SLEEP_D3 },
 };
@@ -236,14 +237,14 @@ static unsigned long soc_fill_dmar(unsigned long current)
 		__func__, gfxvtbar, MCHBAR32(GFXVTBAR));
 	if (is_devfn_enabled(PCI_DEVFN_IGD) && gfxvtbar && gfxvten) {
 		tmp = current;
-		current += acpi_create_dmar_drhd(current, 0, 0, gfxvtbar);
+		current += acpi_create_dmar_drhd_4k(current, 0, 0, gfxvtbar);
 		current += acpi_create_dmar_ds_pci(current, 0, PCI_DEV_SLOT_IGD, 0);
 
 		acpi_dmar_drhd_fixup(tmp, current);
 	}
 
 	tmp = current;
-	current += acpi_create_dmar_drhd(current,
+	current += acpi_create_dmar_drhd_4k(current,
 			DRHD_INCLUDE_PCI_ALL, 0, VTVC0_BASE_ADDRESS);
 	current += acpi_create_dmar_ds_ioapic_from_hw(current,
 			IO_APIC_ADDR, V_P2SB_CFG_IBDF_BUS, V_P2SB_CFG_IBDF_DEV,

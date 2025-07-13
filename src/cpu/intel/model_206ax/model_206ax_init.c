@@ -11,12 +11,14 @@
 #include <cpu/intel/turbo.h>
 #include <cpu/x86/cache.h>
 #include <cpu/x86/name.h>
+#include "commonlib/bsd/helpers.h"
 #include "model_206ax.h"
 #include "chip.h"
 #include <cpu/intel/smm_reloc.h>
 #include <cpu/intel/common/common.h>
 #include <smbios.h>
 #include <smp/node.h>
+#include <static.h>
 #include <types.h>
 
 /* Convert time in seconds to POWER_LIMIT_1_TIME MSR value */
@@ -96,6 +98,7 @@ int cpu_config_tdp_levels(void)
  */
 void set_power_limits(u8 power_limit_1_time)
 {
+	struct cpu_intel_model_206ax_config *conf = DEV_PTR(cpu_bus)->chip_info;
 	msr_t msr = rdmsr(MSR_PLATFORM_INFO);
 	msr_t limit;
 	unsigned int power_unit;
@@ -132,16 +135,34 @@ void set_power_limits(u8 power_limit_1_time)
 
 	power_limit_1_val = power_limit_time_sec_to_msr[power_limit_1_time];
 
-	/* Set long term power limit to TDP */
 	limit.lo = 0;
-	limit.lo |= tdp & PKG_POWER_LIMIT_MASK;
+	if (conf->pl1_mw) {
+		printk(BIOS_DEBUG, "Setting PL1 to %u milliwatts\n", conf->pl1_mw);
+		limit.lo |= ((conf->pl1_mw * power_unit) / 1000) & PKG_POWER_LIMIT_MASK;
+	} else {
+		/* Set long term power limit to TDP */
+		limit.lo |= tdp & PKG_POWER_LIMIT_MASK;
+	}
+	if (conf->pl2_clamp) {
+		printk(BIOS_DEBUG, "Enabling PL1 clamping limitation\n");
+		limit.lo |= PKG_POWER_LIMIT_CLAMP;
+	}
 	limit.lo |= PKG_POWER_LIMIT_EN;
 	limit.lo |= (power_limit_1_val & PKG_POWER_LIMIT_TIME_MASK) <<
 		PKG_POWER_LIMIT_TIME_SHIFT;
 
-	/* Set short term power limit to 1.25 * TDP */
 	limit.hi = 0;
-	limit.hi |= ((tdp * 125) / 100) & PKG_POWER_LIMIT_MASK;
+	if (conf->pl2_mw) {
+		printk(BIOS_DEBUG, "Setting PL2 to %u milliwatts\n", conf->pl2_mw);
+		limit.hi |= ((conf->pl2_mw * power_unit) / 1000) & PKG_POWER_LIMIT_MASK;
+	} else {
+		/* Set short term power limit to 1.25 * TDP */
+		limit.hi |= ((tdp * 125) / 100) & PKG_POWER_LIMIT_MASK;
+	}
+	if (conf->pl2_clamp) {
+		printk(BIOS_DEBUG, "Enabling PL2 clamping limitation\n");
+		limit.hi |= PKG_POWER_LIMIT_CLAMP;
+	}
 	limit.hi |= PKG_POWER_LIMIT_EN;
 	/* Power limit 2 time is only programmable on SNB EP/EX */
 
@@ -156,8 +177,26 @@ void set_power_limits(u8 power_limit_1_time)
 	}
 }
 
-static void configure_c_states(void)
+static void configure_turbo_ratio_limits(struct cpu_intel_model_206ax_config *conf)
 {
+	msr_t msr = rdmsr(MSR_TURBO_RATIO_LIMIT);
+
+	for (int i = 0; i < ARRAY_SIZE(conf->turbo_limits.raw); i++) {
+		const int shift = i * 8;
+		const int limit = conf->turbo_limits.raw[i];
+
+		if (limit) {
+			msr.lo &= ~(0xff << shift);
+			msr.lo |= (limit << shift);
+		}
+	}
+
+	wrmsr(MSR_TURBO_RATIO_LIMIT, msr);
+}
+
+static void configure_c_states(struct device *dev)
+{
+	struct cpu_intel_model_206ax_config *conf = dev->upstream->dev->chip_info;
 	msr_t msr;
 
 	msr = rdmsr(MSR_PKG_CST_CONFIG_CONTROL);
@@ -189,35 +228,102 @@ static void configure_c_states(void)
 
 		/* C3 Interrupt Response Time Limit */
 		msr.hi = 0;
-		msr.lo = IRTL_VALID | IRTL_1024_NS | 0x50;
+		if (IS_IVY_CPU(cpu_get_cpuid()))
+			msr.lo = IRTL_VALID | IRTL_1024_NS | 0x3b;
+		else
+			msr.lo = IRTL_VALID | IRTL_1024_NS | 0x50;
 		wrmsr(MSR_PKGC3_IRTL, msr);
 
 		/* C6 Interrupt Response Time Limit */
 		msr.hi = 0;
-		msr.lo = IRTL_VALID | IRTL_1024_NS | 0x68;
+		if (IS_IVY_CPU(cpu_get_cpuid()))
+			msr.lo = IRTL_VALID | IRTL_1024_NS | 0x50;
+		else
+			msr.lo = IRTL_VALID | IRTL_1024_NS | 0x68;
 		wrmsr(MSR_PKGC6_IRTL, msr);
 
 		/* C7 Interrupt Response Time Limit */
 		msr.hi = 0;
-		msr.lo = IRTL_VALID | IRTL_1024_NS | 0x6D;
+		if (IS_IVY_CPU(cpu_get_cpuid()))
+			msr.lo = IRTL_VALID | IRTL_1024_NS | 0x57;
+		else
+			msr.lo = IRTL_VALID | IRTL_1024_NS | 0x6D;
 		wrmsr(MSR_PKGC7_IRTL, msr);
 
-		/* Primary Plane Current Limit */
+		/* Primary Plane Current Limit (Icc) */
 		msr = rdmsr(MSR_PP0_CURRENT_CONFIG);
 		msr.lo &= ~0x1fff;
-		msr.lo |= PP0_CURRENT_LIMIT;
+		if (conf->pp0_current_limit) {
+			/* Fill in board specific maximum current supported by VR */
+			msr.lo |= conf->pp0_current_limit * 8;
+		} else {
+			printk(BIOS_INFO, "%s: PP0 current limit not set in devicetree\n", dev_path(dev));
+			/*
+			 * The default value might over-stress the voltage regulator or
+			 * prevent OC on boards with regulators that can handle currents
+			 * above the Intel recommendation.
+			 */
+			msr.lo |= PP0_CURRENT_LIMIT;
+		}
+		for (int i = 0; i < VR12_PSI_MAX; i++) {
+			/*
+			 * Light load optimization. Depending on the VR output filter the
+			 * number of phases can be reduced at light load. This is a board
+			 * specific setting.
+			 */
+			if (conf->pp0_psi[i].phases != VR12_KEEP_DEFAULT) {
+				msr.hi &= ~(0x3ff << (i * 10));
+				msr.hi |= (conf->pp0_psi[i].phases - 1) << (i * 10 + 7);
+				msr.hi |= conf->pp0_psi[i].current << (i * 10);
+			} else {
+				printk(BIOS_INFO, "%s: PP0 PSI%d not set in devicetree\n", dev_path(dev), i);
+			}
+		}
 		msr.lo |= PP0_CURRENT_LIMIT_LOCK;
 		wrmsr(MSR_PP0_CURRENT_CONFIG, msr);
 
-		/* Secondary Plane Current Limit */
+		/* Secondary Plane Current Limit (IAXG) */
 		msr = rdmsr(MSR_PP1_CURRENT_CONFIG);
 		msr.lo &= ~0x1fff;
-		if (IS_IVY_CPU(cpu_get_cpuid()))
-			msr.lo |= PP1_CURRENT_LIMIT_IVB;
-		else
-			msr.lo |= PP1_CURRENT_LIMIT_SNB;
+		if (conf->pp1_current_limit) {
+			/* Fill in board specific maximum current supported by VR */
+			msr.lo |= conf->pp1_current_limit * 8;
+		} else {
+			printk(BIOS_INFO, "%s: PP1 current limit not set in devicetree\n", dev_path(dev));
+			/*
+			 * The default value might over-stress the voltage regulator or
+			 * prevent OC on boards with regulators that can handle currents
+			 * above the Intel recommendation.
+			 */
+			if (IS_IVY_CPU(cpu_get_cpuid()))
+				msr.lo |= PP1_CURRENT_LIMIT_IVB;
+			else
+				msr.lo |= PP1_CURRENT_LIMIT_SNB;
+		}
+		for (int i = 0; i < VR12_PSI_MAX; i++) {
+			/*
+			 * Light load optimization. Depending on the VR output filter the
+			 * number of phases can be reduced at light load. This is a board
+			 * specific setting.
+			 */
+			if (conf->pp1_psi[i].phases != VR12_KEEP_DEFAULT) {
+				msr.hi &= ~(0x3ff << (i * 10));
+				msr.hi |= (conf->pp1_psi[i].phases - 1) << (i * 10 + 7);
+				msr.hi |= conf->pp1_psi[i].current << (i * 10);
+			} else {
+				printk(BIOS_INFO, "%s: PP1 PSI%d not set in devicetree\n", dev_path(dev), i);
+			}
+		}
 		msr.lo |= PP1_CURRENT_LIMIT_LOCK;
 		wrmsr(MSR_PP1_CURRENT_CONFIG, msr);
+	}
+
+	msr = rdmsr(MSR_PLATFORM_INFO);
+	if (msr.lo & PLATFORM_INFO_SET_TURBO_LIMIT) {
+		configure_turbo_ratio_limits(conf);
+	} else {
+		printk(BIOS_INFO, "%s: Programmable ratio limit for turbo mode is disabled\n",
+		       dev_path(dev));
 	}
 }
 
@@ -354,7 +460,7 @@ static void model_206ax_init(struct device *cpu)
 	set_vmx_and_lock();
 
 	/* Configure C States */
-	configure_c_states();
+	configure_c_states(cpu);
 
 	/* Configure Enhanced SpeedStep and Thermal Sensors */
 	configure_misc();

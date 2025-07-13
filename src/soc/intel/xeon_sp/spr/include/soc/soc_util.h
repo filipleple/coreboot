@@ -9,6 +9,9 @@
 #include <hob_systeminfo.h>
 #include <hob_enhancedwarningloglib.h>
 
+#define xSTACK_RES STACK_RES
+#define xIIO_RESOURCE_INSTANCE IIO_RESOURCE_INSTANCE
+
 /*
  * Address of the MRC status byte in CMOS. Should be reserved
  * in mainboards' cmos.layout and not covered by checksum.
@@ -41,7 +44,6 @@ const SYSTEM_INFO_VAR *get_system_info_hob(void);
 
 const EWL_PRIVATE_DATA *get_ewl_hob(void);
 
-uint8_t socket0_get_ubox_busno(uint8_t offset);
 void soc_set_mrc_cold_boot_flag(bool cold_boot_required);
 void soc_config_iio(FSPM_UPD *mupd, const UPD_IIO_PCIE_PORT_CONFIG_ENTRY
 	mb_iio_table[CONFIG_MAX_SOCKET][IIO_PORT_SETTINGS], const UINT8 mb_iio_bifur[CONFIG_MAX_SOCKET][5]);

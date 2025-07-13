@@ -1,38 +1,38 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include <bootblock_common.h>
+#include <device/pnp_ops.h>
 #include <northbridge/intel/sandybridge/raminit.h>
 #include <northbridge/intel/sandybridge/pei_data.h>
-#include <southbridge/intel/bd82x6x/pch.h>
 
 #include <superio/nuvoton/common/nuvoton.h>
 #include <superio/nuvoton/nct6779d/nct6779d.h>
 
 #include <option.h>
 
-#define SERIAL_DEV PNP_DEV(0x2e, NCT6779D_SP1)
-
-const struct southbridge_usb_port mainboard_usb_ports[] = {
-	/* {enable, current, oc_pin} */
-	{1, 2, 0}, /* Port 0: USB3 front internal header, top */
-	{1, 2, 0}, /* Port 1: USB3 front internal header, bottom */
-	{1, 2, 1}, /* Port 2: USB3 rear, top */
-	{1, 2, 1}, /* Port 3: USB3 rear, bottom */
-	{1, 2, 2}, /* Port 4: USB2 rear, PS2 top */
-	{1, 2, 2}, /* Port 5: USB2 rear, PS2 bottom */
-	{1, 2, 3}, /* Port 6: USB2 rear, ETH, top */
-	{1, 2, 3}, /* Port 7: USB2 rear, ETH, bottom */
-	{1, 2, 4}, /* Port 8: USB2 internal header USB910, top */
-	{1, 2, 4}, /* Port 9: USB2 internal header USB910, bottom */
-	{1, 2, 6}, /* Port 10: USB2 internal header USB1112, top */
-	{1, 2, 5}, /* Port 11: USB2 internal header USB1112, bottom */
-	{1, 2, 5}, /* Port 12: USB2 internal header USB1314, top */
-	{1, 2, 6}  /* Port 13: USB2 internal header USB1314, bottom */
-};
+#define SERIAL_DEV PNP_DEV(CONFIG_SUPERIO_PNP_BASE, NCT6779D_SP1)
+#define GPIO0_DEV  PNP_DEV(CONFIG_SUPERIO_PNP_BASE, NCT6779D_WDT1_GPIO01_V)
+#define ACPI_DEV   PNP_DEV(CONFIG_SUPERIO_PNP_BASE, NCT6779D_ACPI)
 
 void bootblock_mainboard_early_init(void)
 {
 	nuvoton_enable_serial(SERIAL_DEV, CONFIG_TTYS0_BASE);
+
+	nuvoton_pnp_enter_conf_state(GPIO0_DEV);
+
+	/* Turn on DRAM_LED. If raminit dies, this would remain on and we know
+	 * we have a problem. We turn it off in ramstage. */
+	pnp_set_logical_device(GPIO0_DEV);
+	pnp_write_config(GPIO0_DEV, 0x30, 0x02);
+	pnp_write_config(GPIO0_DEV, 0xe0, 0x7f);
+	pnp_write_config(GPIO0_DEV, 0xe1, 0x00);
+
+	pnp_set_logical_device(ACPI_DEV);
+	pnp_write_config(ACPI_DEV, 0xe4, 0x10); /* Enable 3VSBSW#, needed for S3 suspend */
+	pnp_write_config(ACPI_DEV, 0xe7, 0x11); /* HWM reset by LRESET#, 0.5s S3 delay */
+	pnp_write_config(ACPI_DEV, 0xf2, 0x5d); /* Enable RSTOUT[0-2]# and PME */
+
+	nuvoton_pnp_exit_conf_state(GPIO0_DEV);
 
 	/*
 	 * TODO: Put PCIe root port 7 (00:1c.6) into subtractive decode and have it accept I/O

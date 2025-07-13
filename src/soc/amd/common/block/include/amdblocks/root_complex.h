@@ -11,7 +11,14 @@
 #define SMN_IOHC_MISC_BASE_13D1	0x13d10000
 #define SMN_IOHC_MISC_BASE_13E1	0x13e10000
 
+#define IOHC_MMIO_EN	BIT(0)
+
 #define NON_PCI_RES_IDX_AUTO	0
+
+struct domain_iohc_info {
+	uint16_t fabric_id;
+	uint32_t misc_smn_base;
+};
 
 struct non_pci_mmio_reg {
 	uint32_t iohc_misc_offset;
@@ -25,6 +32,7 @@ void read_non_pci_resources(struct device *domain, unsigned long *idx);
 void read_soc_memmap_resources(struct device *domain, unsigned long *idx);
 
 uint32_t get_iohc_misc_smn_base(struct device *domain);
+const struct domain_iohc_info *get_iohc_info(size_t *count);
 const struct non_pci_mmio_reg *get_iohc_non_pci_mmio_regs(size_t *count);
 
 signed int get_iohc_fabric_id(struct device *domain);

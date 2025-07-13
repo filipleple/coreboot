@@ -1,7 +1,7 @@
 chip soc/intel/cannonlake
 
 	# Enable Enhanced Intel SpeedStep
-	register "eist_enable" = "1"
+	register "eist_enable" = "true"
 
 # FSP Memory (soc/intel/cannonlake/romstage/fsp_params.c)
 	register "SaGv" = "SaGv_Enabled"
@@ -41,13 +41,9 @@ chip soc/intel/cannonlake
 	register "gpe0_dw2" = "PMC_GPP_E"
 
 # Actual device tree
-	device cpu_cluster 0 on end
-
 	device domain 0 on
 		device ref igpu		on end
-		device ref dptf		on
-			register "Device4Enable" = "1"
-		end
+		device ref dptf		on end
 		device ref thermal	on end
 		device ref xhci		on end
 		device ref sata		on end

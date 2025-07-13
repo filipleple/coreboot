@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+#include <assert.h>
 #include <commonlib/bsd/helpers.h>
 #include <console/console.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <device/pci_def.h>
-#include <device/resource.h>
+#include <device/pci_ids.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
@@ -109,7 +110,7 @@ u32 dev_path_encode(const struct device *dev)
 		ret |= dev->path.apic.apic_id;
 		break;
 	case DEVICE_PATH_DOMAIN:
-		ret |= dev->path.domain.domain;
+		ret |= dev->path.domain.domain_id;
 		break;
 	case DEVICE_PATH_CPU_CLUSTER:
 		ret |= dev->path.cpu_cluster.cluster;
@@ -193,7 +194,7 @@ const char *dev_path(const struct device *dev)
 			break;
 		case DEVICE_PATH_DOMAIN:
 			snprintf(buffer, sizeof(buffer), "DOMAIN: %08x",
-				dev->path.domain.domain);
+				dev->path.domain.domain_id);
 			break;
 		case DEVICE_PATH_CPU_CLUSTER:
 			snprintf(buffer, sizeof(buffer), "CPU_CLUSTER: %01x",
@@ -230,6 +231,9 @@ const char *dev_path(const struct device *dev)
 		case DEVICE_PATH_MDIO:
 			snprintf(buffer, sizeof(buffer), "MDIO: %02x", dev->path.mdio.addr);
 			break;
+		case DEVICE_PATH_GICC_V3:
+			snprintf(buffer, sizeof(buffer), "GICV3: %02x", dev->path.gicc_v3.mpidr);
+			break;
 		default:
 			printk(BIOS_ERR, "Unknown device path type: %d\n",
 			       dev->path.type);
@@ -249,23 +253,47 @@ const char *dev_name(const struct device *dev)
 		return "unknown";
 }
 
-/* Returns the PCI domain for the given PCI device */
-struct device *dev_get_pci_domain(struct device *dev)
+/* Returns the domain for the given device */
+const struct device *dev_get_domain(const struct device *dev)
 {
-	/* Walk up the tree up to the PCI domain */
+	/* Walk up the tree up to the domain */
 	while (dev && dev->upstream && !is_root_device(dev)) {
-		dev = dev->upstream->dev;
 		if (dev->path.type == DEVICE_PATH_DOMAIN)
 			return dev;
+		dev = dev->upstream->dev;
 	}
 
 	return NULL;
 }
 
+unsigned int dev_get_domain_id(const struct device *dev)
+{
+	const struct device *domain_dev = dev_get_domain(dev);
+
+	assert(domain_dev);
+
+	if (!domain_dev) {
+		printk(BIOS_ERR, "%s: doesn't have a domain device\n", dev_path(dev));
+		return 0;
+	}
+
+	return domain_dev->path.domain.domain_id;
+}
+
+bool is_domain0(const struct device *dev)
+{
+	return dev && dev->path.type == DEVICE_PATH_DOMAIN && dev->path.domain.domain_id == 0;
+}
+
+bool is_dev_on_domain0(const struct device *dev)
+{
+	return is_domain0(dev_get_domain(dev));
+}
+
 /**
  * Allocate 64 more resources to the free list.
  *
- * @return TODO.
+ * @return Return 0 for allocation failure, Return 1 for allocation success.
  */
 static int allocate_more_resources(void)
 {
@@ -289,10 +317,9 @@ static int allocate_more_resources(void)
 /**
  * Remove resource res from the device's list and add it to the free list.
  *
- * @param dev TODO
- * @param res TODO
- * @param prev TODO
- * @return TODO.
+ * @param dev The device which contains a resource to be freed(detached).
+ * @param res The resource to be freed(detached) which is part of 'dev'.
+ * @param prev The resource for 'dev' to be linked to next resource after 'res' is removed.
  */
 static void free_resource(struct device *dev, struct resource *res,
 			  struct resource *prev)
@@ -355,7 +382,7 @@ struct resource *probe_resource(const struct device *dev, unsigned int index)
  *
  * @param dev The device to find the resource on.
  * @param index The index of the resource on the device.
- * @return TODO.
+ * @return The resource. if it exists, then return existing one, else return new one.
  */
 struct resource *new_resource(struct device *dev, unsigned int index)
 {
@@ -403,7 +430,7 @@ struct resource *new_resource(struct device *dev, unsigned int index)
  *
  * @param dev The device to find the resource on.
  * @param index The index of the resource on the device.
- * return TODO.
+ * @return The resource found in 'dev' for 'index'.
  */
 struct resource *find_resource(const struct device *dev, unsigned int index)
 {
@@ -492,7 +519,7 @@ resource_t resource_max(const struct resource *resource)
  * Return the resource type of a resource.
  *
  * @param resource The resource type to decode.
- * @return TODO.
+ * @return The string representation of type.
  */
 const char *resource_type(const struct resource *resource)
 {
@@ -514,12 +541,12 @@ const char *resource_type(const struct resource *resource)
  *
  * @param dev The device the stored resource lives on.
  * @param resource The resource that was just stored.
- * @param comment TODO
+ * @param comment The comment just for additional information.
  */
 void report_resource_stored(struct device *dev, const struct resource *resource,
 			    const char *comment)
 {
-	char buf[10];
+	char buf[16];
 	unsigned long long base, end;
 
 	if (!(resource->flags & IORESOURCE_STORED))
@@ -627,7 +654,7 @@ void disable_children(struct bus *bus)
  * Returns true if the device is an enabled bridge that has at least
  * one enabled device on its secondary bus that is not of type NONE.
  */
-bool dev_is_active_bridge(struct device *dev)
+bool dev_is_active_bridge(const struct device *dev)
 {
 	struct device *child;
 
@@ -778,7 +805,7 @@ void show_all_devs_resources(int debug_level, const char *msg)
 	}
 }
 
-const struct resource *fixed_resource_range_idx(struct device *dev, unsigned long index,
+const struct resource *resource_range_idx(struct device *dev, unsigned long index,
 				uint64_t base, uint64_t size, unsigned long flags)
 {
 	struct resource *resource;
@@ -787,8 +814,13 @@ const struct resource *fixed_resource_range_idx(struct device *dev, unsigned lon
 
 	resource = new_resource(dev, index);
 	resource->base = base;
-	resource->size = size;
-	resource->flags = IORESOURCE_FIXED | IORESOURCE_ASSIGNED;
+
+	if (flags & IORESOURCE_FIXED)
+		resource->size = size;
+	if (flags & IORESOURCE_BRIDGE)
+		resource->limit = base + size - 1;
+
+	resource->flags = IORESOURCE_ASSIGNED;
 	resource->flags |= flags;
 
 	printk(BIOS_SPEW, "dev: %s, index: 0x%lx, base: 0x%llx, size: 0x%llx\n",
@@ -931,4 +963,16 @@ bool is_pci_dev_on_bus(const struct device *pci, unsigned int bus)
 {
 	return is_pci(pci) && pci->upstream->segment_group == 0
 		&& pci->upstream->secondary == bus;
+}
+
+bool is_pci_bridge(const struct device *pci)
+{
+	return is_pci(pci) && ((pci->hdr_type & 0x7f) == PCI_HEADER_TYPE_BRIDGE);
+}
+
+bool is_pci_ioapic(const struct device *pci)
+{
+	return is_pci(pci) && ((pci->class >> 16) == PCI_BASE_CLASS_SYSTEM) &&
+		((pci->class >> 8) == PCI_CLASS_SYSTEM_PIC) &&
+		((pci->class & 0xff) >= 0x10);
 }

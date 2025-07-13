@@ -12,6 +12,7 @@
 #include <gpio.h>
 #include <soc/iomap.h>
 #include <soc/pci_devs.h>
+#include <static.h>
 
 extern struct chip_operations drivers_i2c_generic_ops;
 extern struct chip_operations drivers_i2c_hid_ops;
@@ -57,7 +58,6 @@ static void update_dmic_gpio(void)
 		gpio->pins[0] = GPIO_13;
 	else
 		gpio->pins[0] = GPIO_6;
-
 }
 
 void variant_audio_update(void)
@@ -73,7 +73,6 @@ void variant_audio_update(void)
  */
 static void remove_usb_device_reset_gpio(const struct device *usb_dev)
 {
-
 	struct drivers_usb_acpi_config *usb_cfg;
 	/* config_of dies on failure, so a NULL check is not required */
 	usb_cfg = config_of(usb_dev);

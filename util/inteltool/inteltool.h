@@ -248,6 +248,15 @@ static inline uint32_t inl(unsigned port)
 #define PCI_DEVICE_ID_INTEL_C262		0x7a14
 #define PCI_DEVICE_ID_INTEL_C266		0x7a13
 
+#define PCI_DEVICE_ID_INTEL_MTL_0		0x7e00
+#define PCI_DEVICE_ID_INTEL_MTL_1		0x7e01
+#define PCI_DEVICE_ID_INTEL_MTL_2		0x7e02
+#define PCI_DEVICE_ID_INTEL_MTL_3		0x7e03
+#define PCI_DEVICE_ID_INTEL_MTL_4		0x7e04
+#define PCI_DEVICE_ID_INTEL_MTL_5		0x7e05
+#define PCI_DEVICE_ID_INTEL_MTL_6		0x7e06
+#define PCI_DEVICE_ID_INTEL_MTL_7		0x7e07
+
 #define PCI_DEVICE_ID_INTEL_82810		0x7120
 #define PCI_DEVICE_ID_INTEL_82810_DC	0x7122
 #define PCI_DEVICE_ID_INTEL_82810E_DC	0x7124
@@ -335,9 +344,24 @@ static inline uint32_t inl(unsigned port)
 #define PCI_DEVICE_ID_INTEL_DNV_LPC		0x19dc
 #define PCI_DEVICE_ID_INTEL_GLK_LPC		0x31E8
 
+/* Elkhart Lake */
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_1	0x4514
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_2	0x4516
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_3	0x4518
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_4	0x451a
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_5	0x4528
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_6	0x452a
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_7	0x452c
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_8	0x452e
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_9	0x4532
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_10	0x4534
+#define PCI_DEVICE_ID_INTEL_ELKHART_LAKE_11	0x4536
+
 /* Intel starts counting these generations with the integration of the DRAM controller */
 #define PCI_DEVICE_ID_INTEL_CORE_0TH_GEN	0xd132 /* Nehalem */
-#define PCI_DEVICE_ID_INTEL_CORE_1ST_GEN	0x0044 /* Westmere */
+#define PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_D	0x0040 /* Clarkdale (Westmere Desktop) */
+#define PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_M	0x0044 /* Arrandale (Westmere Mobile) */
+#define PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_0048	0x0048 /* Unknown Westmere */
 #define PCI_DEVICE_ID_INTEL_CORE_2ND_GEN_D	0x0100 /* Sandy Bridge (Desktop) */
 #define PCI_DEVICE_ID_INTEL_CORE_2ND_GEN_M	0x0104 /* Sandy Bridge (Mobile) */
 #define PCI_DEVICE_ID_INTEL_CORE_2ND_GEN_E3	0x0108 /* Sandy Bridge (Xeon E3) */
@@ -392,6 +416,12 @@ static inline uint32_t inl(unsigned port)
 #define PCI_DEVICE_ID_INTEL_CORE_ADL_ID_N_0_8	0x4617 /* Alderlake N 0+8 */
 #define PCI_DEVICE_ID_INTEL_CORE_ADL_ID_N_0_4	0x461b /* Alderlake N 0+4 */
 #define PCI_DEVICE_ID_INTEL_CORE_ADL_ID_N_0_4_1	0x461c /* Alderlake N 0+4 */
+#define PCI_DEVICE_ID_INTEL_CORE_MTL_ID_M	0x7D00 /* Meteorlake M */
+#define PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_1	0x7D01 /* Meteorlake P */
+#define PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_2	0x7D02 /* Meteorlake P */
+#define PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_3	0x7d14 /* Meteorlake P */
+#define PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_4	0x7d15 /* Meteorlake P */
+#define PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_5	0x7d16 /* Meteorlake P */
 #define PCI_DEVICE_ID_INTEL_CORE_RPL_ID_H_8_6	0xa706 /* Raptorlake H 8+6 */
 
 /* Intel GPUs */
@@ -469,6 +499,13 @@ static inline uint32_t inl(unsigned port)
 #define PCI_DEVICE_ID_INTEL_TGL_GT1_2		0x9A68
 #define PCI_DEVICE_ID_INTEL_TGL_GT2_ULT_1	0x9A78
 #define PCI_DEVICE_ID_INTEL_TGL_GT2_ULT_2	0x9A70
+/* Elkhart Lake */
+#define PCI_DEVICE_ID_INTEL_EHL_GT1_1		0x4541
+#define PCI_DEVICE_ID_INTEL_EHL_GT1_2		0x4551
+#define PCI_DEVICE_ID_INTEL_EHL_GT1_3		0x4555
+#define PCI_DEVICE_ID_INTEL_EHL_GT1_4		0x4557
+#define PCI_DEVICE_ID_INTEL_EHL_GT1_5		0x4570
+#define PCI_DEVICE_ID_INTEL_EHL_GT1_6		0x4571
 #define PCI_DEVICE_ID_INTEL_ADL_S_GT1		0x4680
 #define PCI_DEVICE_ID_INTEL_ADL_S_GT1_2		0x4682
 #define PCI_DEVICE_ID_INTEL_ADL_S_GT1_3		0x4690
@@ -476,6 +513,11 @@ static inline uint32_t inl(unsigned port)
 #define PCI_DEVICE_ID_INTEL_ADL_N_UHD		0x46D0
 #define PCI_DEVICE_ID_INTEL_ADL_N_UHD_2		0x46D1
 #define PCI_DEVICE_ID_INTEL_ADL_N_UHD_3		0x46D2
+#define PCI_DEVICE_ID_INTEL_MTL_M_GT2		0x7d40
+#define PCI_DEVICE_ID_INTEL_MTL_P_GT2_1		0x7d45
+#define PCI_DEVICE_ID_INTEL_MTL_P_GT2_2		0x7d50
+#define PCI_DEVICE_ID_INTEL_MTL_P_GT2_3		0x7d55
+#define PCI_DEVICE_ID_INTEL_MTL_P_GT2_4		0x7d60
 #define PCI_DEVICE_ID_INTEL_RPL_H_IRIS_XE	0xa7a0
 
 #if !defined(__DARWIN__) && !defined(__FreeBSD__)
@@ -516,7 +558,7 @@ int print_epbar(struct pci_dev *nb);
 int print_dmibar(struct pci_dev *nb);
 int print_pciexbar(struct pci_dev *nb);
 int print_ambs(struct pci_dev *nb, struct pci_access *pacc);
-int print_spi(struct pci_dev *sb);
+int print_spi(struct pci_dev *sb, struct pci_access *pacc);
 int print_gfx(struct pci_dev *gfx);
 int print_ahci(struct pci_dev *ahci);
 int print_sgx(void);

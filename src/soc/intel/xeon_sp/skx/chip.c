@@ -3,11 +3,14 @@
 #include <cbfs.h>
 #include <console/console.h>
 #include <device/pci.h>
+#include <device/pci_ids.h>
 #include <gpio.h>
 #include <intelblocks/acpi.h>
 #include <soc/acpi.h>
 #include <soc/chip_common.h>
+#include <soc/numa.h>
 #include <soc/pch.h>
+#include <soc/pci_devs.h>
 #include <soc/soc_pch.h>
 #include <soc/ramstage.h>
 #include <soc/soc_util.h>
@@ -35,39 +38,42 @@ static void soc_enable_dev(struct device *dev)
 	}
 }
 
-static void soc_init(void *data)
+static void set_imc_locks(void)
 {
-	printk(BIOS_DEBUG, "coreboot: calling fsp_silicon_init\n");
-	fsp_silicon_init();
+	struct device *dev = 0;
+	while ((dev = dev_find_device(PCI_VID_INTEL, IMC_M2MEM_DEVID, dev)))
+		pci_or_config32(dev, IMC_M2MEM_TIMEOUT, TIMEOUT_LOCK);
+}
 
-	attach_iio_stacks();
-
-	override_hpet_ioapic_bdf();
-	pch_lock_dmictl();
+static void set_upi_locks(void)
+{
+	struct device *dev = 0;
+	while ((dev = dev_find_device(PCI_VID_INTEL, UPI_LL_CR_DEVID, dev)))
+		pci_or_config32(dev, UPI_LL_CR_KTIMISCMODLCK, KTIMISCMODLCK_LOCK);
 }
 
 static void soc_final(void *data)
 {
 	// Temp Fix - should be done by FSP, in 2S bios completion
 	// is not carried out on socket 2
-	set_bios_init_completion();
+	set_imc_locks();
+	set_upi_locks();
+}
+
+static void soc_init(void *data)
+{
+	printk(BIOS_DEBUG, "coreboot: calling fsp_silicon_init\n");
+	fsp_silicon_init();
+
+	setup_pds();
+	attach_iio_stacks();
+
+	override_hpet_ioapic_bdf();
+	pch_lock_dmictl();
 }
 
 void platform_fsp_silicon_init_params_cb(FSPS_UPD *silupd)
 {
-	const struct microcode *microcode_file;
-	size_t microcode_len;
-
-	microcode_file = cbfs_map("cpu_microcode_blob.bin", &microcode_len);
-
-	if ((microcode_file) && (microcode_len != 0)) {
-		/* Update CPU Microcode patch base address/size */
-		silupd->FspsConfig.PcdCpuMicrocodePatchBase =
-		       (uint32_t)microcode_file;
-		silupd->FspsConfig.PcdCpuMicrocodePatchSize =
-		       (uint32_t)microcode_len;
-	}
-
 	mainboard_silicon_init_params(silupd);
 }
 

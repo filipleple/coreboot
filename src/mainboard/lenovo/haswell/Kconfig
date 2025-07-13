@@ -60,6 +60,10 @@ config MAINBOARD_PART_NUMBER
 	default "ThinkPad T440p" if BOARD_LENOVO_THINKPAD_T440P
 	default "ThinkPad W541" if BOARD_LENOVO_THINKPAD_W541
 
+config ONBOARD_VGA_IS_PRIMARY
+	bool
+	default y
+
 config VGA_BIOS_ID
 	string
 	default "8086,0416" if BOARD_LENOVO_THINKPAD_T440P
@@ -67,10 +71,6 @@ config VGA_BIOS_ID
 config USBDEBUG_HCD_INDEX
 	int
 	default 2
-
-config DRIVER_LENOVO_SERIALS
-	bool
-	default n
 
 config PS2K_EISAID
 	default "LEN0071"

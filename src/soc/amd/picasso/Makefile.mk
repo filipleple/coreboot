@@ -38,6 +38,7 @@ ifeq ($(CONFIG_DEBUG_SMI),y)
 smm-y += uart.c
 endif
 smm-y += gpio.c
+smm-y += root_complex.c
 
 CPPFLAGS_common += -I$(src)/soc/amd/picasso/include
 CPPFLAGS_common += -I$(src)/soc/amd/picasso/acpi
@@ -82,18 +83,24 @@ ifeq ($(CONFIG_PSP_LOAD_S0I3_FW),y)
 OPT_PSP_LOAD_S0I3_FW="--load-s0i3"
 endif
 
+# type = 0x04
+# The flashmap section used for this is expected to be named PSP_NVRAM
+PSP_NVRAM_BASE=$(call get_fmap_value,FMAP_SECTION_PSP_NVRAM_START)
+PSP_NVRAM_SIZE=$(call get_fmap_value,FMAP_SECTION_PSP_NVRAM_SIZE)
+
 # type = 0x3a
 ifeq ($(CONFIG_HAVE_PSP_WHITELIST_FILE),y)
 PSP_WHITELIST_FILE=$(CONFIG_PSP_WHITELIST_FILE)
 endif
+
+# type = 0x54
+# The flashmap section used for this is expected to be named PSP_RPMC_NVRAM
+PSP_RPMC_NVRAM_BASE=$(call get_fmap_value,FMAP_SECTION_PSP_RPMC_NVRAM_START)
+PSP_RPMC_NVRAM_SIZE=$(call get_fmap_value,FMAP_SECTION_PSP_RPMC_NVRAM_SIZE)
+
 #
 # BIOS Directory Table items - proper ordering is managed by amdfwtool
 #
-
-# type = 0x4
-# The flashmap section used for this is expected to be named PSP_NVRAM
-PSP_NVRAM_BASE=$(call get_fmap_value,FMAP_SECTION_PSP_NVRAM_START)
-PSP_NVRAM_SIZE=$(call get_fmap_value,FMAP_SECTION_PSP_NVRAM_SIZE)
 
 # type = 0x7
 # RSA 2048 signature
@@ -149,6 +156,9 @@ add_opt_prefix=$(if $(call strip_quotes, $(1)), $(2) $(call strip_quotes, $(1)),
 OPT_PSP_NVRAM_BASE=$(call add_opt_prefix, $(PSP_NVRAM_BASE), --nvram-base)
 OPT_PSP_NVRAM_SIZE=$(call add_opt_prefix, $(PSP_NVRAM_SIZE), --nvram-size)
 
+OPT_PSP_RPMC_NVRAM_BASE=$(call add_opt_prefix, $(PSP_RPMC_NVRAM_BASE), --rpmc-nvram-base)
+OPT_PSP_RPMC_NVRAM_SIZE=$(call add_opt_prefix, $(PSP_RPMC_NVRAM_SIZE), --rpmc-nvram-size)
+
 OPT_VERSTAGE_FILE=$(call add_opt_prefix, $(PSP_VERSTAGE_FILE), --verstage)
 OPT_VERSTAGE_SIG_FILE=$(call add_opt_prefix, $(PSP_VERSTAGE_SIG_FILE), --verstage_sig)
 
@@ -185,6 +195,8 @@ OPT_WHITELIST_FILE=$(call add_opt_prefix, $(PSP_WHITELIST_FILE), --whitelist)
 AMDFW_COMMON_ARGS=$(OPT_PSP_APCB_FILES) \
 		$(OPT_PSP_NVRAM_BASE) \
 		$(OPT_PSP_NVRAM_SIZE) \
+		$(OPT_PSP_RPMC_NVRAM_BASE) \
+		$(OPT_PSP_RPMC_NVRAM_SIZE) \
 		$(OPT_PSP_APCB_FILES_BK) \
 		$(OPT_APOB_ADDR) \
 		$(OPT_DEBUG_AMDFWTOOL) \

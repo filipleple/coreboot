@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <acpi/acpi_pld.h>
+#include <uuid.h>
 
 #define DEFAULT_LINK_FREQ	450000000
 #define MAX_PWDB_ENTRIES	12
@@ -39,8 +40,14 @@ enum camera_device_type {
 };
 
 enum intel_camera_platform_type {
+	PLATFORM_BXT = 8,
 	PLATFORM_SKC = 9,
-	PLATFORM_CNL = 10
+	PLATFORM_CNL = 10,
+	PLATFORM_TGL = 12,
+	PLATFORM_JSL = 14,
+	PLATFORM_ADL = 15,
+	PLATFORM_MTL = 16,
+	PLATFORM_LNL = 17
 };
 
 enum intel_camera_flash_type {
@@ -143,7 +150,7 @@ struct operation_seq {
 struct intel_ssdb {
 	uint8_t version;			/* Current version */
 	uint8_t sensor_card_sku;		/* CRD Board type */
-	uint8_t csi2_data_stream_interface[16];	/* CSI2 data stream GUID */
+	guid_t csi2_data_stream_interface;	/* CSI2 data stream GUID */
 	uint16_t bdf_value;			/* Bus number of the host
 						controller */
 	uint32_t dphy_link_en_fuses;		/* Host controller's fuses
@@ -184,7 +191,6 @@ struct intel_ssdb {
 	uint8_t mipi_define;			/* MIPI info defined in ACPI or
 						sensor driver */
 	uint32_t mclk_speed;			/* Clock info for sensor */
-	uint32_t mclk;				/* Clock info for sensor */
 	uint8_t control_logic_id;		/* PMIC device node used for
 						the camera sensor */
 	uint8_t mipi_data_format;		/* MIPI data format */

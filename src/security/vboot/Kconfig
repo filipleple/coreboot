@@ -156,6 +156,7 @@ config VBOOT_MUST_REQUEST_DISPLAY
 
 config VBOOT_ALWAYS_ENABLE_DISPLAY
 	bool "Force to always enable display"
+	default y if BMP_LOGO
 	default n
 	help
 	  Set this option to indicate to vboot that display should always be enabled.
@@ -284,6 +285,14 @@ config VBOOT_EARLY_EC_SYNC
 	  it has made the sysjump to its RW firmware. It should not
 	  significantly impact boot time, as this operation will be performed
 	  later in the boot flow if it is disabled here.
+
+config VBOOT_EC_SYNC_ESOL
+	bool
+	default n
+	depends on VBOOT_EARLY_EC_SYNC && CHROMEOS_ENABLE_ESOL
+	help
+	  Enables the display of early sign-of-life (eSOL) when the EC is slow
+	  to update its firmware to inform the user that the update is happening.
 
 config VBOOT_EC_EFS
 	bool "Early firmware selection (EFS) EC"
@@ -448,6 +457,10 @@ config GBB_FLAG_DISABLE_FWMP
 
 config GBB_FLAG_ENABLE_UDC
 	bool "Enable USB Device Controller"
+	default n
+
+config GBB_FLAG_FORCE_CSE_SYNC
+	bool "Running tests; enforce CSE sync"
 	default n
 
 endmenu # GBB

@@ -24,6 +24,7 @@ static void it8728f_init(struct device *dev)
 		if (!conf || !res)
 			break;
 		ite_ec_init(res->base, &conf->ec);
+		ite_ec_set_power_state(dev);
 		break;
 	case IT8728F_KBCK:
 		set_kbc_ps2_mode();

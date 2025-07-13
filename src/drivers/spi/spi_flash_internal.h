@@ -7,6 +7,8 @@
 #ifndef SPI_FLASH_INTERNAL_H
 #define SPI_FLASH_INTERNAL_H
 
+#include <types.h>
+
 /* Common commands */
 #define CMD_READ_ID			0x9f
 
@@ -20,6 +22,8 @@
 #define CMD_READ_STATUS			0x05
 #define CMD_WRITE_ENABLE		0x06
 
+#define CMD_ENTER_4BYTE_ADDR_MODE	0xb7
+
 #define CMD_BLOCK_ERASE			0xD8
 
 #define CMD_EXIT_4BYTE_ADDR_MODE	0xe9
@@ -29,6 +33,10 @@
 
 /* Send a single-byte command to the device and read the response */
 int spi_flash_cmd(const struct spi_slave *spi, u8 cmd, void *response, size_t len);
+
+/* Send a multi-byte command to the device and read the response */
+int spi_flash_cmd_multi(const struct spi_slave *spi, const u8 *dout, size_t bytes_out,
+			void *din, size_t bytes_in);
 
 /*
  * Send a multi-byte command to the device followed by (optional)
@@ -129,5 +137,31 @@ extern const struct spi_flash_vendor_info spi_flash_issi_vi;
 extern const struct spi_flash_ops_descriptor spi_flash_pp_0x20_sector_desc;
 /* Page Programming Command Set with 0xd8 Sector Erase command. */
 extern const struct spi_flash_ops_descriptor spi_flash_pp_0xd8_sector_desc;
+
+struct sfdp_rpmc_info {
+	bool flash_hardening;
+	enum {
+		SFDP_RPMC_COUNTER_BITS_32		= 0,
+		SFDP_RPMC_COUNTER_BITS_RESERVED		= 1,
+	} monotonic_counter_size;
+	enum {
+		SFDP_RPMC_POLL_OP2_EXTENDED_STATUS	= 0,
+		SFDP_RPMC_POLL_READ_STATUS		= 1,
+	} busy_polling_method;
+	uint8_t number_of_counters;
+	uint8_t op1_write_command;
+	uint8_t op2_read_command;
+	uint64_t update_rate_s;
+	uint64_t read_counter_polling_delay_us;
+	uint64_t write_counter_polling_short_delay_us;
+	uint64_t write_counter_polling_long_delay_us;
+};
+
+/* Get RPMC information from the SPI flash's SFDP table */
+enum cb_err spi_flash_get_sfdp_rpmc(const struct spi_flash *flash,
+				    struct sfdp_rpmc_info *rpmc_info);
+
+/* Fill rpmc_caps field in spi_flash struct with RPMC config from SFDP */
+void spi_flash_fill_rpmc_caps(struct spi_flash *flash);
 
 #endif /* SPI_FLASH_INTERNAL_H */

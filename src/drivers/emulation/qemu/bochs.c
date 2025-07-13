@@ -14,7 +14,7 @@
 
 /* VGA init. We use the Bochs VESA VBE extensions  */
 #define VBE_DISPI_IOPORT_INDEX          0x01CE
-#define VBE_DISPI_IOPORT_DATA           0x01CF
+#define VBE_DISPI_IOPORT_DATA           0x01D0
 
 #define VBE_DISPI_INDEX_ID              0x0
 #define VBE_DISPI_INDEX_XRES            0x1
@@ -39,14 +39,14 @@
 #define VBE_DISPI_LFB_ENABLED           0x40
 #define VBE_DISPI_NOCLEARMEM            0x80
 
-static int width  = CONFIG_DRIVERS_EMULATION_QEMU_BOCHS_XRES;
-static int height = CONFIG_DRIVERS_EMULATION_QEMU_BOCHS_YRES;
+static int width  = CONFIG_DRIVERS_EMULATION_QEMU_XRES;
+static int height = CONFIG_DRIVERS_EMULATION_QEMU_YRES;
 
 static void bochs_write(struct resource *res, int index, int val)
 {
 	if (res->flags & IORESOURCE_IO) {
 		outw(index, res->base);
-		outw(val, res->base + 1);
+		outw(val, res->base + 2);
 	} else {
 		write16(res2mmio(res, 0x500 + index * 2, 0), val);
 	}
@@ -56,7 +56,7 @@ static int bochs_read(struct resource *res, int index)
 {
 	if (res->flags & IORESOURCE_IO) {
 		outw(index, res->base);
-		return inw(res->base + 1);
+		return inw(res->base + 2);
 	} else {
 		return read16(res2mmio(res, 0x500 + index * 2, 0));
 	}

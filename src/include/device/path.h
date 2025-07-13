@@ -53,7 +53,7 @@ enum device_path_type {
 }
 
 struct domain_path {
-	unsigned int domain;
+	unsigned int domain_id;
 };
 
 struct pci_path {
@@ -81,11 +81,19 @@ struct apic_path {
 	unsigned int node_id;
 	unsigned int core_id;
 	unsigned int thread_id;
+	unsigned int module_id;
+	/*
+	 * Core identifier within the package, including the die group, die, tile, module, and
+	 * specific core.
+	 */
+	unsigned int core_id_within_package;
 	unsigned char core_type;
 };
 
 struct ioapic_path {
+	uintptr_t addr;
 	unsigned int ioapic_id;
+	unsigned int gsi_base;
 };
 
 struct cpu_cluster_path {

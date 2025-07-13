@@ -11,6 +11,7 @@ all-y		+= i2c.c
 
 # all_x86-y adds the compilation unit to all stages that run on the x86 cores
 all_x86-y	+= gpio.c
+all_x86-y	+= i3c.c
 all_x86-y	+= uart.c
 
 bootblock-y	+= early_fch.c
@@ -33,6 +34,7 @@ ramstage-y	+= xhci.c
 ramstage-y	+= manifest.c
 
 smm-y		+= gpio.c
+smm-y		+= root_complex.c
 smm-y		+= smihandler.c
 smm-$(CONFIG_DEBUG_SMI) += uart.c
 
@@ -87,10 +89,20 @@ endif
 PSP_SOFTFUSE_BITS += $(call strip_quotes, $(CONFIG_PSP_SOFTFUSE_BITS))
 PSP_RO_SOFTFUSE_BITS=$(PSP_SOFTFUSE_BITS)
 
+# type = 0x04
+# The flashmap section used for this is expected to be named PSP_NVRAM
+PSP_NVRAM_BASE=$(call get_fmap_value,FMAP_SECTION_PSP_NVRAM_START)
+PSP_NVRAM_SIZE=$(call get_fmap_value,FMAP_SECTION_PSP_NVRAM_SIZE)
+
 # type = 0x3a
 ifeq ($(CONFIG_HAVE_PSP_WHITELIST_FILE),y)
 PSP_WHITELIST_FILE=$(CONFIG_PSP_WHITELIST_FILE)
 endif
+
+# type = 0x54
+# The flashmap section used for this is expected to be named PSP_RPMC_NVRAM
+PSP_RPMC_NVRAM_BASE=$(call get_fmap_value,FMAP_SECTION_PSP_RPMC_NVRAM_START)
+PSP_RPMC_NVRAM_SIZE=$(call get_fmap_value,FMAP_SECTION_PSP_RPMC_NVRAM_SIZE)
 
 # type = 0x55
 SPL_TABLE_FILE=$(CONFIG_SPL_TABLE_FILE)
@@ -122,7 +134,7 @@ ifneq ($(CONFIG_SOC_AMD_COMMON_BLOCK_APOB_NV_DISABLE),y)
 APOB_NV_SIZE=$(call get_fmap_value,FMAP_SECTION_RW_MRC_CACHE_SIZE)
 APOB_NV_BASE=$(call get_fmap_value,FMAP_SECTION_RW_MRC_CACHE_START)
 
-ifeq ($(CONFIG_HAS_RECOVERY_MRC_CACHE),y)
+ifeq ($(CONFIG_HAS_RECOVERY_MRC_CACHE)$(CONFIG_VBOOT),yy)
 # On boards with recovery MRC cache, point type 0x63 entry to RECOVERY_MRC_CACHE.
 # Else use RW_MRC_CACHE. This entry will be added in the RO section.
 APOB_NV_RO_SIZE=$(call get_fmap_value,FMAP_SECTION_RECOVERY_MRC_CACHE_SIZE)
@@ -146,12 +158,8 @@ PSP_VERSTAGE_SIG_FILE=$(call strip_quotes,$(CONFIG_PSP_VERSTAGE_SIGNING_TOKEN))
 endif # CONFIG_VBOOT_STARTS_BEFORE_BOOTBLOCK
 
 ifeq ($(CONFIG_SEPARATE_SIGNED_PSPFW),y)
-SIGNED_AMDFW_A_POSITION=$(call int-subtract, \
-	$(call get_fmap_value,FMAP_SECTION_SIGNED_AMDFW_A_START) \
-	$(call get_fmap_value,FMAP_SECTION_FLASH_START))
-SIGNED_AMDFW_B_POSITION=$(call int-subtract, \
-	$(call get_fmap_value,FMAP_SECTION_SIGNED_AMDFW_B_START) \
-	$(call get_fmap_value,FMAP_SECTION_FLASH_START))
+SIGNED_AMDFW_A_POSITION=$(call get_fmap_value,FMAP_SECTION_SIGNED_AMDFW_A_START)
+SIGNED_AMDFW_B_POSITION=$(call get_fmap_value,FMAP_SECTION_SIGNED_AMDFW_B_START)
 SIGNED_AMDFW_A_FILE=$(obj)/amdfw_a.rom.body.signed
 SIGNED_AMDFW_B_FILE=$(obj)/amdfw_b.rom.body.signed
 endif # CONFIG_SEPARATE_SIGNED_PSPFW
@@ -170,6 +178,12 @@ PSP_RO_SOFTFUSE=$(shell A=$(call int-add, \
 #
 
 add_opt_prefix=$(if $(call strip_quotes, $(1)), $(2) $(call strip_quotes, $(1)), )
+
+OPT_PSP_NVRAM_BASE=$(call add_opt_prefix, $(PSP_NVRAM_BASE), --nvram-base)
+OPT_PSP_NVRAM_SIZE=$(call add_opt_prefix, $(PSP_NVRAM_SIZE), --nvram-size)
+
+OPT_PSP_RPMC_NVRAM_BASE=$(call add_opt_prefix, $(PSP_RPMC_NVRAM_BASE), --rpmc-nvram-base)
+OPT_PSP_RPMC_NVRAM_SIZE=$(call add_opt_prefix, $(PSP_RPMC_NVRAM_SIZE), --rpmc-nvram-size)
 
 OPT_VERSTAGE_FILE=$(call add_opt_prefix, $(PSP_VERSTAGE_FILE), --verstage)
 OPT_VERSTAGE_SIG_FILE=$(call add_opt_prefix, $(PSP_VERSTAGE_SIG_FILE), --verstage_sig)
@@ -212,6 +226,10 @@ MANIFEST_FILE=$(obj)/amdfw_manifest
 OPT_MANIFEST=$(call add_opt_prefix, $(MANIFEST_FILE), --output-manifest)
 
 AMDFW_COMMON_ARGS=$(OPT_PSP_APCB_FILES) \
+		$(OPT_PSP_NVRAM_BASE) \
+		$(OPT_PSP_NVRAM_SIZE) \
+		$(OPT_PSP_RPMC_NVRAM_BASE) \
+		$(OPT_PSP_RPMC_NVRAM_SIZE) \
 		$(OPT_APOB_ADDR) \
 		$(OPT_DEBUG_AMDFWTOOL) \
 		$(OPT_PSP_BIOSBIN_FILE) \

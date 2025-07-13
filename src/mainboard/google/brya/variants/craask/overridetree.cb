@@ -38,6 +38,7 @@ fw_config
 		option TS_UNPROVISIONED 	0
 		option TS_GTCH7503		1
 		option TS_ILTK0001		2
+		option TS_FTSC1000		3
 	end
 end
 
@@ -70,7 +71,7 @@ chip soc/intel/alderlake
 	# [22:16] steps of delay for DDR50, each 125ps, range: 0 - 78.
 	# [14:8] steps of delay for SDR25/HS50, each 125ps, range: 0 - 119.
 	# [6:0] steps of delay for SDR12, each 125ps, range: 0 - 119.
-	register "common_soc_config.emmc_dll.emmc_rx_cmd_data_cntl1" = "0x1C1B4F3C"
+	register "common_soc_config.emmc_dll.emmc_rx_cmd_data_cntl1" = "0x1C1B4F1B"
 
 	# EMMC RX CMD/DATA Delay 2
 	# Refer to EDS-Vol2-42.3.12.
@@ -337,6 +338,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "12"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 0x40 on
 					probe TS_SOURCE TS_UNPROVISIONED
@@ -353,6 +355,7 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "12"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 0x40 on
 					probe TS_SOURCE TS_GTCH7503
@@ -386,8 +389,29 @@ chip soc/intel/alderlake
 				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 10 on
+					probe TS_SOURCE TS_UNPROVISIONED
+				end
+			end
+			chip drivers/i2c/hid
+				register "generic.hid" = ""ELAN9004""
+				register "generic.desc" = ""ELAN Touchscreen""
+				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_C7_IRQ)"
+				register "generic.detect" = "1"
+				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
+				register "generic.reset_delay_ms" = "20"
+				register "generic.reset_off_delay_ms" = "2"
+				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
+				register "generic.stop_delay_ms" = "280"
+				register "generic.stop_off_delay_ms" = "2"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
+				register "generic.enable_delay_ms" = "1"
+				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
+				register "hid_desc_reg_offset" = "0x01"
+				device i2c 16 on
 					probe TS_SOURCE TS_UNPROVISIONED
 				end
 			end
@@ -403,9 +427,26 @@ chip soc/intel/alderlake
 				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
 				register "generic.stop_off_delay_ms" = "200"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 41 on
 					probe TS_SOURCE TS_ILTK0001
+				end
+			end
+			chip drivers/i2c/hid
+				register "generic.hid" = ""FTSC1000""
+				register "generic.desc" = ""Focal Touchscreen""
+				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_C7_IRQ)"
+				register "generic.detect" = "1"
+				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
+				register "generic.reset_delay_ms" = "20"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
+				register "generic.enable_delay_ms" = "6"
+				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
+				register "hid_desc_reg_offset" = "0x01"
+				device i2c 38 on
+					probe TS_SOURCE TS_FTSC1000
 				end
 			end
 		end
@@ -425,7 +466,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "DEFAULT_LINK_FREQ"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
 				#Controls
@@ -461,7 +502,7 @@ chip soc/intel/alderlake
 				register "acpi_name" = ""CAM0""
 				register "chip_name" = ""Ov 8856 Camera""
 				register "device_type" = "INTEL_ACPI_CAMERA_SENSOR"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
 				register "ssdb.lanes_used" = "2"
@@ -507,7 +548,7 @@ chip soc/intel/alderlake
 				register "device_type" = "INTEL_ACPI_CAMERA_VCM"
 
 				register "vcm_compat" = ""dongwoon,dw9714""
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
 				#Controls

@@ -31,19 +31,19 @@ chip soc/intel/meteorlake
 	register "tcss_ports[3]" = "TCSS_PORT_EMPTY"	# Disable USB-C Port 3
 
 	# S0ix enable
-	register "s0ix_enable" = "1"
+	register "s0ix_enable" = "true"
 
 	# Disable C1 C-state auto-demotion
-	register "disable_c1_state_auto_demotion" = "1"
+	register "disable_c1_state_auto_demotion" = "true"
 
 	# Disable PKGC-state demotion
-	register "disable_package_c_state_demotion" = "1"
+	register "disable_package_c_state_demotion" = "true"
 
 	# Enable Energy Reporting
 	register "pch_pm_energy_report_enable" = "1"
 
 	# DPTF enable
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# Temporary setting TCC of 100C = Tj max (110) - TCC_Offset (10)
 	register "tcc_offset" = "10"
@@ -68,7 +68,7 @@ chip soc/intel/meteorlake
 	register "sagv_gear[3]" = "2"
 
 	# Set on-board graphics as primary display
-	register "skip_ext_gfx_scan" = "1"
+	register "skip_ext_gfx_scan" = "true"
 
 	register "serial_io_uart_mode" = "{
 		[PchSerialIoIndexUART0] = PchSerialIoPci,

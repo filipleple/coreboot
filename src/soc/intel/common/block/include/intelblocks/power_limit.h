@@ -32,6 +32,8 @@ struct soc_power_limits_config {
 	uint32_t tdp_psyspl3_dutycycle;
 	/* PL4 Value in Watts */
 	uint16_t tdp_pl4;
+	/* PL4 Value in Watts when Fast VMode is enabled */
+	uint16_t tdp_pl4_fastvmode;
 	/* Estimated maximum platform power in Watts */
 	uint16_t psys_pmax;
 };
@@ -45,6 +47,7 @@ u8 get_cpu_tdp(void);
 struct cpu_tdp_power_limits {
 	uint16_t mch_id;
 	uint8_t cpu_tdp;
+	uint32_t power_limits_index;
 	unsigned int pl1_min_power;
 	unsigned int pl1_max_power;
 	unsigned int pl2_min_power;

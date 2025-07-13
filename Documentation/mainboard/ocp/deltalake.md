@@ -32,7 +32,7 @@ in July, 2021.
 ## How to build
 
 OSF code base is publicly available at
-https://github.com/opencomputeproject/OpenSystemFirmware
+<https://github.com/opencomputeproject/OpenSystemFirmware>
 
 Run following commands to build Delta Lake OSF image from scratch:
     git clone https://github.com/opencomputeproject/OpenSystemFirmware.git
@@ -44,10 +44,11 @@ binary blobs. [osf-builder] also provides the top level build system.
 
 Besides coreboot, the Delta Lake OSF solution includes following components:
 - FSP blob: The blobs (Intel Cooper Lake Scalable Processor Firmware Support Package)
-  is downloaded from https://github.com/intel/FSP/tree/master/CedarIslandFspBinPkg.
-- Microcode: downloaded from github.com/intel/Intel-Linux-Processor-Microcode-Data-Files.
+  is downloaded from <https://github.com/intel/FSP/tree/master/CedarIslandFspBinPkg>.
+- Microcode: downloaded from
+	<https://github.com/intel/Intel-Linux-Processor-Microcode-Data-Files>.
 - ME ignition binary: downloaded from
-	https://github.com/tianocore/edk2-non-osi/tree/master/Silicon/Intel/PurleySiliconBinPkg/MeFirmware
+	<https://github.com/tianocore/edk2-non-osi/tree/master/Silicon/Intel/PurleySiliconBinPkg/MeFirmware>
 - ACM binaries: only required for CBnT enablement. Available under NDA with Intel.
 - Payload: LinuxBoot is necessary when LinuxBoot is used as the coreboot payload.
   U-root as initramfs, is used in the joint development. It is built
@@ -200,7 +201,7 @@ and [u-root] as initramfs.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +------------------------+---------------------------------------------+
 | Processor (1 socket)   | Intel Cooper Lake Scalable Processor        |
 +------------------------+---------------------------------------------+
@@ -218,7 +219,7 @@ and [u-root] as initramfs.
 [The Wiwynn's Yosemite-V3 product in OCP market place]: https://www.opencompute.org/products/423/wiwynn-yosemite-v3-server
 [osf-builder]: https://github.com/facebookincubator/osf-builder
 [OCP virtual summit 2020]: https://www.opencompute.org/summit/virtual-summit/schedule
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/
 [All about u-root]: https://github.com/linuxboot/book/tree/master/u-root
 [u-root]: https://u-root.org/
 [ChromeOS VPD]: https://chromium.googlesource.com/chromiumos/platform/vpd/+/master/README.md

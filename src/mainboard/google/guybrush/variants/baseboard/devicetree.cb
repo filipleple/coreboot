@@ -53,7 +53,7 @@ chip soc/amd/cezanne
 	}"
 
 	# Enable S0i3 support
-	register "s0ix_enable" = "1"
+	register "s0ix_enable" = "true"
 
 	# Enable STT support
 	register "stt_control" = "1"
@@ -98,7 +98,7 @@ chip soc/amd/cezanne
 
 	register "pspp_policy" = "DXIO_PSPP_BALANCED"
 
-	register "usb_phy_custom" = "1"
+	register "usb_phy_custom" = "true"
 	register "usb_phy" = "{
 		/* Left USB C0 Port */
 		.Usb2PhyPort[0] = {
@@ -350,6 +350,8 @@ chip soc/amd/cezanne
 				end
 			end # Audio
 		end
+		device ref gpp_bridge_b off end  # Internal GPP Bridge 1 to Bus B
+		device ref gpp_bridge_c off end  # Internal GPP Bridge 2 to Bus C
 
 		device ref lpc_bridge on
 			chip ec/google/chromeec

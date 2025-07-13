@@ -8,39 +8,37 @@ chip soc/intel/skylake
 	register "gpe0_dw1" = "GPP_D"
 	register "gpe0_dw2" = "GPP_E"
 
-	register "gen1_dec" = "0x007c0a01"	# Super IO SWC
-	register "gen2_dec" = "0x000c0ca1"	# IPMI KCS
-
 	# Additional FSP Configuration
 	# This board has an IGD with no output.
 	register "PrimaryDisplay" = "Display_Auto"
 
-	register "usb2_ports" = "{
-		[0] = USB2_PORT_MID(OC0),	/* USB 2 */
-		[1] = USB2_PORT_MID(OC0),	/* USB 3 */
-		[2] = USB2_PORT_MID(OC1),	/* USB 4 */
-		[3] = USB2_PORT_MID(OC1),	/* USB 5 */
-		[4] = USB2_PORT_MID(OC2),	/* USB 0 */
-		[5] = USB2_PORT_MID(OC2),	/* USB 1 */
-		[8] = USB2_PORT_MID(OC3),	/* USB 9 (3.0) */
-		[9] = USB2_PORT_MID(OC5),	/* USB 8 (3.0) */
-		[10] = USB2_PORT_MID(OC4),	/* USB 6 (3.0) */
-		[11] = USB2_PORT_MID(OC4),	/* USB 7 (3.0) */
-		[12] = USB2_PORT_MID(OC3),	/* USB 10 (3.0) */
-		[13] = USB2_PORT_MID(OC_SKIP),	/* IPMI USB hub */
-		[14] = USB2_PORT_MID(OC0),	/* Unknown */
-		[15] = USB2_PORT_MID(OC0),	/* Unknown */
-	}"
-
-	register "usb3_ports" = "{
-		[0] = USB3_PORT_DEFAULT(OC5),	/* USB 8 */
-		[1] = USB3_PORT_DEFAULT(OC4),	/* USB 6 */
-		[2] = USB3_PORT_DEFAULT(OC4),	/* USB 7 */
-		[3] = USB3_PORT_DEFAULT(OC3),	/* USB 9 */
-		[4] = USB3_PORT_DEFAULT(OC3),	/* USB 10 */
-	}"
-
 	device domain 0 on
+		device ref south_xhci on
+			register "usb2_ports" = "{
+				[0] = USB2_PORT_MID(OC0),	/* USB 2 */
+				[1] = USB2_PORT_MID(OC0),	/* USB 3 */
+				[2] = USB2_PORT_MID(OC1),	/* USB 4 */
+				[3] = USB2_PORT_MID(OC1),	/* USB 5 */
+				[4] = USB2_PORT_MID(OC2),	/* USB 0 */
+				[5] = USB2_PORT_MID(OC2),	/* USB 1 */
+				[8] = USB2_PORT_MID(OC3),	/* USB 9 (3.0) */
+				[9] = USB2_PORT_MID(OC5),	/* USB 8 (3.0) */
+				[10] = USB2_PORT_MID(OC4),	/* USB 6 (3.0) */
+				[11] = USB2_PORT_MID(OC4),	/* USB 7 (3.0) */
+				[12] = USB2_PORT_MID(OC3),	/* USB 10 (3.0) */
+				[13] = USB2_PORT_MID(OC_SKIP),	/* IPMI USB hub */
+				[14] = USB2_PORT_MID(OC0),	/* Unknown */
+				[15] = USB2_PORT_MID(OC0),	/* Unknown */
+			}"
+
+			register "usb3_ports" = "{
+				[0] = USB3_PORT_DEFAULT(OC5),	/* USB 8 */
+				[1] = USB3_PORT_DEFAULT(OC4),	/* USB 6 */
+				[2] = USB3_PORT_DEFAULT(OC4),	/* USB 7 */
+				[3] = USB3_PORT_DEFAULT(OC3),	/* USB 9 */
+				[4] = USB3_PORT_DEFAULT(OC3),	/* USB 10 */
+			}"
+		end
 		device ref peg0 on
 			# Slot JPCIE3
 			smbios_slot_desc "SlotTypePciExpressGen3X16" "SlotLengthShort" "CPU SLOT6 PCI-E 3.0 X8(IN X16)" "SlotDataBusWidth8X"
@@ -51,37 +49,33 @@ chip soc/intel/skylake
 		end
 		device ref igpu on end
 		device ref pcie_rp1 on
-			register "PcieRpEnable[0]" = "1"
 			device pci 00.0 on end	# GbE
 		end
 		device ref pcie_rp2 on
-			register "PcieRpEnable[1]" = "1"
 			device pci 00.0 on end	# GbE
 		end
 		device ref pcie_rp3 on
-			register "PcieRpEnable[2]" = "1"
 			device pci 00.0 on end	# GbE
 		end
 		device ref pcie_rp4 on
-			register "PcieRpEnable[3]" = "1"
 			device pci 00.0 on end	# GbE
 		end
 		device ref pcie_rp5 on
-			register "PcieRpEnable[4]" = "1"
 			smbios_slot_desc "SlotTypeM2Socket3" "SlotLengthOther" "M.2 2280" "SlotDataBusWidth2X"
 		end
 		device ref pcie_rp7 on
-			register "PcieRpEnable[6]" = "1"
 			device pci 00.0 on	# Aspeed PCI Bridge
 				device pci 00.0 on end	# Aspeed 2400 VGA
 			end
 		end
 		device ref pcie_rp9 on
 			# Slot JPCIE1
-			register "PcieRpEnable[8]" = "1"
 			smbios_slot_desc "SlotTypePciExpressGen3X4" "SlotLengthLong" "PCH SLOT4 PCI-E 3.0 X4(IN X8)" "SlotDataBusWidth4X"
 		end
 		device ref lpc_espi on
+			register "gen1_dec" = "0x007c0a01"	# Super IO SWC
+			register "gen2_dec" = "0x000c0ca1"	# IPMI KCS
+
 			chip drivers/ipmi
 				# On cold boot it takes a while for the BMC to start the IPMI service
 				register "wait_for_bmc" = "1"

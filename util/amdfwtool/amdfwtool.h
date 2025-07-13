@@ -9,8 +9,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* An address can be relative to the image/file start but it can also be the address when
+ * the image is mapped at 0xff000000. Used to ensure that we only attempt to read within
+ * the limits of the file. */
+#define SPI_ROM_BASE 0xff000000
+
 #define ERASE_ALIGNMENT 0x1000U
 #define TABLE_ALIGNMENT 0x1000U
+#define TABLE_L2_SIZE_MAX 0x400U
 #define BLOB_ALIGNMENT 0x100U
 #define TABLE_ERASE_ALIGNMENT _MAX(TABLE_ALIGNMENT, ERASE_ALIGNMENT)
 #define BLOB_ERASE_ALIGNMENT _MAX(BLOB_ALIGNMENT, ERASE_ALIGNMENT)
@@ -28,6 +34,7 @@ enum platform {
 	PLATFORM_PHOENIX,
 	PLATFORM_GLINDA,
 	PLATFORM_GENOA,
+	PLATFORM_FAEGAN,
 };
 
 typedef enum _amd_fw_type {
@@ -143,8 +150,8 @@ typedef enum _amd_addr_mode {
 } amd_addr_mode;
 
 struct second_gen_efs { /* todo: expand for Server products */
-	int gen:1; /* Client products only use bit 0 */
-	int reserved:31;
+	uint32_t gen:1; /* Client products only use bit 0 */
+	uint32_t reserved:31;
 } __attribute__((packed));
 
 #define EFS_SECOND_GEN 0
@@ -162,7 +169,7 @@ typedef struct _embedded_firmware {
 	uint32_t bios2_entry;
 	struct second_gen_efs efs_gen;
 	uint32_t bios3_entry;
-	uint32_t reserved_2Ch;
+	uint32_t psp_bak_directory;
 	uint32_t promontory_fw_ptr;
 	uint32_t lp_promontory_fw_ptr;
 	uint32_t reserved_38h;
@@ -425,6 +432,7 @@ typedef struct _amd_cb_config {
 	bool recovery_ab_single_copy;
 	bool need_ish;
 	bool use_combo;
+	bool combo_new_rab;	/* new combo layout for recovery A/B */
 	bool have_apcb_bk;
 	enum platform soc_id;
 
@@ -445,6 +453,7 @@ typedef struct _context {
 	uint32_t current;	/* pointer within flash & proxy buffer */
 	uint32_t current_pointer_saved;
 	uint32_t current_table;
+	uint32_t combo_index;
 	void *amd_psp_fw_table_clean;
 	void *amd_bios_table_clean;
 	struct _combo_apcb {
@@ -452,6 +461,11 @@ typedef struct _context {
 		uint8_t ins;
 		uint8_t sub;
 	} combo_apcb[MAX_COMBO_ENTRIES], combo_apcb_bk[MAX_COMBO_ENTRIES];
+	embedded_firmware *amd_romsig_ptr;
+	psp_directory_table *pspdir, *pspdir_bak, *pspdir2, *pspdir2_b;
+	bios_directory_table *biosdir, *biosdir2, *biosdir2_b;
+	psp_combo_directory *psp_combo_dir, *bhd_combo_dir;
+	ish_directory_table *ish_a_dir, *ish_b_dir;
 } context;
 
 uint8_t process_config(FILE *config, amd_cb_config *cb_config);
@@ -460,6 +474,7 @@ void process_signed_psp_firmwares(const char *signed_rom,
 		uint64_t signed_start_addr,
 		enum platform soc_id);
 int find_bios_entry(amd_bios_type type);
+bool needs_ish(enum platform platform_type);
 
 #define EFS_FILE_SUFFIX ".efs"
 #define TMP_FILE_SUFFIX ".tmp"

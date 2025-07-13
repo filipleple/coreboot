@@ -1,10 +1,10 @@
 chip soc/intel/skylake
 
 	# Enable deep Sx states
-	register "deep_s3_enable_ac" = "0"
-	register "deep_s3_enable_dc" = "0"
-	register "deep_s5_enable_ac" = "1"
-	register "deep_s5_enable_dc" = "1"
+	register "deep_s3_enable_ac" = "false"
+	register "deep_s3_enable_dc" = "false"
+	register "deep_s5_enable_ac" = "true"
+	register "deep_s5_enable_dc" = "true"
 	register "deep_sx_config" = "DSX_EN_WAKE_PIN | DSX_DIS_AC_PRESENT_PD"
 	register "s0ix_enable" = true
 
@@ -12,27 +12,16 @@ chip soc/intel/skylake
 	register "gpe0_dw1" = "GPP_D"
 	register "gpe0_dw2" = "GPP_E"
 
-	register "gen1_dec" = "0x00fc0201"
-	register "gen2_dec" = "0x007c0a01"
-	register "gen3_dec" = "0x000c03e1"
-	register "gen4_dec" = "0x001c02e1"
-
-	register "eist_enable" = "1"
+	register "eist_enable" = "true"
 
 	# Disable DPTF
-	register "dptf_enable" = "0"
-
-	# Enable SERIRQ continuous
-	register "serirq_mode" = "SERIRQ_CONTINUOUS"
+	register "dptf_enable" = "false"
 
 	register "tcc_offset" = "5" # TCC of 95C
 
 	# FSP Configuration
-	register "SataSalpSupport" = "0"
-	register "DspEnable" = "0"
+	register "DspEnable" = "false"
 	register "IoBufferOwnership" = "0"
-	register "SsicPortEnable" = "0"
-	register "ScsEmmcHs400Enabled" = "0"
 	register "SkipExtGfxScan" = "1"
 	register "SaGv" = "SaGv_Enabled"
 	register "IslVrCmd" = "2"
@@ -109,72 +98,6 @@ chip soc/intel/skylake
 	# Send an extra VR mailbox command for the PS4 exit issue
 	register "SendVrMbxCmd" = "2"
 
-	# Enable SATA ports 1,2
-	register "SataPortsEnable[0]" = "1"
-	register "SataPortsEnable[1]" = "1"
-	register "SataPortsEnable[2]" = "0"
-	register "SataPortsDevSlp[0]" = "0"
-	register "SataPortsDevSlp[1]" = "0"
-
-	# Enable Root ports. 1-6 for LAN and Root Port 9
-	register "PcieRpEnable[0]" = "1"
-	register "PcieRpEnable[1]" = "1"
-	register "PcieRpEnable[2]" = "1"
-	register "PcieRpEnable[3]" = "1"
-	register "PcieRpEnable[4]" = "1"
-	register "PcieRpEnable[5]" = "1"
-	register "PcieRpEnable[8]" = "1" # mPCIe WiFi
-
-	# Enable Advanced Error Reporting for RP 1-6, 9
-	register "PcieRpAdvancedErrorReporting[0]" = "1"
-	register "PcieRpAdvancedErrorReporting[1]" = "1"
-	register "PcieRpAdvancedErrorReporting[2]" = "1"
-	register "PcieRpAdvancedErrorReporting[3]" = "1"
-	register "PcieRpAdvancedErrorReporting[4]" = "1"
-	register "PcieRpAdvancedErrorReporting[5]" = "1"
-	register "PcieRpAdvancedErrorReporting[8]" = "1"
-
-	# Enable Latency Tolerance Reporting Mechanism RP 1-6, 9
-	register "PcieRpLtrEnable[0]" = "1"
-	register "PcieRpLtrEnable[1]" = "1"
-	register "PcieRpLtrEnable[2]" = "1"
-	register "PcieRpLtrEnable[3]" = "1"
-	register "PcieRpLtrEnable[4]" = "1"
-	register "PcieRpLtrEnable[5]" = "1"
-	register "PcieRpLtrEnable[8]" = "1"
-
-	# Enable RP 9 CLKREQ# support
-	register "PcieRpClkReqSupport[8]" = "1"
-	# RP 9 uses CLKREQ0#
-	register "PcieRpClkReqNumber[8]" = "0"
-
-	# Clocks 0-5 for RP 1-6
-	register "PcieRpClkSrcNumber[0]" = "0"
-	register "PcieRpClkSrcNumber[1]" = "1"
-	register "PcieRpClkSrcNumber[2]" = "2"
-	register "PcieRpClkSrcNumber[3]" = "3"
-	register "PcieRpClkSrcNumber[4]" = "4"
-	register "PcieRpClkSrcNumber[5]" = "5"
-	# RP 9 shares CLKSRC5# with RP 6
-	register "PcieRpClkSrcNumber[8]" = "5"
-
-
-	# USB 2.0 enable ports 1-8, disable ports 9-12
-	register "usb2_ports[0]"  = "USB2_PORT_SHORT(OC_SKIP)"	# TYPE-A Port
-	register "usb2_ports[1]"  = "USB2_PORT_SHORT(OC_SKIP)"	# TYPE-A Port
-	register "usb2_ports[2]"  = "USB2_PORT_SHORT(OC_SKIP)"	# TYPE-A Port
-	register "usb2_ports[3]"  = "USB2_PORT_SHORT(OC_SKIP)"	# TYPE-A Port
-	register "usb2_ports[4]"  = "USB2_PORT_SHORT(OC_SKIP)"	# Type-A Port
-	register "usb2_ports[5]"  = "USB2_PORT_SHORT(OC_SKIP)"	# TYPE-A Port
-	register "usb2_ports[6]"  = "USB2_PORT_SHORT(OC_SKIP)"	# TYPE-A Port
-	register "usb2_ports[7]"  = "USB2_PORT_SHORT(OC_SKIP)"	# mPCIe slot
-
-	# USB 3.0 enable ports 1-4, disable ports 5-6
-	register "usb3_ports[0]" = "USB3_PORT_DEFAULT(OC_SKIP)"	# TYPE-A Port
-	register "usb3_ports[1]" = "USB3_PORT_DEFAULT(OC_SKIP)"	# TYPE-A Port
-	register "usb3_ports[2]" = "USB3_PORT_DEFAULT(OC_SKIP)"	# TYPE-A Port
-	register "usb3_ports[3]" = "USB3_PORT_DEFAULT(OC_SKIP)"	# TYPE-A Port
-
 	register "SerialIoDevMode" = "{
 		[PchSerialIoIndexI2C0]  = PchSerialIoDisabled,
 		[PchSerialIoIndexI2C1]  = PchSerialIoDisabled,
@@ -189,29 +112,92 @@ chip soc/intel/skylake
 		[PchSerialIoIndexUart2] = PchSerialIoDisabled,
 	}"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		device ref igpu		on  end
-		device ref south_xhci	on  end
+		device ref south_xhci	on
+			register "usb2_ports" = "{
+				[0]  = USB2_PORT_SHORT(OC_SKIP),	// TYPE-A Port
+				[1]  = USB2_PORT_SHORT(OC_SKIP),	// TYPE-A Port
+				[2]  = USB2_PORT_SHORT(OC_SKIP),	// TYPE-A Port
+				[3]  = USB2_PORT_SHORT(OC_SKIP),	// TYPE-A Port
+				[4]  = USB2_PORT_SHORT(OC_SKIP),	// Type-A Port
+				[5]  = USB2_PORT_SHORT(OC_SKIP),	// TYPE-A Port
+				[6]  = USB2_PORT_SHORT(OC_SKIP),	// TYPE-A Port
+				[7]  = USB2_PORT_SHORT(OC_SKIP),	// mPCIe slot
+			}"
+
+			register "usb3_ports" = "{
+				[0] = USB3_PORT_DEFAULT(OC_SKIP),	// TYPE-A Port
+				[1] = USB3_PORT_DEFAULT(OC_SKIP),	// TYPE-A Port
+				[2] = USB3_PORT_DEFAULT(OC_SKIP),	// TYPE-A Port
+				[3] = USB3_PORT_DEFAULT(OC_SKIP),	// TYPE-A Port
+			}"
+		end
 		device ref heci1	on  end
-		device ref sata		on  end
-		device ref pcie_rp1	on  end
-		device ref pcie_rp2	on  end
-		device ref pcie_rp3	on  end
-		device ref pcie_rp4	on  end
-		device ref pcie_rp5	on  end
-		device ref pcie_rp6	on  end
+		device ref sata		on
+			register "SataPortsEnable" = "{
+				[0] = 1,
+				[1] = 1,
+			}"
+		end
+		device ref pcie_rp1	on
+			# LAN
+			register "PcieRpAdvancedErrorReporting[0]" = "1"
+			register "PcieRpLtrEnable[0]" = "true"
+			register "PcieRpClkSrcNumber[0]" = "0"
+		end
+		device ref pcie_rp2	on
+			# LAN
+			register "PcieRpAdvancedErrorReporting[1]" = "1"
+			register "PcieRpLtrEnable[1]" = "true"
+			register "PcieRpClkSrcNumber[1]" = "1"
+		end
+		device ref pcie_rp3	on
+			# LAN
+			register "PcieRpAdvancedErrorReporting[2]" = "1"
+			register "PcieRpLtrEnable[2]" = "true"
+			register "PcieRpClkSrcNumber[2]" = "2"
+		end
+		device ref pcie_rp4	on
+			# LAN
+			register "PcieRpAdvancedErrorReporting[3]" = "1"
+			register "PcieRpLtrEnable[3]" = "true"
+			register "PcieRpClkSrcNumber[3]" = "3"
+		end
+		device ref pcie_rp5	on
+			# LAN
+			register "PcieRpAdvancedErrorReporting[4]" = "1"
+			register "PcieRpLtrEnable[4]" = "true"
+			register "PcieRpClkSrcNumber[4]" = "4"
+		end
+		device ref pcie_rp6	on
+			# LAN
+			register "PcieRpAdvancedErrorReporting[5]" = "1"
+			register "PcieRpLtrEnable[5]" = "true"
+			register "PcieRpClkSrcNumber[5]" = "5"
+		end
 		device ref pcie_rp9	on
-			# WIFI
+			# mPCIe WIFI
+			register "PcieRpAdvancedErrorReporting[8]" = "1"
+			register "PcieRpLtrEnable[8]" = "true"
+			register "PcieRpClkSrcNumber[8]" = "5"
+			register "PcieRpClkReqSupport[8]" = "1"
+			register "PcieRpClkReqNumber[8]" = "0"
 			smbios_slot_desc
 				"SlotTypePciExpressMini52pinWithoutBSKO"
 				"SlotLengthShort" "WIFI1" "SlotDataBusWidth1X"
 		end
 		device ref lpc_espi	on
+			register "serirq_mode" = "SERIRQ_CONTINUOUS"
+
+			register "gen1_dec" = "0x00fc0201"
+			register "gen2_dec" = "0x007c0a01"
+			register "gen3_dec" = "0x000c03e1"
+			register "gen4_dec" = "0x001c02e1"
 			chip superio/ite/it8772f
-				register "peci_tmpin" = "3"
-				register "tmpin1_mode" = "THERMAL_RESISTOR"
-				register "tmpin2_mode" = "THERMAL_RESISTOR"
+				register "TMPIN1.mode" = "THERMAL_RESISTOR"
+				register "TMPIN2.mode" = "THERMAL_RESISTOR"
+				register "TMPIN3.mode" = "THERMAL_PECI"
 				# FAN2 available on fan header but unused
 				device pnp 2e.0 off end # FDC
 				device pnp 2e.1 on # Serial Port 1

@@ -4,10 +4,10 @@
 #include <acpi/acpigen.h>
 #include <console/console.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <device/spi.h>
 #include <spi-generic.h>
-#include <string.h>
+#include <stdio.h>
+
 #include "chip.h"
 
 static int spi_acpi_get_bus(const struct device *dev)

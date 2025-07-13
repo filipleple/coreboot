@@ -42,16 +42,6 @@
 
 Scope (\_SB)
 {
-	/* Device base address */
-	Method (BASE, 1)
-	{
-		Local0 = Arg0 & 0x7             /* Function number */
-		Local1 = (Arg0 >> 16) & 0x1F    /* Device number */
-		Local2 = (Local0 << 12) + (Local1 << 15)
-		Local3 = \_SB.PCI0.GPCB() + Local2
-		Return (Local3)
-	}
-
 	/*
 	 * Define PCH ACPIBASE IO as an ACPI operating region. The base address can be
 	 * found in Device 31, Function 2, Offset 40h.
@@ -334,8 +324,13 @@ Scope (\_SB.PCI0)
 				IOM_BASE_ADDR, IOM_BASE_ADDR_MAX, 0x0,
 				IOM_BASE_SIZE,,,)
 		})
-		/* Hide the device so that Windows does not complain on missing driver */
+#if CONFIG(IOM_ACPI_DEVICE_VISIBLE)
+		/* ACPI_STATUS_DEVICE_ALL_ON */
+		Name (_STA, 0xF)
+#else
+		/* ACPI_STATUS_DEVICE_HIDDEN_ON */
 		Name (_STA, 0xB)
+#endif
 	}
 
 	/*
@@ -602,13 +597,7 @@ Scope (\_SB.PCI0)
 		}
 
 		/* Request IOM for D3 cold entry sequence. */
-		/*
-		 * FIXME: Remove this workaround after resolving b/244082753
-		 *
-		 * Document #742990: TCCold exit flow may not complete when processor at package
-		 * C0. The implication is that the system may hang.
-		 */
-		// TD3C = 1
+		TD3C = 1
 	}
 
 	PowerResource (D3C, 5, 0)
@@ -718,7 +707,7 @@ Scope (\_SB.PCI0)
 
 		Method (_STA, 0x0, NotSerialized)
 		{
-			If (TRE0 == 1) {
+			If (VDID != 0xFFFFFFFF) {
 				Return (0x0F)
 			} Else {
 				Return (0x0)
@@ -748,7 +737,7 @@ Scope (\_SB.PCI0)
 
 		Method (_STA, 0x0, NotSerialized)
 		{
-			If (TRE1 == 1) {
+			If (VDID != 0xFFFFFFFF) {
 				Return (0x0F)
 			} Else {
 				Return (0x0)
@@ -778,7 +767,7 @@ Scope (\_SB.PCI0)
 
 		Method (_STA, 0x0, NotSerialized)
 		{
-			If (TRE2 == 1) {
+			If (VDID != 0xFFFFFFFF) {
 				Return (0x0F)
 			} Else {
 				Return (0x0)
@@ -808,7 +797,7 @@ Scope (\_SB.PCI0)
 
 		Method (_STA, 0x0, NotSerialized)
 		{
-			If (TRE3 == 1) {
+			If (VDID != 0xFFFFFFFF) {
 				Return (0x0F)
 			} Else {
 				Return (0x0)

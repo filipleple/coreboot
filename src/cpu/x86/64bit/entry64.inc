@@ -11,16 +11,14 @@
 
 #if ENV_X86_64
 	.code32
+#if CONFIG(PAGE_TABLES_IN_CBFS)
 #if (CONFIG_ARCH_X86_64_PGTBL_LOC & 0xfff) > 0
 #error pagetables must be 4KiB aligned!
 #endif
-
-#include <cpu/x86/msr.h>
-#if defined(__RAMSTAGE__)
-#include <arch/ram_segs.h>
-#else
-#include <arch/rom_segs.h>
 #endif
+
+#include <cpu/x86/gdt.h>
+#include <cpu/x86/msr.h>
 
 .macro setup_longmode page_table
 	/* Get page table address */
@@ -46,12 +44,8 @@
 	movl	%eax, %cr0
 
 	/* use long jump to switch to 64-bit code segment */
-#if defined(__RAMSTAGE__)
-	ljmp $RAM_CODE_SEG64, $jmp_addr\@
-#else
-	ljmp $ROM_CODE_SEG64, $jmp_addr\@
+	ljmp $GDT_CODE_SEG64, $jmp_addr\@
 
-#endif
 .code64
 jmp_addr\@:
 .endm

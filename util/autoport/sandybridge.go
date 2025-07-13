@@ -1,8 +1,17 @@
 package main
 
 import "fmt"
+import "strings"
 
 type sandybridgemc struct {
+}
+
+func MakeSPDMap(ctx Context) string {
+	var values []string
+	for _, addr := range GuessSPDMap(ctx) {
+		values = append(values, fmt.Sprintf("0x%02x", addr))
+	}
+	return "{"+strings.Join(values, ", ")+"}"
 }
 
 func (i sandybridgemc) Scan(ctx Context, addr PCIDevData) {
@@ -33,6 +42,7 @@ func (i sandybridgemc) Scan(ctx Context, addr PCIDevData) {
 			"gpu_cpu_backlight":                   FormatHex32(inteltool.IGD[0x48254]),
 			"gpu_pch_backlight":                   FormatHex32((inteltool.IGD[0xc8254] >> 16) * 0x10001),
 			"gfx": fmt.Sprintf("GMA_STATIC_DISPLAYS(%d)", (inteltool.IGD[0xc6200] >> 12) & 1),
+			"spd_addresses": MakeSPDMap(ctx)+"\" # FIXME: Put proper SPD map here",
 		},
 		Children: []DevTreeNode{
 			{
@@ -41,15 +51,15 @@ func (i sandybridgemc) Scan(ctx Context, addr PCIDevData) {
 				PCIController: true,
 				ChildPCIBus:   0,
 				PCISlots: []PCISlot{
-					PCISlot{PCIAddr: PCIAddr{Dev: 0x0, Func: 0}, writeEmpty: true, alias: "host_bridge", additionalComment: "Host bridge"},
-					PCISlot{PCIAddr: PCIAddr{Dev: 0x1, Func: 0}, writeEmpty: true, alias: "peg10", additionalComment: "PEG"},
-					PCISlot{PCIAddr: PCIAddr{Dev: 0x2, Func: 0}, writeEmpty: true, alias: "igd", additionalComment: "iGPU"},
+					PCISlot{PCIAddr: PCIAddr{Dev: 0x0, Func: 0}, writeEmpty: true, alias: "host_bridge"},
+					PCISlot{PCIAddr: PCIAddr{Dev: 0x1, Func: 0}, writeEmpty: true, alias: "peg10"},
+					PCISlot{PCIAddr: PCIAddr{Dev: 0x2, Func: 0}, writeEmpty: true, alias: "igd"},
 				},
 			},
 		},
 	}
 
-	PutPCIDev(addr, "Host bridge")
+	PutPCIDev(addr, "")
 
 	/* FIXME:XX some configs are unsupported.  */
 	KconfigBool["NORTHBRIDGE_INTEL_SANDYBRIDGE"] = true

@@ -3,15 +3,12 @@
 chip soc/intel/skylake
 	register "eist_enable" = "true"
 
-	device cpu_cluster 0 on  end
 	device domain 0 on
 		device ref peg0         on	# PCIE16X
-			# These configurations are technically for PCIe root
-			# ports. However, they are used as there is no
-			# equivalent for PEG devices.
-			register "PcieRpClkReqSupport[0]" = "true"
-			register "PcieRpClkReqNumber[0]"  = "2"
-			register "PcieRpClkSrcNumber[0]"  = "0"
+			smbios_slot_desc "SlotTypePciExpressGen3X16"
+			                 "SlotLengthLong"
+			                 "PCIE16X"
+			                 "SlotDataBusWidth16X"
 		end
 		device ref igpu		on  end
 		device ref south_xhci	on
@@ -30,7 +27,6 @@ chip soc/intel/skylake
 				// Used by the SD/MMC reader.
 				[11] = USB2_PORT_MID(OC_SKIP),	// F_USB2 (Pins 5, 7)
 			}"
-
 			register "usb3_ports" = "{
 				[0] = USB3_PORT_DEFAULT(OC1),	// USB30A
 				[1] = USB3_PORT_DEFAULT(OC1),	// USB30B
@@ -39,6 +35,119 @@ chip soc/intel/skylake
 				[4] = USB3_PORT_DEFAULT(OC3),	// F_USB30_2A
 				[5] = USB3_PORT_DEFAULT(OC3),	// F_USB30_2B
 			}"
+
+			chip drivers/usb/acpi
+				register "desc" = ""xHCI Root Hub""
+				register "type" = "UPC_TYPE_HUB"
+				device usb 0.0 on
+					chip drivers/usb/acpi
+						register "desc"  = ""USB30A""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(1, 1)"
+						device usb 2.0	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""USB30B""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(1, 2)"
+						device usb 2.1	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_1A""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(2, 1)"
+						device usb 2.2	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_1B""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(2, 2)"
+						device usb 2.3	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_2A""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(3, 1)"
+						device usb 2.4	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_2B""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(3, 2)"
+						device usb 2.5	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""M.2 Bluetooth""
+						register "type"  = "UPC_TYPE_INTERNAL"
+						device usb 2.6	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""USB_LANA""
+						register "type"  = "UPC_TYPE_A"
+						register "group" = "ACPI_PLD_GROUP(4, 1)"
+						device usb 2.7	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""USB_LANB""
+						register "type"  = "UPC_TYPE_A"
+						register "group" = "ACPI_PLD_GROUP(4, 2)"
+						device usb 2.8	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB1 (Pins 5, 7)""
+						register "type"  = "UPC_TYPE_INTERNAL"
+						register "group" = "ACPI_PLD_GROUP(5, 1)"
+						device usb 2.9	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB1 (Pins 6, 8)""
+						register "type"  = "UPC_TYPE_INTERNAL"
+						register "group" = "ACPI_PLD_GROUP(5, 2)"
+						device usb 2.10	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB2 (Pins 5, 7)""
+						register "type"  = "UPC_TYPE_INTERNAL"
+						device usb 2.11	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""USB30A""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(1, 1)"
+						device usb 3.0	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""USB30B""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(1, 2)"
+						device usb 3.1	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_1A""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(2, 1)"
+						device usb 3.2	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_1B""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(2, 2)"
+						device usb 3.3	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_2A""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(3, 1)"
+						device usb 3.4	on end
+					end
+					chip drivers/usb/acpi
+						register "desc"  = ""F_USB30_2B""
+						register "type"  = "UPC_TYPE_USB3_A"
+						register "group" = "ACPI_PLD_GROUP(3, 2)"
+						device usb 3.5	on end
+					end
+				end
+			end
 		end
 		device ref thermal	on  end
 		device ref heci1	on  end
@@ -51,7 +160,6 @@ chip soc/intel/skylake
 			}"
 		end
 		device ref pcie_rp5	on	# USB_LAN
-			register "PcieRpEnable[4]"                 = "true"
 			register "PcieRpLtrEnable[4]"              = "true"
 			register "PcieRpClkReqSupport[4]"          = "true"
 			register "PcieRpClkReqNumber[4]"           = "5"
@@ -59,7 +167,11 @@ chip soc/intel/skylake
 			register "PcieRpAdvancedErrorReporting[4]" = "true"
 		end
 		device ref pcie_rp7	on	# PCIE1X_2
-			register "PcieRpEnable[6]"                 = "true"
+			smbios_slot_desc "SlotTypePciExpressGen3X1"
+			                 "SlotLengthShort"
+			                 "PCIE1X_2"
+			                 "SlotDataBusWidth1X"
+
 			register "PcieRpLtrEnable[6]"              = "true"
 			register "PcieRpClkReqSupport[6]"          = "true"
 			register "PcieRpClkReqNumber[6]"           = "7"
@@ -67,15 +179,22 @@ chip soc/intel/skylake
 			register "PcieRpAdvancedErrorReporting[6]" = "true"
 		end
 		device ref pcie_rp8	on	# PCIE1X_1
-			register "PcieRpEnable[7]"                 = "true"
-			register "PcieRpLtrEnable[7]"              = "true"
+			smbios_slot_desc "SlotTypePciExpressGen3X1"
+			                 "SlotLengthShort"
+			                 "PCIE1X_1"
+			                 "SlotDataBusWidth1X"
+
 			register "PcieRpClkReqSupport[7]"          = "true"
 			register "PcieRpClkReqNumber[7]"           = "8"
 			register "PcieRpClkSrcNumber[7]"           = "8"
 			register "PcieRpAdvancedErrorReporting[7]" = "true"
 		end
 		device ref pcie_rp11	on	# M2_WIFI
-			register "PcieRpEnable[10]"                 = "true"
+			smbios_slot_desc "SlotTypeM2Socket1_SD"
+			                 "SlotLengthOther"
+			                 "M2_WIFI"
+			                 "SlotDataBusWidth1X"
+
 			register "PcieRpLtrEnable[10]"              = "true"
 			register "PcieRpClkReqSupport[10]"          = "true"
 			register "PcieRpClkReqNumber[10]"           = "1"
@@ -83,7 +202,11 @@ chip soc/intel/skylake
 			register "PcieRpAdvancedErrorReporting[10]" = "true"
 		end
 		device ref pcie_rp21	on	# M2_SSD
-			register "PcieRpEnable[20]"                 = "true"
+			smbios_slot_desc "SlotTypeM2Socket3"
+			                 "SlotLengthOther"
+			                 "M2_SSD"
+			                 "SlotDataBusWidth1X"
+
 			register "PcieRpLtrEnable[20]"              = "true"
 			register "PcieRpClkReqSupport[20]"          = "true"
 			register "PcieRpClkReqNumber[20]"           = "6"

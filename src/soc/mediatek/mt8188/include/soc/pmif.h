@@ -124,6 +124,20 @@ check_member(mtk_pmif_regs, pmic_eint_sta_addr, 0x414);
 check_member(mtk_pmif_regs, irq_event_en_0, 0x420);
 check_member(mtk_pmif_regs, swinf_0_acc, 0x800);
 
+#define PMIF_SPI_HW_INF		0x307F
+#define PMIF_SPI_MD		BIT(8)
+#define PMIF_SPI_AP_SECURE	BIT(9)
+#define PMIF_SPI_AP		BIT(10)
+#define PMIF_SPI_STAUPD		BIT(14)
+#define PMIF_SPI_TSX_HW		BIT(19)
+#define PMIF_SPI_DCXO_HW	BIT(20)
+
+#define PMIF_SPI_INF_EN		(PMIF_SPI_HW_INF | PMIF_SPI_MD | PMIF_SPI_AP_SECURE | \
+				PMIF_SPI_AP)
+#define PMIF_SPI_ARB_EN		(PMIF_SPI_HW_INF | PMIF_SPI_MD | PMIF_SPI_AP_SECURE | \
+				PMIF_SPI_AP | PMIF_SPI_STAUPD | PMIF_SPI_TSX_HW | \
+				PMIF_SPI_DCXO_HW)
+
 #define PMIF_SPMI_AP_CHAN	(PMIF_SPMI_BASE + 0x880)
 #define PMIF_SPI_AP_CHAN	(PMIF_SPI_BASE + 0x880)
 
@@ -134,7 +148,13 @@ struct mtk_clk_monitor_regs {
 #define mtk_clk_monitor		((struct mtk_clk_monitor_regs *)EFUSE_BASE + 0x45C)
 
 enum {
-	FREQ_260MHZ = 260,
+	PMIF_TARGET_FREQ_MHZ = 260,
+};
+
+/* calibation tolerance rate, unit: 0.1% */
+enum {
+	CAL_TOL_RATE = 40,
+	CAL_MAX_VAL = 0x7F,
 };
 
 #define FREQ_METER_ABIST_AD_OSC_CK	42

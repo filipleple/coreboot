@@ -160,7 +160,6 @@ ramstage-$(CONFIG_GENERIC_GPIO_LIB) += gpio.c
 ramstage-$(CONFIG_GENERIC_UDELAY) += timer.c
 ramstage-y += b64_decode.c
 ramstage-$(CONFIG_ACPI_NHLT) += nhlt.c
-ramstage-$(CONFIG_FLATTENED_DEVICE_TREE) += device_tree.c
 ramstage-$(CONFIG_PAYLOAD_FIT_SUPPORT) += fit.c
 ramstage-$(CONFIG_PAYLOAD_FIT_SUPPORT) += fit_payload.c
 
@@ -292,6 +291,10 @@ postcar-y += rmodule.c
 postcar-$(CONFIG_COLLECT_TIMESTAMPS) += timestamp.c
 postcar-$(CONFIG_GENERIC_UDELAY) += timer.c
 
+all-$(CONFIG_ARCH_ARM) += io.c
+all-$(CONFIG_ARCH_ARM64) += io.c
+all-$(CONFIG_ARCH_RISCV) += io.c
+
 # Use program.ld for all the platforms which use C fo the bootblock.
 bootblock-y += program.ld
 
@@ -315,7 +318,11 @@ RMODULE_LDFLAGS  := -z defs -Bsymbolic
 # rmdoule is named $(1).rmod
 define rmodule_link
 $(strip $(1)): $(strip $(2)) $$(COMPILER_RT_rmodules_$(3)) $(call src-to-obj,rmodules_$(3),src/lib/rmodule.ld) | $$(RMODTOOL)
-	$$(LD_rmodules_$(3)) $$(LDFLAGS_rmodules_$(3)) $(RMODULE_LDFLAGS) $($(1)-ldflags) -T $(call src-to-obj,rmodules_$(3),src/lib/rmodule.ld) -o $$@ --whole-archive --start-group $(filter-out %.ld,$(2)) --end-group
+ifeq ($(CONFIG_LTO),y)
+	$$(CC_rmodules_$(3)) $$(CPPFLAGS_rmodules_$(3)) $$(CFLAGS_rmodules_$(3)) $$(LDFLAGS_rmodules_$(3):%=-Wl,%) $$(COMPILER_RT_FLAGS_rmodules_$(3):%=-Wl,%) $(RMODULE_LDFLAGS) $($(1)-ldflags:%=-Wl,%) -T $(call src-to-obj,rmodules_$(3),src/lib/rmodule.ld) -o $$@ -Wl,--whole-archive -Wl,--start-group $(filter-out %.ld,$(2)) -Wl,--no-whole-archive $$(COMPILER_RT_rmodules_$(3)) -Wl,--end-group
+else
+	$$(LD_rmodules_$(3)) $$(LDFLAGS_rmodules_$(3)) $(RMODULE_LDFLAGS) $($(1)-ldflags) -T $(call src-to-obj,rmodules_$(3),src/lib/rmodule.ld) -o $$@ --whole-archive --start-group $(filter-out %.ld,$(2)) --no-whole-archive $$(COMPILER_RT_rmodules_$(3)) --end-group
+endif
 	$$(NM_rmodules_$(3)) -n $$@ > $$(basename $$@).map
 endef
 
@@ -417,3 +424,28 @@ header_pointer-position := -4
 header_pointer-type := "cbfs header"
 
 romstage-y += ux_locales.c
+
+# Add logo to the cbfs image
+BMP_LOGO_COMPRESS_FLAG := $(CBFS_COMPRESS_FLAG)
+ifeq ($(CONFIG_BMP_LOGO_COMPRESS_LZMA),y)
+	BMP_LOGO_COMPRESS_FLAG := LZMA
+else ifeq ($(CONFIG_BMP_LOGO_COMPRESS_LZ4),y)
+	BMP_LOGO_COMPRESS_FLAG := LZ4
+endif
+
+define add_bmp_logo_file_to_cbfs
+cbfs-files-$$($(1)) += $(2)
+$(2)-file := $$(call strip_quotes,$$($(3)))
+$(2)-type := raw
+$(2)-compression := $$(BMP_LOGO_COMPRESS_FLAG)
+endef
+
+ifneq ($(CONFIG_HAVE_CUSTOM_BMP_LOGO),y)
+$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_BMP_LOGO, logo.bmp,\
+	      CONFIG_BMP_LOGO_FILE_NAME))
+endif
+
+$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_PLATFORM_HAS_LOW_BATTERY_INDICATOR, \
+	      low_battery.bmp,CONFIG_PLATFORM_LOW_BATTERY_INDICATOR_LOGO_PATH))
+$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_SPLASH_SCREEN_FOOTER, \
+	      footer_logo.bmp,CONFIG_SPLASH_SCREEN_FOOTER_LOGO_PATH))

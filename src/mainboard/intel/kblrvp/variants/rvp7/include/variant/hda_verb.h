@@ -6,7 +6,6 @@
 #include <device/azalia_device.h>
 
 const u32 cim_verb_data[] = {
-
 	0x8086280B,
 	0x00000000,
 	0x00000005,
@@ -33,7 +32,7 @@ const u32 cim_verb_data[] = {
 	/* ALC 286 */
 	0x10EC0286,
 	0x00000000,
-	0x00000023,
+	38,
 
 	AZALIA_SUBVENDOR(0, 0x10EC1092),
 	AZALIA_PIN_CFG(0, 0x01, 0x00000000),

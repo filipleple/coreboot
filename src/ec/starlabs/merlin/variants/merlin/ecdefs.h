@@ -10,9 +10,6 @@
 #ifndef _EC_STARLABS_MERLIN_EC_DEFS_H
 #define _EC_STARLABS_MERLIN_EC_DEFS_H
 
-/* IT5570 chip ID byte values */
-#define ITE_CHIPID_VAL		0x5570
-
 /* EC RAM offsets */
 #define ECRAM_KBL_BRIGHTNESS	0x09
 #define ECRAM_KBL_TIMEOUT	0x10
@@ -23,6 +20,8 @@
 #define ECRAM_MAX_CHARGE	0x1a
 #define ECRAM_FAN_MODE		0x1b
 #define ECRAM_FAST_CHARGE	dead_code_t(uint8_t)
-#define ECRAM_MIRROR_FLAG	0x05
+#define ECRAM_CHARGING_SPEED	0x1d
+#define ECRAM_LID_SWITCH	0x1e
+#define ECRAM_POWER_LED		0x1f
 
 #endif

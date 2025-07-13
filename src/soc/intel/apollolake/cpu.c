@@ -164,7 +164,6 @@ static void pre_mp_init(void)
 	}
 	x86_setup_mtrrs_with_detect();
 	x86_mtrr_check();
-
 }
 
 #if !CONFIG(SOC_INTEL_COMMON_BLOCK_CPU_MPINIT)
@@ -280,3 +279,26 @@ void mp_init_cpus(struct bus *cpu_bus)
 		CONFIG(BOOT_DEVICE_SPI_FLASH))
 		fast_spi_cache_bios_region();
 }
+
+#if CONFIG(SOC_INTEL_GEMINILAKE)
+int soc_skip_ucode_update(u32 current_patch_id, u32 new_patch_id)
+{
+	/*
+	 * If PRMRR/SGX is supported the FIT microcode load will set the msr
+	 * 0x08b with the Patch revision id one less than the id in the
+	 * microcode binary. The PRMRR support is indicated in the MSR
+	 * MTRRCAP[12]. If SGX is not enabled, check and avoid reloading the
+	 * same microcode during CPU initialization. If SGX is enabled, as
+	 * part of SGX BIOS initialization steps, the same microcode needs to
+	 * be reloaded after the core PRMRR MSRs are programmed.
+	 */
+	const msr_t mtrr_cap = rdmsr(MTRR_CAP_MSR);
+	if (mtrr_cap.lo & MTRR_CAP_PRMRR) {
+		const msr_t prmrr_phys_base = rdmsr(MSR_PRMRR_PHYS_BASE);
+		if (prmrr_phys_base.raw) {
+			return 0;
+		}
+	}
+	return current_patch_id == new_patch_id - 1;
+}
+#endif

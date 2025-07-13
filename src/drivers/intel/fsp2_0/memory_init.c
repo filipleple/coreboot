@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include <arch/null_breakpoint.h>
+#include <arch/stack_canary_breakpoint.h>
 #include <arch/symbols.h>
 #include <assert.h>
+#include <bootsplash.h>
 #include <cbfs.h>
 #include <cbmem.h>
 #include <cf9_reset.h>
@@ -18,6 +20,7 @@
 #include <security/tpm/tspi.h>
 #include <security/vboot/antirollback.h>
 #include <security/vboot/vboot_common.h>
+#include <soc/intel/common/reset.h>
 #include <string.h>
 #include <symbols.h>
 #include <timestamp.h>
@@ -34,7 +37,7 @@ void __weak platform_fsp_memory_multi_phase_init_cb(uint32_t phase_index)
 	/* Leave for the SoC/Mainboard to implement if necessary. */
 }
 
-static uint8_t temp_ram[CONFIG_FSP_TEMP_RAM_SIZE] __aligned(sizeof(uint64_t));
+static uint8_t temp_ram[CONFIG_FSP_TEMP_RAM_SIZE] __aligned(16);
 
 /*
  * Helper function to store the MRC cache version into CBMEM
@@ -178,10 +181,9 @@ static enum cb_err fsp_fill_common_arch_params(FSPM_ARCHx_UPD *arch_upd,
 
 	if (CONFIG(FSP_USES_CB_STACK) && ENV_RAMINIT
 	    && CONFIG(FSP_SPEC_VIOLATION_XEON_SP_HEAP_WORKAROUND)) {
-		extern char _fspm_heap[];
-		extern char _efspm_heap[];
+		DECLARE_REGION(fspm_heap);
 		arch_upd->StackBase = (uintptr_t)_fspm_heap;
-		arch_upd->StackSize = (size_t)(_efspm_heap - _fspm_heap);
+		arch_upd->StackSize = (size_t)REGION_SIZE(fspm_heap);
 	} else if (CONFIG(FSP_USES_CB_STACK) || !ENV_CACHE_AS_RAM) {
 		arch_upd->StackBase = (uintptr_t)temp_ram;
 		arch_upd->StackSize = sizeof(temp_ram);
@@ -260,43 +262,37 @@ struct fspm_context {
  * MRC version is by reading the FSP_PRODUCDER_DATA_TABLES
  * from the FSP-M binary (by parsing the FSP header).
  */
-static uint32_t fsp_mrc_version(void)
+static uint32_t fsp_mrc_version(const struct fsp_header *hdr)
 {
 	uint32_t ver = 0;
 #if CONFIG(MRC_CACHE_USING_MRC_VERSION)
-	size_t fspm_blob_size;
-	const char *fspm_cbfs = soc_select_fsp_m_cbfs();
-	void *fspm_blob_file = cbfs_map(fspm_cbfs, &fspm_blob_size);
-	if (!fspm_blob_file)
-		return 0;
-
+	void *fspm_blob_file = (void *)(uintptr_t)hdr->image_base;
 	FSP_PRODUCER_DATA_TABLES *ft = fspm_blob_file + FSP_HDR_OFFSET;
 	FSP_PRODUCER_DATA_TYPE2 *table2 = &ft->FspProduceDataType2;
 	size_t mrc_version_size = sizeof(table2->MrcVersion);
 	for (size_t i = 0; i < mrc_version_size; i++) {
 		ver |= (table2->MrcVersion[i] << ((mrc_version_size - 1) - i) * 8);
 	}
-	cbfs_unmap(fspm_blob_file);
 #endif
 	return ver;
 }
 
-static void fspm_return_value_handler(const char *context, uint32_t status, bool die_on_error)
+static void fspm_return_value_handler(const char *context, efi_return_status_t status,
+		 bool die_on_error)
 {
 	if (status == FSP_SUCCESS)
 		return;
 
 	fsp_handle_reset(status);
 	if (die_on_error)
-		die_with_post_code(POSTCODE_RAM_FAILURE, "%s returned with error 0x%zx!\n",
-				   context, (size_t)status);
+		fsp_die_with_post_code(status, POSTCODE_RAM_FAILURE, "%s error", context);
 
-	printk(BIOS_SPEW, "%s returned 0x%zx\n", context, (size_t)status);
+	fsp_printk(status, BIOS_SPEW, "%s", context);
 }
 
 static void fspm_multi_phase_init(const struct fsp_header *hdr)
 {
-	uint32_t status;
+	efi_return_status_t status;
 	fsp_multi_phase_init_fn fsp_multi_phase_init;
 	struct fsp_multi_phase_params multi_phase_params;
 	struct fsp_multi_phase_get_number_of_phases_params multi_phase_get_number;
@@ -337,20 +333,46 @@ static void fspm_multi_phase_init(const struct fsp_header *hdr)
 	timestamp_add_now(TS_FSP_MULTI_PHASE_MEM_INIT_END);
 }
 
+/**
+ * Checks for low battery during firmware update and initiates shutdown if necessary.
+ *
+ * This function checks if the system is in firmware update mode (indicated by
+ * a missing MRC cache) and if the battery is critically low. If both conditions
+ * are met, it initiates a shutdown to prevent interruption of the firmware
+ * update process.
+ */
+static void handle_low_battery_during_firmware_update(bool *defer_shutdown, FSPM_UPD *fspm_upd)
+{
+	if (!CONFIG(PLATFORM_HAS_EARLY_LOW_BATTERY_INDICATOR) ||
+			 !platform_is_low_battery_shutdown_needed())
+		return;
+
+	if (CONFIG(MAINBOARD_HAS_EARLY_LIBGFXINIT)) {
+		platform_display_early_shutdown_notification(NULL);
+		/* User has been notified of low battery; safe to power off. */
+		do_low_battery_poweroff(); /* Do not return */
+	}
+
+	/* Defer shutdown until FSP-M (uGOP) display text message for user notification */
+	platform_display_early_shutdown_notification(fspm_upd);
+	*defer_shutdown = true;
+}
+
 static void do_fsp_memory_init(const struct fspm_context *context, bool s3wake)
 {
-	uint32_t status;
+	efi_return_status_t status;
 	fsp_memory_init_fn fsp_raminit;
 	FSPM_UPD fspm_upd, *upd;
 	FSPM_ARCHx_UPD *arch_upd;
 	uint32_t version;
+	bool poweroff_after_fsp_execution = false;
 	const struct fsp_header *hdr = &context->header;
 	const struct memranges *memmap = &context->memmap;
 
 	post_code(POSTCODE_MEM_PREINIT_PREP_START);
 
 	if (CONFIG(MRC_CACHE_USING_MRC_VERSION))
-		version = fsp_mrc_version();
+		version = fsp_mrc_version(hdr);
 	else
 		version = fsp_memory_settings_version(hdr);
 
@@ -395,6 +417,11 @@ static void do_fsp_memory_init(const struct fspm_context *context, bool s3wake)
 		early_ramtop_enable_cache_range();
 #endif
 
+	/* Low battery check during firmware update */
+	if (!arch_upd->NvsBufferPtr)
+		handle_low_battery_during_firmware_update(&poweroff_after_fsp_execution,
+				 &fspm_upd);
+
 	/* Give SoC and mainboard a chance to update the UPD */
 	platform_fsp_memory_init_params_cb(&fspm_upd, version);
 
@@ -418,7 +445,8 @@ static void do_fsp_memory_init(const struct fspm_context *context, bool s3wake)
 	fsp_debug_before_memory_init(fsp_raminit, upd, &fspm_upd);
 
 	/* FSP disables the interrupt handler so remove debug exceptions temporarily  */
-	null_breakpoint_disable();
+	null_breakpoint_remove();
+	stack_canary_breakpoint_remove();
 	post_code(POSTCODE_FSP_MEMORY_INIT);
 	timestamp_add_now(TS_FSP_MEMORY_INIT_START);
 	if (ENV_X86_64 && CONFIG(PLATFORM_USES_FSP2_X86_32))
@@ -428,6 +456,11 @@ static void do_fsp_memory_init(const struct fspm_context *context, bool s3wake)
 	else
 		status = fsp_raminit(&fspm_upd, fsp_get_hob_list_ptr());
 	null_breakpoint_init();
+	stack_canary_breakpoint_init();
+
+	/* User has been notified of low battery; safe to power off. */
+	if (poweroff_after_fsp_execution)
+		do_low_battery_poweroff();
 
 	post_code(POSTCODE_FSP_MEMORY_EXIT);
 	timestamp_add_now(TS_FSP_MEMORY_INIT_END);

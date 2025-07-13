@@ -32,12 +32,11 @@ chip soc/intel/skylake
 		[PchSerialIoIndexUart2]	= PchSerialIoSkipInit,
 	}"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		subsystemid 0x1025 0x1037 inherit
 		device ref system_agent	on
 			# Enable "Enhanced Intel SpeedStep"
-			register "eist_enable" = "1"
+			register "eist_enable" = "true"
 
 			# Set the Thermal Control Circuit (TCC) activation value to 97C
 			# even though FSP integration guide says to set it to 100C for SKL-U
@@ -244,7 +243,6 @@ chip soc/intel/skylake
 		end
 		device ref heci1	on	end
 		device ref sata		on
-			register "SataMode" = "SATA_AHCI"
 			register "SataSalpSupport" = "1"
 			register "SataPortsEnable[1]" = "1"	# HDD; BIT1 in 92h-93h
 			register "SataPortsEnable[2]" = "1"	# ODD; BIT2 in 92h-93h
@@ -253,36 +251,32 @@ chip soc/intel/skylake
 		# Board has no GPIO expander on I2C4 (despite SetupUtility claim that it does - this would be static text)
 		device ref pcie_rp1	on
 			# dGPU; x4
-			register "PcieRpEnable[0]" = "1"
 			register "PcieRpAdvancedErrorReporting[0]" = "1"
-			register "PcieRpLtrEnable[0]" = "1"
+			register "PcieRpLtrEnable[0]" = "true"
 			register "PcieRpClkReqSupport[0]" = "1"
 			register "PcieRpClkReqNumber[0]" = "0"
 			register "PcieRpMaxPayload[0]" = "RpMaxPayload_256"
 		end
 		device ref pcie_rp7	on
 			# NGFF; x2
-			register "PcieRpEnable[6]" = "1"
 			register "PcieRpAdvancedErrorReporting[6]" = "1"
-			register "PcieRpLtrEnable[6]" = "1"
+			register "PcieRpLtrEnable[6]" = "true"
 			register "PcieRpClkReqSupport[6]" = "1"
 			register "PcieRpClkReqNumber[6]" = "3"
 			register "PcieRpMaxPayload[6]" = "RpMaxPayload_256"
 		end
 		device ref pcie_rp9	on
 			# LAN
-			register "PcieRpEnable[8]" = "1"
 			register "PcieRpAdvancedErrorReporting[8]" = "1"
-			register "PcieRpLtrEnable[8]" = "1"
+			register "PcieRpLtrEnable[8]" = "true"
 			register "PcieRpClkReqSupport[8]" = "1"
 			register "PcieRpClkReqNumber[8]" = "1"
 			register "PcieRpMaxPayload[8]" = "RpMaxPayload_256"
 		end
 		device ref pcie_rp10	on
 			# WLAN
-			register "PcieRpEnable[9]" = "1"
 			register "PcieRpAdvancedErrorReporting[9]" = "1"
-			register "PcieRpLtrEnable[9]" = "1"
+			register "PcieRpLtrEnable[9]" = "true"
 			register "PcieRpClkReqSupport[9]" = "1"
 			register "PcieRpClkReqNumber[9]" = "2"
 			register "PcieRpMaxPayload[9]" = "RpMaxPayload_256"
@@ -317,7 +311,7 @@ chip soc/intel/skylake
 			register "PmConfigSlpAMinAssert" = "SLP_A_MIN_ASSERT_2S"	# 17:16 in pmbase+0018h
 		end
 		device ref hda		on
-			register "DspEnable" = "1"
+			register "DspEnable" = "true"
 			# PchHdaDspEndpointDmic is only to be returned to reference code
 			# DXE phase as HOB, used to select blob for NHLT
 		end

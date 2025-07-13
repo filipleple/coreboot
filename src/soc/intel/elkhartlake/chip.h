@@ -109,7 +109,6 @@ enum sata_speed_limit {
 };
 
 struct soc_intel_elkhartlake_config {
-
 	/* Common struct containing soc config data required by common code */
 	struct soc_intel_common_config common_soc_config;
 
@@ -129,15 +128,15 @@ struct soc_intel_elkhartlake_config {
 	uint32_t gen4_dec;
 
 	/* Enable S0iX support */
-	int s0ix_enable;
+	bool s0ix_enable;
 	/* Enable DPTF support */
-	int dptf_enable;
+	bool dptf_enable;
 
 	/* Deep SX enable for both AC and DC */
-	int deep_s3_enable_ac;
-	int deep_s3_enable_dc;
-	int deep_s5_enable_ac;
-	int deep_s5_enable_dc;
+	bool deep_s3_enable_ac;
+	bool deep_s3_enable_dc;
+	bool deep_s5_enable_ac;
+	bool deep_s5_enable_dc;
 
 	/* Deep Sx Configuration
 	 *  DSX_EN_WAKE_PIN       - Enable WAKE# pin
@@ -204,7 +203,7 @@ struct soc_intel_elkhartlake_config {
 	uint16_t SataPortsDitoVal[CONFIG_MAX_SATA_PORTS];
 
 	/* Audio related */
-	uint8_t PchHdaDspEnable;
+	bool PchHdaDspEnable;
 	uint8_t PchHdaAudioLinkHdaEnable;
 	uint8_t PchHdaSdiEnable[MAX_HD_AUDIO_SDI_LINKS];
 	uint8_t PchHdaAudioLinkDmicEnable[MAX_HD_AUDIO_DMIC_LINKS];
@@ -259,8 +258,7 @@ struct soc_intel_elkhartlake_config {
 	uint8_t Heci2Enable;
 	uint8_t Heci3Enable;
 
-	/* Enable/Disable EIST. 1b:Enabled, 0b:Disabled */
-	uint8_t eist_enable;
+	bool eist_enable;
 
 	/*
 	 * SerialIO device mode selection:

@@ -220,6 +220,7 @@ int rtc_init(int recover)
 {
 	int ret;
 	u16 year;
+	u16 al_dow;
 
 	rtc_info("recovery: %d\n", recover);
 
@@ -256,6 +257,10 @@ int rtc_init(int recover)
 		goto err;
 	}
 
+	/* RTC EOSC calibration period setting and day-of-week value of alarm counter setting */
+	rtc_read(RTC_AL_DOW, &al_dow);
+	rtc_write(RTC_AL_DOW, al_dow | RTC_EOSC_CALI_TD_DEFAULT);
+
 	/* solution1 for EOSC cali*/
 	rtc_read(RTC_AL_YEA, &year);
 	rtc_write(RTC_AL_YEA, (year | RTC_K_EOSC_RSV_0) & (~RTC_K_EOSC_RSV_1)
@@ -283,7 +288,7 @@ err:
 }
 
 /* enable rtc bbpu */
-void rtc_bbpu_power_on(void)
+static void rtc_bbpu_power_on(void)
 {
 	u16 bbpu;
 	int ret;

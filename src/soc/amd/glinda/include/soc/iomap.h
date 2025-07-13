@@ -1,13 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-/* TODO: Update for Glinda */
-
 #ifndef AMD_GLINDA_IOMAP_H
 #define AMD_GLINDA_IOMAP_H
 
 #define I2C_MASTER_DEV_COUNT		4
 #define I2C_PERIPHERAL_DEV_COUNT	0 /* TODO: Only master for now. */
 #define I2C_CTRLR_COUNT			(I2C_MASTER_DEV_COUNT + I2C_PERIPHERAL_DEV_COUNT)
+#define I3C_CTRLR_COUNT			4
 
 #if ENV_X86
 
@@ -34,6 +33,11 @@
 #define APU_UART3_BASE			0xfedcf000
 #define APU_DMAC4_BASE			0xfedd0000
 #define APU_UART4_BASE			0xfedd1000
+
+#define APU_I3C0_BASE			0xfedd2000
+#define APU_I3C1_BASE			0xfedd3000
+#define APU_I3C2_BASE			0xfedd4000
+#define APU_I3C3_BASE			0xfedd6000
 
 #endif /* ENV_X86 */
 

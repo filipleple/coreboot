@@ -15,6 +15,7 @@
 #include <soc/pci_devs.h>
 #include <soc/ramstage.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 #include <types.h>
 
 /* SATA DEVSLP idle timeout default values */
@@ -328,11 +329,12 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 		params->PsfTccEnable = 1;
 		params->PmcLpmS0ixSubStateEnableMask = 0;
 		params->PchDmiAspmCtrl = 0;
-		params->PchLegacyIoLowLatency = 0;
+		params->PchLegacyIoLowLatency = 1;
 		params->EnableItbm = 0;
 		params->D3ColdEnable = 0;
 		params->PmcOsIdleEnable = 0;
 	} else {
+		params->PchPwrOptEnable = 1; /* Enable PCH DMI Power Optimizer */
 		params->PchPostMasterClockGating = 1;
 		params->PchPostMasterPowerGating = 1;
 	}
@@ -471,7 +473,6 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 	params->Custom1TurboActivationRatio = 0;
 	params->Custom2TurboActivationRatio = 0;
 	params->Custom3TurboActivationRatio = 0;
-	params->PchPwrOptEnable = 0x1;	//Enable PCH DMI Power Optimizer
 	params->TStates = 0x0;	//Disable T state
 	params->PkgCStateLimit = 0x7;	//Set C state limit to C9
 	params->FastPkgCRampDisable[0] = 0x1;
@@ -504,6 +505,9 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 
 	/* Override/Fill FSP Silicon Param for mainboard */
 	mainboard_silicon_init_params(params);
+
+	/* Runtime configuration of S0ix */
+	config->s0ix_enable = get_uint_option("s0ix_enable", config->s0ix_enable);
 }
 
 /* Mainboard GPIO Configuration */

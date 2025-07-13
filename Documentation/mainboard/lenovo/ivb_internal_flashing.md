@@ -27,7 +27,7 @@ Below is a table of BIOS versions that are vulnerable enough for our
 goals, per model. The version number means that you need to downgrade to
 that or earlier version.
 
-```eval_rst
+```{eval-rst}
 +------------+--------------+
 | Model      | BIOS version |
 +============+==============+

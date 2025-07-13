@@ -11,6 +11,7 @@
 #include <device/device.h>
 #include <device/pci.h>
 #include <device/pci_ids.h>
+#include <static.h>
 #include <string.h>
 #include <stdlib.h>
 #include <cpu/x86/mp.h>
@@ -241,7 +242,6 @@ static void add_ivhd_device_entries(struct device *parent, struct device *dev,
 	}
 
 	if (dev->path.type == DEVICE_PATH_PCI) {
-
 		if ((dev->upstream->secondary == 0x0) &&
 		    (dev->path.pci.devfn == 0x0))
 			*root_level = depth;
@@ -437,12 +437,14 @@ static unsigned long agesa_write_acpi_tables(const struct device *device,
 	current += ((acpi_header_t *)current)->length;
 
 	/* IVRS */
-	current = ALIGN_UP(current, 8);
-	printk(BIOS_DEBUG, "ACPI:   * IVRS at %lx\n", current);
-	ivrs = (acpi_ivrs_t *)current;
-	acpi_create_ivrs(ivrs, acpi_fill_ivrs);
-	current += ivrs->header.length;
-	acpi_add_table(rsdp, ivrs);
+	if (is_dev_enabled(DEV_PTR(iommu))) {
+		current = ALIGN_UP(current, 8);
+		printk(BIOS_DEBUG, "ACPI:   * IVRS at %lx\n", current);
+		ivrs = (acpi_ivrs_t *)current;
+		acpi_create_ivrs(ivrs, acpi_fill_ivrs);
+		current += ivrs->header.length;
+		acpi_add_table(rsdp, ivrs);
+	}
 
 	/* SRAT */
 	current = ALIGN_UP(current, 8);

@@ -23,10 +23,10 @@ config SOC_AMD_CEZANNE
 	select PROVIDES_ROM_SHARING
 	select PSP_VERSTAGE_CCP_DMA if VBOOT_STARTS_BEFORE_BOOTBLOCK
 	select PSP_VERSTAGE_MAP_ENTIRE_SPIROM if VBOOT_STARTS_BEFORE_BOOTBLOCK
-	select RESET_VECTOR_IN_RAM
 	select RTC
 	select SOC_AMD_COMMON
 	select SOC_AMD_COMMON_BLOCK_ACP_GEN1
+	select SOC_AMD_COMMON_BLOCK_ACP_SOC_SPECIFIC_SSDT_ENTRY
 	select SOC_AMD_COMMON_BLOCK_ACPI
 	select SOC_AMD_COMMON_BLOCK_ACPIMMIO
 	select SOC_AMD_COMMON_BLOCK_ACPIMMIO_PM_IO_ACCESS
@@ -175,7 +175,7 @@ config CBFS_MCACHE_SIZE
 
 config C_ENV_BOOTBLOCK_SIZE
 	hex
-	default 0x10000
+	default 0x20000
 	help
 	  Sets the size of the bootblock stage that should be loaded in DRAM.
 	  This variable controls the DRAM allocation size in linker script
@@ -183,13 +183,13 @@ config C_ENV_BOOTBLOCK_SIZE
 
 config ROMSTAGE_ADDR
 	hex
-	default 0x2040000
+	default 0x2050000
 	help
 	  Sets the address in DRAM where romstage should be loaded.
 
 config ROMSTAGE_SIZE
 	hex
-	default 0x80000
+	default 0x70000
 	help
 	  Sets the size of DRAM allocation for romstage in linker script.
 
@@ -407,6 +407,12 @@ config PSP_VERSTAGE_SIGNING_TOKEN
 	default ""
 	help
 	  Add psp_verstage signature token to the build & PSP Directory Table
+
+config PSP_RECOVERY_AB
+	bool "Use A/B Recovery scheme"
+	default n
+	help
+	  Enable the PSP A/B Recovery mechanism
 
 endmenu
 

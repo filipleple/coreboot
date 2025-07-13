@@ -2,7 +2,6 @@
 
 #include <device/mmio.h>
 #include <console/console.h>
-#include <delay.h>
 #include <edid.h>
 #include <soc/clock.h>
 #include <soc/display/mdssreg.h>
@@ -22,13 +21,8 @@ static void mdss_source_pipe_config(struct edid *edid)
 	out_size = img_size;
 	stride = (edid->mode.ha * edid->framebuffer_bits_per_pixel/8);
 
-	if (!fb_off) {	/* left */
-		dst_xy = (edid->mode.vborder << 16) | edid->mode.hborder;
-		src_xy = dst_xy;
-	} else {	/* right */
-		dst_xy = (edid->mode.vborder << 16);
-		src_xy = (edid->mode.vborder << 16) | fb_off;
-	}
+	dst_xy = (edid->mode.vborder << 16) | edid->mode.hborder;
+	src_xy = dst_xy;
 
 	printk(BIOS_INFO, "%s: src=%x fb_off=%x src_xy=%x dst_xy=%x\n",
 		   __func__, out_size, fb_off, src_xy, dst_xy);

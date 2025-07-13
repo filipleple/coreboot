@@ -78,8 +78,8 @@ static void each_cpu_init(struct device *cpu)
 {
 	msr_t msr;
 
-	printk(BIOS_SPEW, "%s dev: %s, cpu: %lu, apic_id: 0x%x, package_id: 0x%x\n",
-	       __func__, dev_path(cpu), cpu_index(), cpu->path.apic.apic_id,
+	printk(BIOS_SPEW, "%s: cpu: %lu, apic_id: 0x%x, package_id: 0x%x\n",
+	       __func__, cpu_index(), cpu->path.apic.apic_id,
 	       cpu->path.apic.package_id);
 
 	/*
@@ -115,10 +115,8 @@ static void each_cpu_init(struct device *cpu)
 	set_vmx_and_lock();
 	set_aesni_lock();
 
-	/* The MSRs and CSRS have the same register layout. Use the CSRS bit definitions
-	   Lock Turbo. Did FSP-S set this up??? */
 	msr = rdmsr(MSR_TURBO_ACTIVATION_RATIO);
-	msr.lo |= (TURBO_ACTIVATION_RATIO_LOCK);
+	msr.lo |= BIT31;	/* Lock it */
 	wrmsr(MSR_TURBO_ACTIVATION_RATIO, msr);
 }
 
@@ -173,22 +171,6 @@ static void pre_mp_init(void)
 	x86_mtrr_check();
 }
 
-static int get_thread_count(void)
-{
-	unsigned int num_phys = 0, num_virts = 0;
-
-	cpu_read_topology(&num_phys, &num_virts);
-	printk(BIOS_SPEW, "Detected %u cores and %u threads\n", num_phys, num_virts);
-	/*
-	 * Currently we do not know a way to figure out how many CPUs we have total
-	 * on multi-socketed. So we pretend all sockets are populated with CPUs with
-	 * same thread/core fusing.
-	 * TODO: properly figure out number of active sockets OR refactor MPinit code
-	 * to remove requirements of having to know total number of CPUs in advance.
-	 */
-	return num_virts * CONFIG_MAX_SOCKET;
-}
-
 static void post_mp_init(void)
 {
 	/* Set Max Ratio */
@@ -203,7 +185,7 @@ static void post_mp_init(void)
 
 static const struct mp_ops mp_ops = {
 	.pre_mp_init = pre_mp_init,
-	.get_cpu_count = get_thread_count,
+	.get_cpu_count = get_platform_thread_count,
 	.get_smm_info = get_smm_info,
 	.pre_mp_smm_init = smm_southbridge_clear_state,
 	.relocation_handler = smm_relocation_handler,

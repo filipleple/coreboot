@@ -9,7 +9,6 @@
 #include <amdblocks/pci_clk_req.h>
 #include <amdblocks/reset.h>
 #include <amdblocks/smi.h>
-#include <assert.h>
 #include <bootstate.h>
 #include <cpu/x86/smm.h>
 #include <amdblocks/i2c.h>
@@ -18,6 +17,7 @@
 #include <soc/i2c.h>
 #include <soc/smi.h>
 #include <soc/southbridge.h>
+#include <static.h>
 #include "chip.h"
 
 /*
@@ -48,16 +48,13 @@ static const struct irq_idx_name irq_association[] = {
 	{ PIRQ_SMBUS,	"SMBUS" },
 	{ PIRQ_ASF,	"ASF" },
 	{ PIRQ_PMON,	"PerMon" },
-	{ PIRQ_SD,	"SD" },
 	{ PIRQ_SDIO,	"SDIO" },
 	{ PIRQ_CIR,	"CIR" },
 	{ PIRQ_GPIOA,	"GPIOa" },
 	{ PIRQ_GPIOB,	"GPIOb" },
 	{ PIRQ_GPIOC,	"GPIOc" },
-	{ PIRQ_GPP0,	"GPP0" },
-	{ PIRQ_GPP1,	"GPP1" },
-	{ PIRQ_GPP2,	"GPP2" },
-	{ PIRQ_GPP3,	"GPP3" },
+	{ PIRQ_GSCI,	"GEventSci" },
+	{ PIRQ_GSMI,	"GeventSmi" },
 	{ PIRQ_GPIO,	"GPIO" },
 	{ PIRQ_I2C0,	"I2C0" },
 	{ PIRQ_I2C1,	"I2C1" },
@@ -65,7 +62,6 @@ static const struct irq_idx_name irq_association[] = {
 	{ PIRQ_I2C3,	"I2C3" },
 	{ PIRQ_UART0,	"UART0" },
 	{ PIRQ_UART1,	"UART1" },
-	{ PIRQ_I2C4,	"I2C4" },
 	{ PIRQ_UART4,	"UART4" },
 	{ PIRQ_UART2,	"UART2" },
 	{ PIRQ_UART3,	"UART3" },

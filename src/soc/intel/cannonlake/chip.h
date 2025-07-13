@@ -36,8 +36,22 @@ enum chip_pl2_4_cfg {
 	value_not_set /* vr_config internal use only */
 };
 
-struct soc_intel_cannonlake_config {
+/* Gfx related */
+enum igd_dvmt50_pre_alloc {
+	IGD_SM_0MB = 0x00,
+	IGD_SM_32MB = 0x01,
+	IGD_SM_64MB = 0x02,
+	IGD_SM_96MB = 0x03,
+	IGD_SM_128MB = 0x04,
+};
 
+enum igd_aperture_size {
+	IGD_AP_SZ_128MB = 0x00,
+	IGD_AP_SZ_256MB = 0x01,
+	IGD_AP_SZ_512MB = 0x02,
+};
+
+struct soc_intel_cannonlake_config {
 	/* Common struct containing soc config data required by common code */
 	struct soc_intel_common_config common_soc_config;
 
@@ -167,7 +181,6 @@ struct soc_intel_cannonlake_config {
 	bool PchHdaAudioLinkSndw4;
 
 	/* PCIe Root Ports */
-	bool PcieRpEnable[CONFIG_MAX_ROOT_PORTS];
 	/* PCIe output clocks type to PCIe devices.
 	 * 0-23: PCH rootport, 0x70: LAN, 0x80: unspecified but in use,
 	 * 0xFF: not used */
@@ -222,8 +235,6 @@ struct soc_intel_cannonlake_config {
 	/* Gfx related */
 	bool SkipExtGfxScan;
 
-	bool Device4Enable;
-
 	/* CPU PL2/4 Config
 	 * Performance: Maximum PLs for maximum performance.
 	 * Baseline: Baseline PLs for balanced performance at lower power.
@@ -238,10 +249,7 @@ struct soc_intel_cannonlake_config {
 	/* Enables support for Teton Glacier hybrid storage device */
 	bool TetonGlacierMode;
 
-	/* Enable/Disable EIST. 1b:Enabled, 0b:Disabled */
 	bool eist_enable;
-
-	/* Enable C6 DRAM */
 	bool enable_c6dram;
 
 	/*
@@ -412,6 +420,12 @@ struct soc_intel_cannonlake_config {
 #if !CONFIG(SOC_INTEL_COMETLAKE)
 	uint32_t VrPowerDeliveryDesign;
 #endif
+
+	/* CNVi BT Core Enable/Disable */
+	bool CnviBtCore;
+
+	/* CNVi BT Audio Offload: Enable/Disable BT Audio Offload. */
+	bool CnviBtAudioOffload;
 
 	/*
 	 * Override GPIO PM configuration:

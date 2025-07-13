@@ -63,7 +63,10 @@ swid-files-$(CONFIG_SBOM_EC) += $(CONFIG_SBOM_EC_PATH)
 swid-files-$(CONFIG_SBOM_BIOS_ACM) += $(CONFIG_BIOS_ACM_PATH)
 swid-files-$(CONFIG_SBOM_SINIT_ACM) += $(CONFIG_SINIT_ACM_PATH)
 
-vboot-pkgconfig-files = $(obj)/external/vboot_reference-bootblock/vboot_host.pc $(obj)/external/vboot_reference-romstage/vboot_host.pc $(obj)/external/vboot_reference-ramstage/vboot_host.pc $(obj)/external/vboot_reference-postcar/vboot_host.pc
+vboot-pkgconfig-files = $(obj)/external/vboot_reference-bootblock/vboot_host.pc $(obj)/external/vboot_reference-ramstage/vboot_host.pc $(obj)/external/vboot_reference-postcar/vboot_host.pc
+ifeq ($(CONFIG_SEPARATE_ROMSTAGE),y)
+vboot-pkgconfig-files += $(obj)/external/vboot_reference-romstage/vboot_host.pc
+endif
 swid-files-$(CONFIG_SBOM_VBOOT) += $(vboot-pkgconfig-files)
 $(vboot-pkgconfig-files): $(VBOOT_LIB_bootblock) $(VBOOT_LIB_romstage) $(VBOOT_LIB_ramstage) $(VBOOT_LIB_postcar) # src/security/vboot/Makefile.mk
 
@@ -110,10 +113,10 @@ $(build-dir)/compiler-%.json: $(src-dir)/compiler-%.json | $(build-dir)/goswid
 		$(build-dir)/goswid add-payload-file -o $@ -i $@ --name $$(basename $$tool) --version $$version; \
 	done
 
-$(build-dir)/coreboot.json: $(src-dir)/coreboot.json .git/HEAD | $(build-dir)/goswid
+$(build-dir)/coreboot.json: $(src-dir)/coreboot.json $(obj)/build.h | $(build-dir)/goswid
 	cp $< $@
-	git_tree_hash=$$(git log -n 1 --format=%T);\
-	git_comm_hash=$$(git log -n 1 --format=%H);\
+	git_tree_hash=$$(grep 'COREBOOT_ORIGIN_TREE_REVISION' $(obj)/build.h | sed 's/.*"\(.*\)".*/\1/');\
+	git_comm_hash=$$(grep 'COREBOOT_ORIGIN_GIT_REVISION' $(obj)/build.h | sed 's/.*"\(.*\)".*/\1/');\
 	sed -i -e "s/<colloquial_version>/$$git_tree_hash/" -e "s/<software_version>/$$git_comm_hash/" $@;\
 	$(build-dir)/goswid add-license -o $@ -i $@ $(coreboot-licenses)
 

@@ -99,30 +99,4 @@ enum {
 	RTC_CALI_BBPU_2SEC_STAT		= 1U << 11
 };
 
-/* external API */
-int rtc_init(int recover);
-void rtc_boot(void);
-
-static inline s32 rtc_read(u16 addr, u16 *rdata)
-{
-	s32 ret;
-
-	ret = pwrap_read(addr, rdata);
-	if (ret < 0)
-		rtc_info("pwrap_read failed: ret=%d\n", ret);
-
-	return ret;
-}
-
-static inline s32 rtc_write(u16 addr, u16 wdata)
-{
-	s32 ret;
-
-	ret = pwrap_write(addr, wdata);
-	if (ret < 0)
-		rtc_info("pwrap_write failed: ret=%d\n", ret);
-
-	return ret;
-}
-
 #endif /* SOC_MEDIATEK_MT8173_RTC_H */

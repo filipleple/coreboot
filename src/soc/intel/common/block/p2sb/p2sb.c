@@ -3,7 +3,6 @@
 #define __SIMPLE_DEVICE__
 
 #include <device/pci_ops.h>
-#include <console/console.h>
 #include <device/device.h>
 #include <device/pci.h>
 #include <device/pci_ids.h>
@@ -138,8 +137,14 @@ const struct device_operations p2sb_ops = {
 };
 
 static const unsigned short pci_device_ids[] = {
+	PCI_DID_INTEL_WCL_P2SB,
+	PCI_DID_INTEL_PTL_H_P2SB,
+	PCI_DID_INTEL_PTL_U_H_P2SB,
 	PCI_DID_INTEL_LNL_P2SB,
 	PCI_DID_INTEL_MTL_SOC_P2SB,
+	PCI_DID_INTEL_ARL_SOC_P2SB,
+	PCI_DID_INTEL_ARL_IOE_S_P2SB,
+	PCI_DID_INTEL_ARP_S_P2SB,
 	PCI_DID_INTEL_RPP_P_P2SB,
 	PCI_DID_INTEL_APL_P2SB,
 	PCI_DID_INTEL_GLK_P2SB,
@@ -158,6 +163,7 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_ADP_M_P2SB,
 	PCI_DID_INTEL_SPR_SP_P2SB,
 	PCI_DID_INTEL_RPP_S_P2SB,
+	PCI_DID_INTEL_SNR_P2SB,
 	0,
 };
 

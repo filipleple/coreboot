@@ -2,8 +2,8 @@
 
 chip soc/intel/skylake
 
-	register "deep_s5_enable_ac" = "0"
-	register "deep_s5_enable_dc" = "0"
+	register "deep_s5_enable_ac" = "false"
+	register "deep_s5_enable_dc" = "false"
 	register "deep_sx_config" = "DSX_EN_LAN_WAKE_PIN"
 
 	# GPE configuration
@@ -15,9 +15,8 @@ chip soc/intel/skylake
 	register "gpe0_dw2" = "GPP_E"
 
 	# FSP Configuration
-	register "DspEnable" = "1"
+	register "DspEnable" = "true"
 	register "IoBufferOwnership" = "3"
-	register "ScsEmmcHs400Enabled" = "0"
 	register "SkipExtGfxScan" = "1"
 
 	# Enabling SLP_S3#, SLP_S4#, SLP_SUS and SLP_A Stretch
@@ -32,8 +31,6 @@ chip soc/intel/skylake
 
 	# SLP_A Minimum Assertion Width. Values 0: 0ms, 1: 4s, 2: 98ms, 3: 2s
 	register "PmConfigSlpAMinAssert" = "0x03"
-
-	register "serirq_mode" = "SERIRQ_CONTINUOUS"
 
 	# VR Settings Configuration for 4 Domains
 	#+----------------+-----------+-----------+-------------+----------+
@@ -101,76 +98,10 @@ chip soc/intel/skylake
 		.voltage_limit = 1520,
 	}"
 
-	# Enable x1 slot
-	register "PcieRpEnable[7]" = "1"
-	register "PcieRpClkReqSupport[7]" = "1"
-	register "PcieRpClkReqNumber[7]" = "3" #uses SRCCLKREQ3
-
-	# Enable x4 slot
-	register "PcieRpEnable[8]" = "1"
-	register "PcieRpClkReqSupport[8]" = "1"
-	register "PcieRpClkReqNumber[8]" = "4" #uses SRCCLKREQ4
-
-	# Enable Root port 6 and 13.
-	register "PcieRpEnable[5]" = "1"
-	register "PcieRpEnable[12]" = "1"
-
-	# Enable CLKREQ#
-	register "PcieRpClkReqSupport[5]" = "1"
-	register "PcieRpClkReqSupport[12]" = "1"
-
-	# RP 6 uses SRCCLKREQ1# while RP `3 uses SRCCLKREQ2#
-	register "PcieRpClkReqNumber[5]" = "0"
-	register "PcieRpClkReqNumber[12]" = "1"
-
-	# USB related
-	register "SsicPortEnable" = "1"
-
-	register "usb2_ports" = "{
-		[0] = USB2_PORT_MID(OC_SKIP),	/* OTG */
-		[1] = USB2_PORT_MID(OC3),	/* Touch Pad */
-		[2] = USB2_PORT_MID(OC_SKIP),	/* M.2 BT */
-		[3] = USB2_PORT_MID(OC_SKIP),	/* Touch Panel */
-		[4] = USB2_PORT_MID(OC_SKIP),	/* M.2 WWAN */
-		[5] = USB2_PORT_MID(OC0),	/* Front Panel */
-		[6] = USB2_PORT_MID(OC0),	/* Front Panel */
-		[7] = USB2_PORT_MID(OC2),	/* Stacked conn (lan + usb) */
-		[8] = USB2_PORT_MID(OC2),	/* Stacked conn (lan + usb) */
-		[9] = USB2_PORT_MID(OC1),	/* LAN MAGJACK */
-		[10] = USB2_PORT_MID(OC1),	/* LAN MAGJACK */
-		[11] = USB2_PORT_MID(OC_SKIP),	/* Finger print sensor */
-		[12] = USB2_PORT_MID(OC4),	/* USB 2 stack conn */
-		[13] = USB2_PORT_MID(OC4),	/* USB 2 stack conn */
-	}"
-
-	register "usb3_ports" = "{
-		[0] = USB3_PORT_DEFAULT(OC5),		/* OTG */
-		[1] = USB3_PORT_DEFAULT(OC_SKIP),	/* M.2 WWAN */
-		[2] = USB3_PORT_DEFAULT(OC3),		/* Flex */
-		[3] = USB3_PORT_DEFAULT(OC_SKIP),	/* IVCAM */
-		[4] = USB3_PORT_DEFAULT(OC1),		/* LAN MAGJACK */
-		[5] = USB3_PORT_DEFAULT(OC0),		/* Front Panel */
-		[6] = USB3_PORT_DEFAULT(OC0),		/* Front Panel */
-		[7] = USB3_PORT_DEFAULT(OC2),		/* Stack Conn */
-		[8] = USB3_PORT_DEFAULT(OC2),		/* Stack Conn */
-		[9] = USB3_PORT_DEFAULT(OC1),		/* LAN MAGJACK */
-	}"
-
 	register "i2c_voltage[4]" = "I2C_VOLTAGE_1V8"  # I2C4 is 1.8V
 
 	# Must leave UART0 enabled or SD/eMMC will not work as PCI
 
-	register "SataSalpSupport" = "1"
-	register "SataPortsEnable" = "{
-		[0] = 1,
-		[1] = 1,
-		[2] = 1,
-		[3] = 1,
-		[4] = 1,
-		[5] = 1,
-		[6] = 1,
-		[7] = 1,
-	}"
 	register "SerialIoDevMode" = "{
 		[PchSerialIoIndexI2C0]	= PchSerialIoPci,
 		[PchSerialIoIndexI2C1]	= PchSerialIoPci,
@@ -196,27 +127,91 @@ chip soc/intel/skylake
 	# Use default SD card detect GPIO configuration
 	#register "sdcard_cd_gpio" = "GPP_A7"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		device ref igpu		on end
-		device ref south_xhci	on end
+		device ref south_xhci	on
+			register "SsicPortEnable" = "1"
+
+			register "usb2_ports" = "{
+				[0] = USB2_PORT_MID(OC_SKIP),	/* OTG */
+				[1] = USB2_PORT_MID(OC3),	/* Touch Pad */
+				[2] = USB2_PORT_MID(OC_SKIP),	/* M.2 BT */
+				[3] = USB2_PORT_MID(OC_SKIP),	/* Touch Panel */
+				[4] = USB2_PORT_MID(OC_SKIP),	/* M.2 WWAN */
+				[5] = USB2_PORT_MID(OC0),	/* Front Panel */
+				[6] = USB2_PORT_MID(OC0),	/* Front Panel */
+				[7] = USB2_PORT_MID(OC2),	/* Stacked conn (lan + usb) */
+				[8] = USB2_PORT_MID(OC2),	/* Stacked conn (lan + usb) */
+				[9] = USB2_PORT_MID(OC1),	/* LAN MAGJACK */
+				[10] = USB2_PORT_MID(OC1),	/* LAN MAGJACK */
+				[11] = USB2_PORT_MID(OC_SKIP),	/* Finger print sensor */
+				[12] = USB2_PORT_MID(OC4),	/* USB 2 stack conn */
+				[13] = USB2_PORT_MID(OC4),	/* USB 2 stack conn */
+			}"
+
+			register "usb3_ports" = "{
+				[0] = USB3_PORT_DEFAULT(OC5),		/* OTG */
+				[1] = USB3_PORT_DEFAULT(OC_SKIP),	/* M.2 WWAN */
+				[2] = USB3_PORT_DEFAULT(OC3),		/* Flex */
+				[3] = USB3_PORT_DEFAULT(OC_SKIP),	/* IVCAM */
+				[4] = USB3_PORT_DEFAULT(OC1),		/* LAN MAGJACK */
+				[5] = USB3_PORT_DEFAULT(OC0),		/* Front Panel */
+				[6] = USB3_PORT_DEFAULT(OC0),		/* Front Panel */
+				[7] = USB3_PORT_DEFAULT(OC2),		/* Stack Conn */
+				[8] = USB3_PORT_DEFAULT(OC2),		/* Stack Conn */
+				[9] = USB3_PORT_DEFAULT(OC1),		/* LAN MAGJACK */
+			}"
+		end
 		device ref thermal	on end
 		device ref i2c0		on end
 		device ref i2c1		on end
 		device ref i2c2		on end
 		device ref i2c3		on end
 		device ref heci1	on end
-		device ref sata		on end
+		device ref sata		on
+			register "SataSalpSupport" = "1"
+			register "SataPortsEnable" = "{
+				[0] = 1,
+				[1] = 1,
+				[2] = 1,
+				[3] = 1,
+				[4] = 1,
+				[5] = 1,
+				[6] = 1,
+				[7] = 1,
+			}"
+		end
 		device ref uart2	on end
 		device ref i2c5		on end
 		device ref i2c4		on end
 		device ref pcie_rp1	on end
+		device ref pcie_rp6	on
+			register "PcieRpClkReqSupport[5]" = "1"
+			register "PcieRpClkReqNumber[5]" = "0"
+		end
+		device ref pcie_rp8	on
+			# x1
+			register "PcieRpClkReqSupport[7]" = "1"
+			register "PcieRpClkReqNumber[7]" = "3"
+		end
+		device ref pcie_rp9	on
+			# x4
+			register "PcieRpClkReqSupport[8]" = "1"
+			register "PcieRpClkReqNumber[8]" = "4"
+		end
+		device ref pcie_rp13	on
+			register "PcieRpClkReqSupport[12]" = "1"
+			register "PcieRpClkReqNumber[12]" = "1"
+		end
 		device ref uart0	on end
 		device ref uart1	on end
 		device ref gspi0	on end
 		device ref gspi1	on end
 		device ref hda		on end
 		device ref smbus	on end
+		device ref lpc_espi	on
+			register "serirq_mode" = "SERIRQ_CONTINUOUS"
+		end
 		device ref fast_spi	on end
 		device ref gbe		on end
 	end

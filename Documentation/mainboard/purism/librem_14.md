@@ -2,7 +2,7 @@
 
 This page describes how to run coreboot on the [Purism Librem 14].
 
-```eval_rst
+```{eval-rst}
 +------------------+------------------------------------------------------+
 | CPU              | Intel Core i7-10710U                                 |
 +------------------+------------------------------------------------------+
@@ -23,7 +23,7 @@ This page describes how to run coreboot on the [Purism Librem 14].
 To build a minimal working coreboot image some blobs are required (assuming
 only the BIOS region is being modified).
 
-```eval_rst
+```{eval-rst}
 +-----------------+---------------------------------+---------------------+
 | Binary file     | Apply                           | Required / Optional |
 +=================+=================================+=====================+
@@ -110,4 +110,4 @@ located underneath the Wi-Fi module, below the left cooling fan.
 [Purism Librem 14]: https://puri.sm/products/librem-14/
 [purism-blobs]: https://source.puri.sm/coreboot/purism-blobs
 [GD25Q127C]: https://www.gigadevice.com/datasheet/gd25q127c/
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/

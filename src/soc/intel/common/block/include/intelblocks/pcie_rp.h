@@ -37,6 +37,9 @@ enum pcie_clk_src_flags {
 	PCIE_CLK_LAN = (1 << 1),
 };
 
+/* coreboot enums are off-by-1 to allow for no config in devicetree */
+#define UPD_INDEX(upd)	(upd - 1)
+
 /* This enum is for passing into an FSP UPD, typically PcieRpL1Substates */
 enum L1_substates_control {
 	L1_SS_FSP_DEFAULT,
@@ -55,6 +58,16 @@ enum ASPM_control {
 	ASPM_AUTO,
 };
 
+/* This enum is for passing into an FSP UPD, typically PCIe Speed */
+enum PCIE_SPEED_control {
+	SPEED_DEFAULT,
+	SPEED_AUTO,
+	SPEED_GEN1,
+	SPEED_GEN2,
+	SPEED_GEN3,
+	SPEED_GEN4,
+};
+
 /* PCIe Root Ports */
 struct pcie_rp_config {
 	/* CLKOUT_PCIE_P/N# used by this root port as per schematics. */
@@ -68,6 +81,8 @@ struct pcie_rp_config {
 	enum ASPM_control pcie_rp_aspm;
 	/* timeout for device detect */
 	uint32_t pcie_rp_detect_timeout_ms;
+	/* PCIe RP PCIe Speed */
+	enum PCIE_SPEED_control pcie_rp_pcie_speed;
 };
 
 /*

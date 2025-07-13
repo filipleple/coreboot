@@ -30,7 +30,7 @@ Download, configure, and build coreboot
 
 Debian based distros:
 `sudo apt-get install -y bison build-essential curl flex git gnat
-libncurses5-dev libssl-dev m4 zlib1g-dev pkg-config`
+libncurses-dev libssl-dev zlib1g-dev pkgconf`
 
 Arch based distros:
 `sudo pacman -S base-devel curl git gcc-ada ncurses zlib`
@@ -86,7 +86,7 @@ make -C payloads/coreinfo
 
 ### Step 5 - Configure the build
 
-##### Configure your mainboard
+#### Configure your mainboard
 
 ```Bash
 make menuconfig
@@ -104,7 +104,7 @@ select < Exit >
 These should be the default selections, so if anything else was set, run
 `make distclean` to remove your old config file and start over.
 
-##### Optionally use your system toolchain (Again, not recommended)
+#### Optionally use your system toolchain (Again, not recommended)
 
 ```Text
 select 'General Setup' menu
@@ -112,7 +112,7 @@ select 'Allow building with any toolchain'
 select < Exit >
 ```
 
-##### Select the payload
+#### Select the payload
 
 ```Text
 select 'Payload' menu
@@ -125,7 +125,7 @@ select < Exit >
 select < Yes >
 ```
 
-##### Check your configuration (optional step):
+#### Check your configuration (optional step):
 
 ```Bash
 make savedefconfig
@@ -149,7 +149,7 @@ CONFIG_PAYLOAD_FILE="payloads/coreinfo/build/coreinfo.elf"
 
 Note that this may differ depending on the revision of the coreboot
 source you are building from and should not be taken as the required
-contents of defconfig. 
+contents of defconfig.
 
 ### Step 6 - Build coreboot
 
@@ -202,11 +202,11 @@ of the installed packages:
 
 * `build-essential` or `base-devel` are the basic tools for building software.
 * `git` is needed to download coreboot from the coreboot git repository.
-* `libncurses5-dev` or `ncurses` is needed to build the menu for 'make menuconfig'
+* `libncurses-dev` or `ncurses` is needed to build the menu for 'make menuconfig'
 * `m4, bison, curl, flex, zlib1g-dev, gcc, gnat` and `g++` or `clang`
 are needed to build the coreboot toolchain. `gcc` and `gnat` have to be
 of the same version.
-* `libssl-dev, pkg-config` are needed to build coreboot image (Step 6).
+* `libssl-dev, pkgconf` are needed to build coreboot image (Step 6).
 In particular, `libcrypto` provided by `libssl-dev` package.
 
 If you started with a different distribution or package management

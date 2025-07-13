@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include <acpi/acpi.h>
-#include <assert.h>
 #include <bootmode.h>
 #include <console/console.h>
 #include <device/mmio.h>
@@ -124,6 +123,21 @@ int fsp_soc_report_external_display(void)
 	return graphics_get_framebuffer_address() && get_external_display_status();
 }
 
+static void configure_ddi_a_bifurcation(void)
+{
+	u32 ddi_buf_ctl = graphics_gtt_read(DDI_BUF_CTL_A);
+	/* Only program if the buffer is not enabled yet. */
+	if (ddi_buf_ctl & DDI_BUF_CTL_ENABLE)
+		return;
+
+	if (CONFIG(SOC_INTEL_GFX_ENABLE_DDI_E_BIFURCATION))
+		ddi_buf_ctl &= ~DDI_A_4_LANES;
+	else
+		ddi_buf_ctl |= DDI_A_4_LANES;
+
+	graphics_gtt_write(DDI_BUF_CTL_A, ddi_buf_ctl);
+}
+
 static void gma_init(struct device *const dev)
 {
 	intel_gma_init_igd_opregion();
@@ -135,12 +149,8 @@ static void gma_init(struct device *const dev)
 	if (!CONFIG(RUN_FSP_GOP))
 		graphics_soc_panel_init(dev);
 
-	if (CONFIG(SOC_INTEL_CONFIGURE_DDI_A_4_LANES) && !acpi_is_wakeup_s3()) {
-		const u32 ddi_buf_ctl = graphics_gtt_read(DDI_BUF_CTL_A);
-		/* Only program if the buffer is not enabled yet. */
-		if (!(ddi_buf_ctl & DDI_BUF_CTL_ENABLE))
-			graphics_gtt_write(DDI_BUF_CTL_A, ddi_buf_ctl | DDI_A_4_LANES);
-	}
+	if (CONFIG(SOC_INTEL_GFX_HAVE_DDI_A_BIFURCATION) && !acpi_is_wakeup_s3())
+		configure_ddi_a_bifurcation();
 
 	/*
 	 * GFX PEIM module inside FSP binary is taking care of graphics
@@ -332,6 +342,13 @@ const struct device_operations graphics_ops = {
 };
 
 static const unsigned short pci_device_ids[] = {
+	PCI_DID_INTEL_WCL_GT2_1,
+	PCI_DID_INTEL_WCL_GT2_2,
+	PCI_DID_INTEL_PTL_U_GT2_1,
+	PCI_DID_INTEL_PTL_H_GT2_1,
+	PCI_DID_INTEL_PTL_H_GT2_2,
+	PCI_DID_INTEL_PTL_H_GT2_3,
+	PCI_DID_INTEL_PTL_H_GT2_4,
 	PCI_DID_INTEL_LNL_M_GT2,
 	PCI_DID_INTEL_RPL_U_GT1,
 	PCI_DID_INTEL_RPL_U_GT2,
@@ -348,6 +365,9 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_MTL_P_GT2_2,
 	PCI_DID_INTEL_MTL_P_GT2_3,
 	PCI_DID_INTEL_MTL_P_GT2_4,
+	PCI_DID_INTEL_MTL_P_GT2_5,
+	PCI_DID_INTEL_ARL_H_GT2_1,
+	PCI_DID_INTEL_ARL_H_GT2_2,
 	PCI_DID_INTEL_APL_IGD_HD_505,
 	PCI_DID_INTEL_APL_IGD_HD_500,
 	PCI_DID_INTEL_CNL_GT2_ULX_1,
@@ -388,12 +408,8 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_CML_GT2_ULX_1,
 	PCI_DID_INTEL_CML_GT1_S_1,
 	PCI_DID_INTEL_CML_GT1_S_2,
-	PCI_DID_INTEL_CML_GT2_S_1,
-	PCI_DID_INTEL_CML_GT2_S_2,
 	PCI_DID_INTEL_CML_GT1_H_1,
 	PCI_DID_INTEL_CML_GT1_H_2,
-	PCI_DID_INTEL_CML_GT2_H_1,
-	PCI_DID_INTEL_CML_GT2_H_2,
 	PCI_DID_INTEL_CML_GT2_S_G0,
 	PCI_DID_INTEL_CML_GT2_S_P0,
 	PCI_DID_INTEL_CML_GT2_H_R0,
@@ -448,6 +464,8 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_ADL_N_GT1,
 	PCI_DID_INTEL_ADL_N_GT2,
 	PCI_DID_INTEL_ADL_N_GT3,
+	PCI_DID_INTEL_ADL_N_GT4,
+	PCI_DID_INTEL_ADL_N_GT5,
 	PCI_DID_INTEL_RPL_S_GT0,
 	PCI_DID_INTEL_RPL_S_GT1_1,
 	PCI_DID_INTEL_RPL_S_GT1_2,
@@ -456,6 +474,8 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_RPL_HX_GT2,
 	PCI_DID_INTEL_RPL_HX_GT3,
 	PCI_DID_INTEL_RPL_HX_GT4,
+	PCI_DID_INTEL_TWL_GT1_1,
+	PCI_DID_INTEL_TWL_GT1_2,
 	0,
 };
 

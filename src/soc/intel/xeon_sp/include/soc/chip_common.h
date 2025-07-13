@@ -4,8 +4,7 @@
 #define _CHIP_COMMON_H_
 
 #include <device/device.h>
-#include <device/path.h>
-#include <hob_iiouds.h>
+#include <soc/soc_util.h>
 
 union xeon_domain_path {
 	unsigned int domain_path;
@@ -31,7 +30,7 @@ static inline void init_xeon_domain_path(struct device_path *path, int socket,
 		.bus = bus,
 	};
 	path->type = DEVICE_PATH_DOMAIN;
-	path->domain.domain = dp.domain_path;
+	path->domain.domain_id = dp.domain_path;
 };
 
 /*
@@ -49,12 +48,19 @@ static inline void init_xeon_domain_path(struct device_path *path, int socket,
 #define DOMAIN_TYPE_UBX1       "UD"
 #define DOMAIN_TYPE_CXL        "CX"
 
-void iio_pci_domain_read_resources(struct device *dev);
-void iio_cxl_domain_read_resources(struct device *dev);
 void attach_iio_stacks(void);
 
-void soc_create_ioat_domains(union xeon_domain_path path, struct bus *bus, const STACK_RES *sr);
-void soc_create_cxl_domains(const union xeon_domain_path dp, struct bus *bus, const STACK_RES *sr);
+void create_ioat_domains(union xeon_domain_path path,
+				struct bus *bus,
+				const xSTACK_RES *sr,
+				const size_t pci_segment_group);
+
+void create_xeonsp_domains(const union xeon_domain_path dp, struct bus *bus,
+				const xSTACK_RES *sr, const size_t pci_segment_group);
+
+void create_domain(const union xeon_domain_path dp, struct bus *upstream,
+			int bus_base, int bus_limit, const char *type,
+			struct device_operations *ops, const size_t pci_segment_group);
 
 struct device *dev_find_device_on_socket(uint8_t socket, u16 vendor, u16 device);
 struct device *dev_find_all_devices_on_socket(uint8_t socket,
@@ -64,22 +70,23 @@ struct device *dev_find_all_devices_on_stack(uint8_t socket, uint8_t stack,
 struct device *dev_find_all_devices_on_domain(struct device *domain,
 						u16 vendor, u16 device, struct device *from);
 
-int iio_pci_domain_socket_from_dev(struct device *dev);
-int iio_pci_domain_stack_from_dev(struct device *dev);
+int iio_pci_domain_socket_from_dev(const struct device *dev);
+int iio_pci_domain_stack_from_dev(const struct device *dev);
 
-bool is_pcie_domain(struct device *dev);
-bool is_ioat_domain(struct device *dev);
-bool is_ubox_domain(struct device *dev);
-bool is_cxl_domain(struct device *dev);
+bool is_pcie_domain(const struct device *dev);
+bool is_ioat_domain(const struct device *dev);
+bool is_ubox_domain(const struct device *dev);
+bool is_cxl_domain(const struct device *dev);
 
-#define is_dev_on_pcie_domain(dev) is_pcie_domain(dev_get_pci_domain(dev))
-#define is_dev_on_ioat_domain(dev) is_ioat_domain(dev_get_pci_domain(dev))
-#define is_dev_on_ubox_domain(dev) is_ubox_domain(dev_get_pci_domain(dev))
-#define is_dev_on_cxl_domain(dev) is_cxl_domain(dev_get_pci_domain(dev))
+#define is_dev_on_pcie_domain(dev) is_pcie_domain(dev_get_domain(dev))
+#define is_dev_on_ioat_domain(dev) is_ioat_domain(dev_get_domain(dev))
+#define is_dev_on_ubox_domain(dev) is_ubox_domain(dev_get_domain(dev))
+#define is_dev_on_cxl_domain(dev) is_cxl_domain(dev_get_domain(dev))
 
-#define is_domain0(dev) (dev && dev->path.type == DEVICE_PATH_DOMAIN &&\
-		dev->path.domain.domain == 0)
-#define is_dev_on_domain0(dev) (is_domain0(dev_get_pci_domain(dev)))
 #define is_stack0(socket, stack) (socket == 0 && stack == IioStack0)
+
+size_t vtd_probe_bar_size(struct device *dev);
+
+void soc_pci_domain_fill_ssdt(const struct device *domain);
 
 #endif /* _CHIP_COMMON_H_ */

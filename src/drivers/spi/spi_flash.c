@@ -18,7 +18,7 @@
 #define ADDR_MOD 0
 #endif
 
-#define SPI_FLASH_EXIT_4BYTE_STAGE	\
+#define SPI_FIRST_STAGE	\
 	(ENV_INITIAL_STAGE || CONFIG(BOOT_DEVICE_MEMORY_MAPPED))
 
 static void spi_flash_addr(u32 addr, u8 *cmd)
@@ -125,6 +125,16 @@ int spi_flash_cmd(const struct spi_slave *spi, u8 cmd, void *response, size_t le
 	int ret = do_spi_flash_cmd(spi, &cmd, sizeof(cmd), response, len);
 	if (ret)
 		printk(BIOS_WARNING, "SF: Failed to send command %02x: %d\n", cmd, ret);
+
+	return ret;
+}
+
+int spi_flash_cmd_multi(const struct spi_slave *spi, const u8 *dout, size_t bytes_out,
+			void *din, size_t bytes_in)
+{
+	int ret = do_spi_flash_cmd(spi, dout, bytes_out, din, bytes_in);
+	if (ret)
+		printk(BIOS_WARNING, "SF: Failed to send command %02x: %d\n", dout[0], ret);
 
 	return ret;
 }
@@ -554,9 +564,19 @@ int spi_flash_probe(unsigned int bus, unsigned int cs, struct spi_flash *flash)
 			CONFIG_ROM_SIZE);
 	}
 
-	if (CONFIG(SPI_FLASH_EXIT_4_BYTE_ADDR_MODE) && SPI_FLASH_EXIT_4BYTE_STAGE) {
+	if (CONFIG(SPI_FLASH_FORCE_4_BYTE_ADDR_MODE) && SPI_FIRST_STAGE) {
+		printk(BIOS_DEBUG, "SF: Entering 4-byte addressing mode\n");
+		spi_flash_cmd(&flash->spi, CMD_ENTER_4BYTE_ADDR_MODE, NULL, 0);
+	}
+
+	if (CONFIG(SPI_FLASH_EXIT_4_BYTE_ADDR_MODE) && SPI_FIRST_STAGE) {
 		printk(BIOS_DEBUG, "SF: Exiting 4-byte addressing mode\n");
 		spi_flash_cmd(&flash->spi, CMD_EXIT_4BYTE_ADDR_MODE, NULL, 0);
+	}
+
+	/* TODO: only do this in stages that will need to call those functions? */
+	if (CONFIG(SPI_FLASH_RPMC)) {
+		spi_flash_fill_rpmc_caps(flash);
 	}
 
 	return 0;
@@ -610,12 +630,12 @@ int spi_flash_status(const struct spi_flash *flash, u8 *reg)
 int spi_flash_is_write_protected(const struct spi_flash *flash,
 				 const struct region *region)
 {
-	struct region flash_region = { 0 };
+	struct region flash_region;
 
 	if (!flash || !region)
 		return -1;
 
-	flash_region.size = flash->size;
+	flash_region = region_create(0, flash->size);
 
 	if (!region_is_subregion(&flash_region, region))
 		return -1;
@@ -633,13 +653,13 @@ int spi_flash_set_write_protected(const struct spi_flash *flash,
 				  const struct region *region,
 				  const enum spi_flash_status_reg_lockdown mode)
 {
-	struct region flash_region = { 0 };
+	struct region flash_region;
 	int ret;
 
 	if (!flash)
 		return -1;
 
-	flash_region.size = flash->size;
+	flash_region = region_create(0, flash->size);
 
 	if (!region_is_subregion(&flash_region, region))
 		return -1;
@@ -748,6 +768,10 @@ void lb_spi_flash(struct lb_header *header)
 		flash->mmap_count = spi_flash_get_mmap_windows(table);
 		flash->size += flash->mmap_count * sizeof(*table);
 	}
+
+	/* Pass 4-byte address mode information to payload */
+	if (CONFIG(SPI_FLASH_FORCE_4_BYTE_ADDR_MODE))
+		flash->flags = LB_SPI_FLASH_FLAG_IN_4BYTE_ADDR_MODE;
 }
 
 int spi_flash_ctrlr_protect_region(const struct spi_flash *flash,
@@ -755,12 +779,12 @@ int spi_flash_ctrlr_protect_region(const struct spi_flash *flash,
 				   const enum ctrlr_prot_type type)
 {
 	const struct spi_ctrlr *ctrlr;
-	struct region flash_region = { 0 };
+	struct region flash_region;
 
 	if (!flash)
 		return -1;
 
-	flash_region.size = flash->size;
+	flash_region = region_create(0, flash->size);
 
 	if (!region_is_subregion(&flash_region, region))
 		return -1;

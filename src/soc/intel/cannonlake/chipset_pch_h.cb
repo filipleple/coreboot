@@ -1,6 +1,9 @@
 chip soc/intel/cannonlake
 
 	device cpu_cluster 0 on end
+
+	register "CnviBtCore" = "true"
+
 	device domain 0 on
 		device pci 00.0 alias system_agent on	end	# Host Bridge
 		device pci 01.0 alias peg0         off	end	# PCIe x16
@@ -49,10 +52,22 @@ chip soc/intel/cannonlake
 						device usb 2.9 alias usb2_port10 off end
 					end
 					chip drivers/usb/acpi
-						device usb 2.10 alias usb2_port11 off end
+						device usb 2.a alias usb2_port11 off end
 					end
 					chip drivers/usb/acpi
-						device usb 2.11 alias usb2_port12 off end
+						device usb 2.b alias usb2_port12 off end
+					end
+					chip drivers/usb/acpi
+						device usb 2.c alias usb2_port13 off end
+					end
+					chip drivers/usb/acpi
+						device usb 2.d alias usb2_port14 off end
+					end
+					chip drivers/usb/acpi
+						device usb 2.e alias usb2_port15 off end
+					end
+					chip drivers/usb/acpi
+						device usb 2.f alias usb2_port16 off end
 					end
 					chip drivers/usb/acpi
 						device usb 3.0 alias usb3_port1 off end
@@ -71,6 +86,18 @@ chip soc/intel/cannonlake
 					end
 					chip drivers/usb/acpi
 						device usb 3.5 alias usb3_port6 off end
+					end
+					chip drivers/usb/acpi
+						device usb 3.6 alias usb3_port7 off end
+					end
+					chip drivers/usb/acpi
+						device usb 3.7 alias usb3_port8 off end
+					end
+					chip drivers/usb/acpi
+						device usb 3.8 alias usb3_port9 off end
+					end
+					chip drivers/usb/acpi
+						device usb 3.9 alias usb3_port10 off end
 					end
 				end
 			end
@@ -92,7 +119,9 @@ chip soc/intel/cannonlake
 		device pci 17.0 alias sata         off	end	# SATA
 		device pci 19.0 alias i2c4         off	end	# I2C #4
 		device pci 19.1 alias i2c5         off	end	# I2C #5
-		device pci 19.2 alias uart2        off	end	# UART #2
+		device pci 19.2 alias uart2        off		# UART #2
+			ops uart_ops
+		end
 		device pci 1a.0 alias emmc         off	end	# eMMC
 		device pci 1b.0 alias pcie_rp17    off	end	# PCI Express Port 17
 		device pci 1b.1 alias pcie_rp18    off	end	# PCI Express Port 18

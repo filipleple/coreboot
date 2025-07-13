@@ -10,7 +10,7 @@
 #include <soc/dptx.h>
 #include <soc/dsi.h>
 #include <soc/mtcmos.h>
-#include <string.h>
+#include <stdio.h>
 
 static struct panel_serializable_data *get_mipi_cmd_from_cbfs(struct panel_description *desc)
 {
@@ -37,7 +37,13 @@ static struct panel_serializable_data *get_mipi_cmd_from_cbfs(struct panel_descr
 	return NULL;
 }
 
-__weak int mtk_edp_init(struct edid *edid)
+__weak int mtk_edp_init(struct mtk_dp *mtk_dp, struct edid *edid)
+{
+	printk(BIOS_WARNING, "%s: Not supported\n", __func__);
+	return -1;
+}
+
+__weak int mtk_edp_enable(struct mtk_dp *mtk_dp)
 {
 	printk(BIOS_WARNING, "%s: Not supported\n", __func__);
 	return -1;
@@ -50,9 +56,17 @@ __weak int mtk_dsi_init(u32 mode_flags, u32 format, u32 lanes,
 	return -1;
 }
 
+static void process_panel_quirks(struct mtk_dp *mtk_dp,
+				 struct panel_description *panel)
+{
+	if (panel->quirks & PANEL_QUIRK_FORCE_MAX_SWING)
+		mtk_dp->force_max_swing = true;
+}
+
 int mtk_display_init(void)
 {
-	struct edid edid;
+	struct edid edid = {0};
+	struct mtk_dp mtk_edp = {0};
 	struct fb_info *info;
 	const char *name;
 	struct panel_description *panel = get_active_panel();
@@ -73,15 +87,15 @@ int mtk_display_init(void)
 		panel->power_on();
 
 	mtk_ddp_init();
+	process_panel_quirks(&mtk_edp, panel);
 
 	if (panel->disp_path == DISP_PATH_EDP) {
 		mdelay(200);
-		if (mtk_edp_init(&edid) < 0) {
+		if (mtk_edp_init(&mtk_edp, &edid) < 0) {
 			printk(BIOS_ERR, "%s: Failed to initialize eDP\n", __func__);
 			return -1;
 		}
 	} else {
-
 		struct panel_serializable_data *mipi_data = NULL;
 
 		if (panel->get_edid) {
@@ -121,6 +135,14 @@ int mtk_display_init(void)
 	edid_set_framebuffer_bits_per_pixel(&edid, 32, 0);
 
 	mtk_ddp_mode_set(&edid, panel->disp_path);
+
+	if (panel->disp_path == DISP_PATH_EDP) {
+		if (mtk_edp_enable(&mtk_edp) < 0) {
+			printk(BIOS_ERR, "%s: Failed to enable eDP\n", __func__);
+			return -1;
+		}
+	}
+
 	info = fb_new_framebuffer_info_from_edid(&edid, (uintptr_t)0);
 	if (info)
 		fb_set_orientation(info, panel->orientation);

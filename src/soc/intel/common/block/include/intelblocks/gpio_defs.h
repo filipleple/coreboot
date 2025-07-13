@@ -44,7 +44,6 @@
 #define  PAD_CFG0_ROUTE_SMI		(1 << 18)
 #define  PAD_CFG0_ROUTE_SCI		(1 << 19)
 #define  PAD_CFG0_ROUTE_IOAPIC		(1 << 20)
-#define  PAD_CFG0_ROUTE_SWAPPED		(1 << 27)
 #define PAD_CFG0_RXTENCFG_MASK		(3 << 21)
 #define PAD_CFG0_RXINV_MASK		(1 << 23)
 #define  PAD_CFG0_RX_POL_INVERT		(1 << 23)
@@ -337,24 +336,10 @@
 		PAD_TRIG(trig) | PAD_RX_POL(NONE) | PAD_BUF(TX_DISABLE),	\
 		PAD_PULL(pull) | PAD_CFG_OWN_GPIO(own))
 
-#define PAD_CFG_GPI_TRIG_OWN_SWAPPED(pad, pull, rst, trig, own)				\
-	_PAD_CFG_STRUCT(pad,							\
-		PAD_FUNC(GPIO) | PAD_RESET(rst) |				\
-		PAD_TRIG(trig) | PAD_RX_POL(NONE) | PAD_BUF(TX_DISABLE) |	\
-		PAD_IRQ_ROUTE(SWAPPED),	\
-		PAD_PULL(pull) | PAD_CFG_OWN_GPIO(own))
-
 #define PAD_CFG_GPI_TRIG_OWN_LOCK(pad, pull, rst, trig, own, lock_action)	\
 	_PAD_CFG_STRUCT_LOCK(pad,						\
 		PAD_FUNC(GPIO) | PAD_RESET(rst) |				\
 		PAD_TRIG(trig) | PAD_RX_POL(NONE) | PAD_BUF(TX_DISABLE),	\
-		PAD_PULL(pull) | PAD_CFG_OWN_GPIO(own), PAD_LOCK(lock_action))
-
-#define PAD_CFG_GPI_TRIG_OWN_LOCK_SWAPPED(pad, pull, rst, trig, own, lock_action)	\
-	_PAD_CFG_STRUCT_LOCK(pad,						\
-		PAD_FUNC(GPIO) | PAD_RESET(rst) |				\
-		PAD_TRIG(trig) | PAD_RX_POL(NONE) | PAD_BUF(TX_DISABLE) |	\
-		PAD_IRQ_ROUTE(SWAPPED),	\
 		PAD_PULL(pull) | PAD_CFG_OWN_GPIO(own), PAD_LOCK(lock_action))
 
 #define PAD_CFG_GPI_GPIO_DRIVER(pad, pull, rst)					\
@@ -385,15 +370,23 @@
 #define PAD_CFG_GPI_INT(pad, pull, rst, trig)	\
 		PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, DRIVER)
 
-#define PAD_CFG_GPI_INT_SWAPPED(pad, pull, rst, trig)	\
-		PAD_CFG_GPI_TRIG_OWN_SWAPPED(pad, pull, rst, trig, DRIVER)
-
 /* GPIO Interrupt with lock */
 #define PAD_CFG_GPI_INT_LOCK(pad, pull, trig, lock_action)	\
 		PAD_CFG_GPI_TRIG_OWN_LOCK(pad, pull, PWROK, trig, DRIVER, lock_action)
 
-#define PAD_CFG_GPI_INT_LOCK_SWAPPED(pad, pull, trig, lock_action)	\
-		PAD_CFG_GPI_TRIG_OWN_LOCK_SWAPPED(pad, pull, PWROK, trig, DRIVER, lock_action)
+/* Bidirectional GPIO port when both RX and TX buffer is enabled */
+#define PAD_CFG_GPIO_BIDIRECT_IOS(pad, val, pull, rst, trig, iosstate, iosterm, own) \
+	_PAD_CFG_STRUCT(pad,						\
+		PAD_FUNC(GPIO) | PAD_RESET(rst) | PAD_TRIG(trig) |	\
+		PAD_BUF(NO_DISABLE) | val,				\
+		PAD_PULL(pull) | PAD_CFG_OWN_GPIO(own) |		\
+		PAD_IOSSTATE(iosstate) | PAD_IOSTERM(iosterm))
+
+#define PAD_CFG_GPIO_BIDIRECT(pad, val, pull, rst, trig, own)		\
+	_PAD_CFG_STRUCT(pad,						\
+		PAD_FUNC(GPIO) | PAD_RESET(rst) | PAD_TRIG(trig) |	\
+		PAD_BUF(NO_DISABLE) | val,				\
+		PAD_PULL(pull) | PAD_CFG_OWN_GPIO(own))
 
 /*
  * No Connect configuration for unconnected or unused pad.
@@ -421,6 +414,14 @@
 		PAD_FUNC(GPIO) | PAD_RESET(rst) | PAD_BUF(TX_DISABLE) |		\
 		PAD_IRQ_CFG(IOAPIC, trig, inv), PAD_PULL(pull) |		\
 		PAD_IOSSTATE(TxDRxE))
+
+/* General purpose input, routed to APIC, HostOwn  */
+#define PAD_CFG_GPI_APIC_DRIVER(pad, pull, rst, trig, inv)				\
+	_PAD_CFG_STRUCT(pad,							\
+		PAD_FUNC(GPIO) | PAD_RESET(rst) | PAD_BUF(TX_DISABLE) |		\
+		PAD_IRQ_CFG(IOAPIC, trig, inv), PAD_PULL(pull) |		\
+		PAD_IOSSTATE(TxDRxE) | \
+		PAD_CFG_OWN_GPIO(DRIVER))
 
 /* General purpose input with lock, routed to APIC */
 #define PAD_CFG_GPI_APIC_LOCK(pad, pull, trig, inv, lock_action)		\

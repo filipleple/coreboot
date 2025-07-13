@@ -6,11 +6,15 @@
 #include <stddef.h>
 
 enum mem_chip_type {
+	MEM_CHIP_UNDEFINED = 0x00,
 	MEM_CHIP_DDR3 = 0x30,
 	MEM_CHIP_LPDDR3 = 0x38,
 	MEM_CHIP_DDR4 = 0x40,
 	MEM_CHIP_LPDDR4 = 0x48,
 	MEM_CHIP_LPDDR4X = 0x49,
+	MEM_CHIP_DDR5 = 0x50,
+	MEM_CHIP_LPDDR5 = 0x58,
+	MEM_CHIP_LPDDR5X = 0x59,
 };
 
 #define MEM_CHIP_STRUCT_VERSION 0	/* Hopefully we'll never have to bump this... */
@@ -94,16 +98,19 @@ static inline size_t mem_chip_info_size(int entries)
 	return sizeof(struct mem_chip_info) + sizeof(struct mem_chip_entry) * entries;
 };
 
+static inline uint64_t mem_chip_info_entry_density_bytes(const struct mem_chip_entry *entry)
+{
+	return (uint64_t)entry->density_mbits * (entry->channel_io_width / entry->io_width)
+	       * (MiB / 8);
+}
+
 static inline uint64_t mem_chip_info_total_density_bytes(const struct mem_chip_info *info)
 {
 	uint64_t bytes = 0;
 	int i;
 
-	for (i = 0; i < info->num_entries; i++) {
-		const struct mem_chip_entry *e = &info->entries[i];
-		bytes += (uint64_t)e->density_mbits * (e->channel_io_width / e->io_width)
-			 * (MiB / 8);
-	}
+	for (i = 0; i < info->num_entries; i++)
+		bytes += mem_chip_info_entry_density_bytes(&info->entries[i]);
 
 	return bytes;
 }

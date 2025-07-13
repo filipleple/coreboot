@@ -192,7 +192,7 @@ chip soc/intel/alderlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 alias dptf_policy on end
@@ -218,6 +218,15 @@ chip soc/intel/alderlake
 				device generic 0 on end
 			end
 		end	#PCIE8 SD card
+		device ref pcie_rp9 on
+			chip soc/intel/common/block/pcie/rtd3
+				register "is_storage" = "true"
+				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_D11)"
+				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_B4)"
+				register "srcclk_pin" = "1"
+				device generic 0 on end
+			end
+		end	#PCIE9-12 SSD
 		device ref i2c0 on
 			chip drivers/i2c/generic
 				register "hid" = ""RTL5682""
@@ -258,6 +267,7 @@ chip soc/intel/alderlake
 							"ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
 				register "generic.stop_off_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 10 on end
 			end
@@ -297,8 +307,8 @@ chip soc/intel/alderlake
 		end
 		device ref pch_espi on
 			chip ec/google/chromeec
-				use conn1 as mux_conn[1]
-				use conn2 as mux_conn[0]
+				use conn1 as mux_conn[0]
+				use conn2 as mux_conn[1]
 				device pnp 0c09.0 on end
 			end
 		end
@@ -306,13 +316,13 @@ chip soc/intel/alderlake
 			chip drivers/intel/pmc_mux
 				device generic 0 on
 					chip drivers/intel/pmc_mux/conn
-						use usb2_port3 as usb2_port
-						use tcss_usb3_port3 as usb3_port
+						use usb2_port2 as usb2_port
+						use tcss_usb3_port2 as usb3_port
 						device generic 2 alias conn2 on end
 					end
 					chip drivers/intel/pmc_mux/conn
-						use usb2_port2 as usb2_port
-						use tcss_usb3_port2 as usb3_port
+						use usb2_port3 as usb2_port
+						use tcss_usb3_port3 as usb3_port
 						device generic 1 alias conn1 on end
 					end
 				end
@@ -327,14 +337,14 @@ chip soc/intel/alderlake
 						register "use_custom_pld" = "true"
 						register "custom_pld" = "ACPI_PLD_TYPE_C(RIGHT, LEFT, ACPI_PLD_GROUP(1, 1))"
 						register "usb_lpm_incapable" = "true"
-						device ref tcss_usb3_port2 on end
+						device ref tcss_usb3_port3 on end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB3 Type-C Port C2 (MLB)""
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
 						register "use_custom_pld" = "true"
 						register "custom_pld" = "ACPI_PLD_TYPE_C(LEFT, LEFT, ACPI_PLD_GROUP(2, 1))"
-						device ref tcss_usb3_port3 on end
+						device ref tcss_usb3_port2 on end
 					end
 				end
 			end
@@ -347,14 +357,14 @@ chip soc/intel/alderlake
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
 						register "use_custom_pld" = "true"
 						register "custom_pld" = "ACPI_PLD_TYPE_C(RIGHT, LEFT, ACPI_PLD_GROUP(1, 1))"
-						device ref usb2_port2 on end
+						device ref usb2_port3 on end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB2 Type-C Port C2 (MLB)""
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
 						register "use_custom_pld" = "true"
 						register "custom_pld" = "ACPI_PLD_TYPE_C(LEFT, LEFT, ACPI_PLD_GROUP(2, 1))"
-						device ref usb2_port3 on end
+						device ref usb2_port2 on end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB2 Camera""

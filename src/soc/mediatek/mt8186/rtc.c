@@ -6,7 +6,6 @@
  */
 
 #include <delay.h>
-#include <halt.h>
 #include <soc/rtc.h>
 #include <soc/rtc_common.h>
 #include <soc/mt6366.h>
@@ -78,7 +77,6 @@ u16 rtc_get_frequency_meter(u16 val, u16 measure_src, u16 window_size)
 {
 	u16 bbpu, osc32con;
 	u16 fqmtr_busy, fqmtr_data, fqmtr_rst, fqmtr_tcksel;
-	struct stopwatch sw;
 
 	rtc_read(RTC_BBPU, &bbpu);
 	rtc_write(RTC_BBPU, bbpu | RTC_BBPU_KEY | RTC_BBPU_RELOAD);
@@ -121,11 +119,10 @@ u16 rtc_get_frequency_meter(u16 val, u16 measure_src, u16 window_size)
 	rtc_write(PMIC_RG_FQMTR_CON0, fqmtr_tcksel | PMIC_FQMTR_CON0_FQMTR_EN);
 	udelay(100);
 
-	stopwatch_init_usecs_expire(&sw, FQMTR_TIMEOUT_US);
 	/* FQMTR read until ready */
 	if (!wait_us(FQMTR_TIMEOUT_US,
-		     rtc_read(PMIC_RG_FQMTR_CON0, &fqmtr_busy) == 0 &&
-		     !(fqmtr_busy & PMIC_FQMTR_CON0_BUSY))) {
+		     !((rtc_read(PMIC_RG_FQMTR_CON0, &fqmtr_busy),
+			fqmtr_busy) & PMIC_FQMTR_CON0_BUSY))) {
 		rtc_info("get frequency time out: %#x\n", fqmtr_busy);
 		return false;
 	}
@@ -304,7 +301,7 @@ err:
 }
 
 /* Enable RTC bbpu */
-void rtc_bbpu_power_on(void)
+static void rtc_bbpu_power_on(void)
 {
 	u16 bbpu;
 	int ret;

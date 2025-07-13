@@ -4,7 +4,7 @@ This page describes how to run coreboot on the Supermicro [X9SAE] and [X9SAE-V]
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+----------------+
 | Type                | Value          |
 +=====================+================+
@@ -81,7 +81,7 @@ seems that it shall not appear on X9SAE even if it is defined.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | Northbridge      | :doc:`../../northbridge/intel/sandybridge/index` |
 +------------------+--------------------------------------------------+
@@ -104,5 +104,5 @@ seems that it shall not appear on X9SAE even if it is defined.
 [X9SAE]: https://www.supermicro.com/products/motherboard/xeon/c216/x9sae.cfm
 [X9SAE-V]:  https://www.supermicro.com/products/motherboard/xeon/c216/x9sae-v.cfm
 [W25Q128FVSG]: https://static.chipdip.ru/lib/093/DOC001093213.pdf
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/
 [flash internally]: ../../tutorial/flashing_firmware/int_flashrom.md

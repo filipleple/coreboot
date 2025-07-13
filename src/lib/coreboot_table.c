@@ -13,6 +13,7 @@
 #include <boardid.h>
 #include <device/device.h>
 #include <drivers/tpm/tpm_ppi.h>
+#include <drivers/option/cfr_frontend.h>
 #include <fmap.h>
 #include <fw_config.h>
 #include <cbfs.h>
@@ -346,6 +347,19 @@ static struct lb_board_config *lb_board_config(struct lb_header *header)
 	return config;
 }
 
+void __weak mb_cfr_setup_menu(struct lb_cfr *cfr_root)
+{
+	cfr_write_setup_menu(cfr_root, NULL);
+}
+
+static void lb_cfr_setup_menu(struct lb_header *header)
+{
+	char *current = (char *)lb_new_record(header);
+	struct lb_cfr *cfr_root = (struct lb_cfr *)current;
+
+	mb_cfr_setup_menu(cfr_root);
+}
+
 #if CONFIG(USE_OPTION_TABLE)
 static struct cmos_checksum *lb_cmos_checksum(struct lb_header *header)
 {
@@ -387,7 +401,6 @@ static void lb_strings(struct lb_header *header)
 		rec->size = ALIGN_UP(sizeof(*rec) + len + 1, LB_ENTRY_ALIGN);
 		memcpy(rec->string, strings[i].string, len+1);
 	}
-
 }
 
 static void lb_record_version_timestamp(struct lb_header *header)
@@ -492,6 +505,10 @@ static uintptr_t write_coreboot_table(uintptr_t rom_table_end)
 	}
 #endif
 
+	/* Generate CFR entry for setup menus */
+	if (CONFIG(DRIVERS_OPTION_CFR))
+		lb_cfr_setup_menu(head);
+
 	/* Serialize resource map into mem table types (LB_MEM_*) */
 	bootmem_write_memory_table(lb_memory(head));
 
@@ -537,8 +554,16 @@ static uintptr_t write_coreboot_table(uintptr_t rom_table_end)
 	if (CONFIG(SMMSTORE_V2))
 		lb_smmstorev2(head);
 
+	/* Add information about firmware in form suitable for EFI updates. */
+	if (CONFIG(DRIVERS_EFI_FW_INFO))
+		lb_efi_fw_info(head);
+
 	/* Add board-specific table entries, if any. */
 	lb_board(head);
+
+	/* Possibly add UEFI capsules. */
+	if (CONFIG(DRIVERS_EFI_UPDATE_CAPSULES))
+		lb_efi_capsules(head);
 
 	if (CONFIG(CHROMEOS_RAMOOPS))
 		lb_ramoops(head);

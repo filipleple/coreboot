@@ -581,6 +581,11 @@ void add_fw_config_probe(struct bus *bus, const char *field, const char *option)
 	append_fw_config_probe_to_dev(bus->dev, probe);
 }
 
+void probe_unprovisioned_fw_config(struct bus *bus)
+{
+	bus->dev->enable_on_unprovisioned_fw_config = true;
+}
+
 static uint64_t compute_fw_config_mask(const struct fw_config_field_bits *bits)
 {
 	uint64_t mask = 0;
@@ -859,7 +864,7 @@ static struct device *new_device_with_path(struct bus *parent,
 		break;
 
 	case DOMAIN:
-		new_d->path = ".type=DEVICE_PATH_DOMAIN,{.domain={ .domain = 0x%x }}";
+		new_d->path = ".type=DEVICE_PATH_DOMAIN,{.domain={ .domain_id = 0x%x }}";
 		break;
 
 	case GENERIC:
@@ -1260,6 +1265,8 @@ static void pass1(FILE *fil, FILE *head, struct device *ptr, struct device *next
 		fprintf(fil, "\t.sibling = NULL,\n");
 	if (ptr->probe)
 		fprintf(fil, "\t.probe_list = %s_probe_list,\n", ptr->name);
+	fprintf(fil, "\t.enable_on_unprovisioned_fw_config = %d,\n",
+		ptr->enable_on_unprovisioned_fw_config);
 	fprintf(fil, "#if !DEVTREE_EARLY\n");
 	fprintf(fil, "\t.chip_ops = &%s_ops,\n",
 		chip_ins->chip->name_underscore);
@@ -1288,6 +1295,10 @@ static void expose_device_names(FILE *fil, FILE *head, struct device *ptr, struc
 
 	/* Only devices on root bus here. */
 	if (ptr->bustype == PCI && ptr->parent->dev->bustype == DOMAIN) {
+		if (ptr->alias) {
+			fprintf(head, "static const pci_devfn_t _sdev_%s = PCI_DEV(%d, %d, %d);\n",
+				ptr->alias, ptr->parent->dev->path_a, ptr->path_a, ptr->path_b);
+		}
 		fprintf(head, "extern DEVTREE_CONST struct device *const __pci_%d_%02x_%d;\n",
 			ptr->parent->dev->path_a, ptr->path_a, ptr->path_b);
 		fprintf(fil, "DEVTREE_CONST struct device *const __pci_%d_%02x_%d = &%s;\n",
@@ -1303,6 +1314,10 @@ static void expose_device_names(FILE *fil, FILE *head, struct device *ptr, struc
 	}
 
 	if (ptr->bustype == PNP) {
+		if (ptr->alias) {
+			fprintf(head, "static const pnp_devfn_t _sdev_%s = PNP_DEV(0x%02x, 0x%04x);\n",
+				ptr->alias, ptr->path_a, ptr->path_b);
+		}
 		fprintf(head, "extern DEVTREE_CONST struct device *const __pnp_%04x_%02x;\n",
 			ptr->path_a, ptr->path_b);
 		fprintf(fil, "DEVTREE_CONST struct device *const __pnp_%04x_%02x = &%s;\n",
@@ -1775,6 +1790,8 @@ static void update_device(struct device *base_dev, struct device *override_dev)
 	 * to allow an override to remove a probe from the base device.
 	 */
 	base_dev->probe = override_dev->probe;
+	base_dev->enable_on_unprovisioned_fw_config =
+		override_dev->enable_on_unprovisioned_fw_config;
 
 	/* Copy SMBIOS slot information from base device */
 	base_dev->smbios_slot_type = override_dev->smbios_slot_type;
@@ -1888,6 +1905,17 @@ static void generate_outputh(FILE *f, const char *fw_conf_header, const char *de
 	fprintf(f, "#include <%s>\n", fw_conf_header);
 	fprintf(f, "#include <%s>\n\n", device_header);
 
+	fprintf(f, "/* Returns pointer to config structure of root device (B:D:F = 0:00:0) */\n");
+	fprintf(f, "#define config_of_soc() __pci_0_00_0_config\n\n");
+
+	fprintf(f, "/* Macro to generate `struct device *` name that points to a device with the given alias. */\n");
+	fprintf(f, "#define DEV_PTR(_alias) \t_dev_##_alias##_ptr\n\n");
+
+	fprintf(f, "/* Macro to generate weak `struct device *` definition that points to a device with the given\n");
+	fprintf(f, "   alias. */\n");
+	fprintf(f, "#define WEAK_DEV_PTR(_alias)\t\t\t\\\n");
+	fprintf(f, "\t__weak DEVTREE_CONST struct device *const DEV_PTR(_alias)\n");
+
 	fprintf(f, "\n#endif /* __STATIC_DEVICE_TREE_H */\n");
 }
 
@@ -1917,6 +1945,8 @@ static void generate_outputd(FILE *gen, FILE *dev)
 {
 	fprintf(dev, "#ifndef __STATIC_DEVICES_H\n");
 	fprintf(dev, "#define __STATIC_DEVICES_H\n\n");
+	fprintf(dev, "#include <device/pci_type.h>\n");
+	fprintf(dev, "#include <device/pnp_type.h>\n");
 	fprintf(dev, "#include <device/device.h>\n\n");
 	fprintf(dev, "/* expose_device_names */\n");
 	walk_device_tree(gen, dev, &base_root_dev, expose_device_names);
@@ -1971,25 +2001,25 @@ int main(int argc, char **argv)
 				  &option_index)) != EOF) {
 		switch (opt) {
 		case 'm':
-			base_devtree = strdup(optarg);
+			base_devtree = optarg;
 			break;
 		case 'o':
-			override_devtree = strdup(optarg);
+			override_devtree = optarg;
 			break;
 		case 'p':
-			chipset_devtree = strdup(optarg);
+			chipset_devtree = optarg;
 			break;
 		case 'c':
-			outputc = strdup(optarg);
+			outputc = optarg;
 			break;
 		case 'r':
-			outputh = strdup(optarg);
+			outputh = optarg;
 			break;
 		case 'd':
-			outputd = strdup(optarg);
+			outputd = optarg;
 			break;
 		case 'f':
-			outputf = strdup(optarg);
+			outputf = optarg;
 			break;
 		case 'h':
 		default:

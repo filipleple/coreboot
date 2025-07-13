@@ -6,18 +6,15 @@ config SOC_INTEL_SKYLAKE_SP
 	select PLATFORM_USES_FSP2_0
 	select NO_FSP_TEMP_RAM_EXIT
 	select UDK_202005_BINDING
+	select HAVE_X86_64_SUPPORT
+	select USE_X86_64_SUPPORT
 	help
 	  Intel Skylake-SP support
 
 if SOC_INTEL_SKYLAKE_SP
 
-config MAINBOARD_USES_FSP2_0
-	  bool
-	  default y
-
 config FSP_HEADER_PATH
 	  string "Location of FSP headers"
-	  depends on MAINBOARD_USES_FSP2_0
 	  default "src/vendorcode/intel/fsp/fsp2_0/skylake_sp"
 
 config MAX_SOCKET
@@ -29,6 +26,10 @@ config MAX_SOCKET
 config MAX_CPUS
 	int
 	default 80
+
+config CPU_BCLK_MHZ
+	int
+	default 100
 
 config PCR_BASE_ADDRESS
 	hex
@@ -63,9 +64,5 @@ config IED_REGION_SIZE
 config IFD_CHIPSET
 	string
 	default "lbg"
-
-config XEON_SP_HAVE_IIO_IOAPIC
-	bool
-	default y
 
 endif

@@ -12,17 +12,7 @@
 DEFINE_BIT(SAMPL_CK_POL, 0)
 DEFINE_BITFIELD(SAMPL_CK_DLY, 3, 1)
 
-/* PMIF, SPI_MODE_CTRL */
-DEFINE_BIT(SPI_MODE_CTRL, 7)
-DEFINE_BIT(SRVOL_EN, 11)
-DEFINE_BIT(SPI_MODE_EXT_CMD, 12)
-DEFINE_BIT(SPI_EINT_MODE_GATING_EN, 13)
-
-/* PMIF, SLEEP_PROTECTION_CTRL */
-DEFINE_BITFIELD(SPM_SLEEP_REQ_SEL, 1, 0)
-DEFINE_BITFIELD(SCP_SLEEP_REQ_SEL, 10, 9)
-
-__weak void pmif_spmi_config(struct pmif *arb, int mstid)
+__weak void pmif_spmi_config(struct pmif *arb)
 {
 	/* Do nothing. */
 }
@@ -48,37 +38,40 @@ static int spmi_read_check(struct pmif *pmif_arb, int slvid)
 	return 0;
 }
 
-static int spmi_cali_rd_clock_polarity(struct pmif *pmif_arb, const struct spmi_device *dev)
+static int spmi_cali_rd_clock_polarity(struct pmif *pmif_arb)
 {
-	int i;
-	bool success = false;
+	int i, j;
 	const struct cali cali_data[] = {
+		{SPMI_CK_DLY_1T, SPMI_CK_POL_NEG},
 		{SPMI_CK_DLY_1T, SPMI_CK_POL_POS},
 		{SPMI_CK_NO_DLY, SPMI_CK_POL_POS},
 		{SPMI_CK_NO_DLY, SPMI_CK_POL_NEG},
-		{SPMI_CK_DLY_1T, SPMI_CK_POL_NEG},
 	};
 
 	/* Indicate sampling clock polarity, 1: Positive 0: Negative */
 	for (i = 0; i < ARRAY_SIZE(cali_data); i++) {
-		SET32_BITFIELDS(&mtk_spmi_mst->mst_sampl, SAMPL_CK_DLY, cali_data[i].dly,
-				SAMPL_CK_POL, cali_data[i].pol);
-		if (spmi_read_check(pmif_arb, dev->slvid) == 0) {
-			success = true;
-			break;
+		bool success = true;
+		SET32_BITFIELDS(&mtk_spmi_mst->mst_sampl, SAMPL_CK_DLY,
+				cali_data[i].dly, SAMPL_CK_POL, cali_data[i].pol);
+		for (j = 0; j < spmi_dev_cnt(); j++) {
+			if (spmi_read_check(pmif_arb, spmi_dev[j].slvid) != 0) {
+				success = false;
+				break;
+			}
+		}
+		if (success) {
+			printk(BIOS_INFO, "calibration success for spmi clk: "
+			       "cali_data[%d] dly = %u, pol = %u\n",
+			       i, cali_data[i].dly, cali_data[i].pol);
+			return 0;
 		}
 	}
 
-	if (!success)
-		die("ERROR - calibration fail for spmi clk");
-
-	return 0;
+	return -E_NODEV;
 }
 
 static int spmi_mst_init(struct pmif *pmif_arb)
 {
-	size_t i;
-
 	if (!pmif_arb) {
 		printk(BIOS_ERR, "%s: null pointer for pmif dev.\n", __func__);
 		return -E_INVAL;
@@ -88,49 +81,27 @@ static int spmi_mst_init(struct pmif *pmif_arb)
 		pmif_spmi_iocfg();
 	spmi_config_master();
 
-	for (i = 0; i < spmi_dev_cnt; i++)
-		spmi_cali_rd_clock_polarity(pmif_arb, &spmi_dev[i]);
+	if (spmi_cali_rd_clock_polarity(pmif_arb) != 0)
+		die("ERROR - calibration fail for spmi clk");
 
 	return 0;
 }
 
-static void pmif_spmi_force_normal_mode(int mstid)
+static void pmif_spmi_enable_swinf(struct pmif *arb)
 {
-	struct pmif *arb = get_pmif_controller(PMIF_SPMI, mstid);
-
-	/* listen srclken_0 only for entering normal or sleep mode */
-	SET32_BITFIELDS(&arb->mtk_pmif->spi_mode_ctrl,
-			SPI_MODE_CTRL, 0,
-			SRVOL_EN, 0,
-			SPI_MODE_EXT_CMD, 1,
-			SPI_EINT_MODE_GATING_EN, 1);
-
-	/* enable spm/scp sleep request */
-	SET32_BITFIELDS(&arb->mtk_pmif->sleep_protection_ctrl, SPM_SLEEP_REQ_SEL, 0,
-			SCP_SLEEP_REQ_SEL, 0);
-}
-
-static void pmif_spmi_enable_swinf(int mstid)
-{
-	struct pmif *arb = get_pmif_controller(PMIF_SPMI, mstid);
-
 	write32(&arb->mtk_pmif->inf_en, PMIF_SPMI_SW_CHAN);
 	write32(&arb->mtk_pmif->arb_en, PMIF_SPMI_SW_CHAN);
 }
 
-static void pmif_spmi_enable_cmdIssue(int mstid, bool en)
+static void pmif_spmi_enable_cmdIssue(struct pmif *arb, bool en)
 {
-	struct pmif *arb = get_pmif_controller(PMIF_SPMI, mstid);
-
 	/* Enable cmdIssue */
 	write32(&arb->mtk_pmif->cmdissue_en, en);
 }
 
-static void pmif_spmi_enable(int mstid)
+static void pmif_spmi_enable(struct pmif *arb)
 {
-	struct pmif *arb = get_pmif_controller(PMIF_SPMI, mstid);
-
-	pmif_spmi_config(arb, mstid);
+	pmif_spmi_config(arb);
 
 	/*
 	 * set bytecnt max limitation.
@@ -160,12 +131,12 @@ static void pmif_spmi_enable(int mstid)
 
 int pmif_spmi_init(struct pmif *arb)
 {
-	if (arb->is_pmif_init_done(arb) != 0) {
-		pmif_spmi_force_normal_mode(arb->mstid);
-		pmif_spmi_enable_swinf(arb->mstid);
-		pmif_spmi_enable_cmdIssue(arb->mstid, true);
-		pmif_spmi_enable(arb->mstid);
-		if (arb->is_pmif_init_done(arb))
+	if (arb->check_init_done(arb) != 0) {
+		pmif_spmi_force_normal_mode(arb);
+		pmif_spmi_enable_swinf(arb);
+		pmif_spmi_enable_cmdIssue(arb, true);
+		pmif_spmi_enable(arb);
+		if (arb->check_init_done(arb))
 			return -E_NODEV;
 	}
 

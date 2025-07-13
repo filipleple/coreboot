@@ -11,6 +11,8 @@ static const struct pad_config override_gpio_table[] = {
 	PAD_CFG_GPI(GPP_A7, NONE, DEEP),
 	/* A8  : GPP_A8 ==> WWAN_RF_DISABLE_ODL */
 	PAD_CFG_GPO(GPP_A8, 1, DEEP),
+	/* A11 : GPP_A11 ==> EN_SPK_PA */
+	PAD_CFG_GPO(GPP_A11, 0, DEEP),
 	/* A18 : NC ==> HDMI_HPD_SRC*/
 	PAD_CFG_NF(GPP_A18, NONE, DEEP, NF1),
 
@@ -50,6 +52,8 @@ static const struct pad_config override_gpio_table[] = {
 	PAD_CFG_GPO_LOCK(GPP_F11, 1, LOCK_CONFIG),
 	/* F12 : GSXDOUT ==> WWAN_RST_L */
 	PAD_CFG_GPO_LOCK(GPP_F12, 1, LOCK_CONFIG),
+	/* F15 : GSXSRESET# ==> SOC_PEN_DETECT_ODL */
+	PAD_CFG_GPI_SCI_HIGH(GPP_F15, NONE, PLTRST, EDGE_BOTH),
 	/* F18 : THC1_SPI2_INT# ==> EN_PP2800_AFVDD */
 	PAD_CFG_GPO(GPP_F18, 0, DEEP),
 	/* F23 : V1P05_CTRL ==> NC*/
@@ -69,6 +73,9 @@ static const struct pad_config override_gpio_table[] = {
 	PAD_NC_LOCK(GPP_R6, NONE, LOCK_CONFIG),
 	/* R7 : DMIC_DATA_1A ==> NC */
 	PAD_NC_LOCK(GPP_R7, NONE, LOCK_CONFIG),
+
+	/* E19 : DDP1_CTRLDATA ==> GPP_E19_STRAP */
+	PAD_CFG_GPI_LOCK(GPP_E19, DN_20K, LOCK_CONFIG),
 
 	/* Configure the virtual CNVi Bluetooth I2S GPIO pads */
 	/* BT_I2S_BCLK */
@@ -119,6 +126,8 @@ static const struct pad_config early_gpio_table[] = {
 	PAD_CFG_NF(GPP_H10, NONE, DEEP, NF2),
 	/* H11 : UART0_TXD ==> UART_SOC_TX_DBG_RX */
 	PAD_CFG_NF(GPP_H11, NONE, DEEP, NF2),
+	/* E19 : DDP1_CTRLDATA ==> GPP_E19_STRAP */
+	PAD_CFG_GPI_LOCK(GPP_E19, DN_20K, LOCK_CONFIG),
 };
 
 static const struct pad_config romstage_gpio_table[] = {

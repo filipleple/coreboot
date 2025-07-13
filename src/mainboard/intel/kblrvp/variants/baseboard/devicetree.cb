@@ -1,8 +1,8 @@
 chip soc/intel/skylake
 
 	# Enable deep Sx states
-	register "deep_s5_enable_ac" = "0"
-	register "deep_s5_enable_dc" = "0"
+	register "deep_s5_enable_ac" = "false"
+	register "deep_s5_enable_dc" = "false"
 	register "deep_sx_config" = "DSX_EN_LAN_WAKE_PIN"
 
 	# GPE configuration
@@ -13,11 +13,8 @@ chip soc/intel/skylake
 	register "gpe0_dw1" = "GPP_D"
 	register "gpe0_dw2" = "GPP_E"
 
-	# EC host command ranges are in 0x800-0x8ff & 0x200-0x20f
-	register "gen1_dec" = "0x00fc0801"
-
 	# Enable DPTF
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# FSP Configuration
 	register "IoBufferOwnership" = "0"
@@ -109,7 +106,6 @@ chip soc/intel/skylake
 	# Send an extra VR mailbox command for the PS4 exit issue
 	register "SendVrMbxCmd" = "2"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		device ref igpu		on  end
 		device ref sa_thermal	on  end
@@ -128,6 +124,10 @@ chip soc/intel/skylake
 		device ref emmc		on  end
 		device ref sdxc		on  end
 		device ref smbus	on  end
+		device ref lpc_espi	on
+			# EC host command ranges are in 0x800-0x8ff & 0x200-0x20f
+			register "gen1_dec" = "0x00fc0801"
+		end
 		device ref fast_spi	on  end
 	end
 end

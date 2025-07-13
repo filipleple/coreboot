@@ -8,23 +8,39 @@
 #include <southbridge/intel/common/pmbase.h>
 
 #include "pch.h"
+#include "chip.h"
 
-void early_usb_init(const struct southbridge_usb_port *portmap)
+void early_usb_init(void)
 {
 	u32 reg32;
 	const u32 rcba_dump[8] = {
 		/* 3560 */ 0x024c8001, 0x000024a3, 0x00040002, 0x01000050,
 		/* 3570 */ 0x02000772, 0x16000f9f, 0x1800ff4f, 0x0001d630,
 	};
+	/* Care should be taken to limit this array to not more than 80 (0x50) entries.
+	 * See below. */
 	const u32 currents[] = { USBIR_TXRX_GAIN_MOBILE_LOW, USBIR_TXRX_GAIN_DEFAULT,
 				 USBIR_TXRX_GAIN_HIGH, 0x20000f51, 0x2000094a, 0x2000035f,
-				 USBIR_TXRX_GAIN_DESKTOP_LOW, 0x20000357, 0x20000353 };
+				 USBIR_TXRX_GAIN_DESKTOP6_LOW, USBIR_TXRX_GAIN_DESKTOP6_HIGH,
+				 USBIR_TXRX_GAIN_DESKTOP7_LOW, USBIR_TXRX_GAIN_DESKTOP7_MED,
+				 0x20000053, 0x2000055f, 0x20000f5f};
+	const struct device *dev = pcidev_on_root(0x1d, 0);
+	const struct southbridge_intel_bd82x6x_config *config = dev->chip_info;
+	const struct southbridge_usb_port *portmap = config->usb_port_config;
 	int i;
 
 	/* Unlock registers.  */
 	write_pmbase16(UPRWC, read_pmbase16(UPRWC) | UPRWC_WR_EN);
 
 	for (i = 0; i < 14; i++) {
+		/*
+		 * If the value from devicetree is beyond the highest possible current map
+		 * index, it is meant to go directly into (bottom 12 bits of) USBIRx.
+		 */
+		if (portmap[i].current >= ARRAY_SIZE(currents)) {
+			RCBA32(USBIR0 + 4 * i) = 0x20000000 | (portmap[i].current & 0xfff);
+			continue;
+		}
 		if (portmap[i].enabled && !pch_is_mobile() &&
 		    currents[portmap[i].current] == USBIR_TXRX_GAIN_MOBILE_LOW) {
 			/*

@@ -11,30 +11,6 @@ Scope (\_SB.PCI0.LPCB)
 		Name (_GPE, CONFIG_EC_GPE_SCI)
 		Name (ECAV, 0x00)
 		Name (ECTK, 0x01)
-		Name (B2ST, 0x00)
-		Name (CFAN, 0x00)
-		Name (CMDR, 0x00)
-		Name (DOCK, 0x00)
-		Name (PLMX, 0x00)
-		Name (PECH, 0x00)
-		Name (PECL, 0x00)
-		Name (PENV, 0x00)
-		Name (PINV, 0x00)
-		Name (PPSH, 0x00)
-		Name (PPSL, 0x00)
-		Name (PSTP, 0x00)
-		Name (RPWR, 0x00)
-		Name (VPWR, 0x00)
-		Name (WTMS, 0x00)
-		Name (AWT2, 0x00)
-		Name (AWT1, 0x00)
-		Name (AWT0, 0x00)
-		Name (DLED, 0x00)
-		Name (SPT2, 0x00)
-		Name (PB10, 0x00)
-		Name (IWCW, 0x00)
-		Name (IWCR, 0x00)
-		Name (PVOL, 0x00)
 		Mutex (ECMT, 0x00)
 
 		Name (BFFR, ResourceTemplate()
@@ -134,9 +110,16 @@ Scope (\_SB.PCI0.LPCB)
 		}
 
 		#include "ac.asl"
+#if CONFIG(SYSTEM_TYPE_LAPTOP) || CONFIG(SYSTEM_TYPE_DETACHABLE)
 		#include "battery.asl"
-		#include "events.asl"
 		#include "lid.asl"
+#endif
+#if !CONFIG(EC_STARLABS_MERLIN)
+		#include "events.asl"
+#endif
+#if CONFIG(SYSTEM_TYPE_DETACHABLE)
+		#include "dock.asl"
+#endif
 
 		Method (_REG, 2, NotSerialized)
 		{
@@ -146,10 +129,10 @@ Scope (\_SB.PCI0.LPCB)
 				ECAV = 0x01
 
 				// Initialise the Lid State
-				\LIDS = LSTE
+				\LIDS = ECRD(RefOf(LSTE))
 
 				// Initialise the OS State
-				OSFG = 0x01
+				ECWR(0x01, RefOf(OSFG))
 
 				// Initialise the Power State
 				PWRS = (ECRD (RefOf(ECPS)) & 0x01)

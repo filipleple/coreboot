@@ -90,13 +90,23 @@ show_coreboot: | files_added
 .PHONY: show_notices
 show_notices:: | show_coreboot
 
+# This rule allows the site-local makefile to run before starting the actual
+# coreboot build. It should not be used in the regular coreboot makefiles.
+# Note: This gets run after the immediate makefile code like updating the
+# submodules, but before any other targets.
+.PHONY: site-local-target
+site-local-target::
+
 #######################################################################
 # our phony targets
 PHONY+= clean-abuild coreboot check-style build_complete
 
 #######################################################################
 # root source directories of coreboot
-subdirs-y := src/lib src/commonlib/ src/console src/device src/acpi src/superio/common
+# site-local Makefile.mk must go first to override default locations (for binaries etc.)
+subdirs-y := site-local
+
+subdirs-y += src/lib src/commonlib/ src/console src/device src/acpi src/superio/common
 subdirs-$(CONFIG_EC_ACPI) += src/ec/intel
 subdirs-y += src/ec/acpi $(wildcard src/ec/*/*) $(wildcard src/southbridge/*/*)
 subdirs-y += $(wildcard src/soc/*) $(wildcard src/soc/*/common) $(filter-out $(wildcard src/soc/*/common),$(wildcard src/soc/*/*))
@@ -112,8 +122,6 @@ subdirs-y += src/mainboard/$(MAINBOARDDIR)
 subdirs-y += src/security
 subdirs-y += payloads payloads/external
 subdirs-$(CONFIG_SBOM) += src/sbom
-
-subdirs-y += site-local
 subdirs-y += util/checklist util/testing
 
 #######################################################################
@@ -170,7 +178,7 @@ _int-multiply2=$(shell expr $(call _toint,$1) \* $(call _toint,$2))
 int-multiply=$(if $(filter 1,$(words $1)),$(strip $1),$(call int-multiply,$(call _int-multiply2,$(word 1,$1),$(word 2,$1)) $(wordlist 3,$(words $1),$1)))
 int-divide=$(if $(filter 1,$(words $1)),$(strip $1),$(shell expr $(call _toint,$(word 1,$1)) / $(call _toint,$(word 2,$1))))
 int-remainder=$(if $(filter 1,$(words $1)),$(strip $1),$(shell expr $(call _toint,$(word 1,$1)) % $(call _toint,$(word 2,$1))))
-int-shift-left=$(shell echo "$(call _toint,$(word 1, $1)) * (2 ^ $(call _toint,$(word 2, $1)))" | bc)
+int-shift-left=$(shell echo -n $$(($(call _toint,$(word 1, $1)) << $(call _toint,$(word 2, $1)))))
 int-lt=$(if $(filter 1,$(words $1)),$(strip $1),$(shell expr $(call _toint,$(word 1,$1)) \< $(call _toint,$(word 2,$1))))
 int-gt=$(if $(filter 1,$(words $1)),$(strip $1),$(shell expr $(call _toint,$(word 1,$1)) \> $(call _toint,$(word 2,$1))))
 int-eq=$(if $(filter 1,$(words $1)),$(strip $1),$(shell expr $(call _toint,$(word 1,$1)) = $(call _toint,$(word 2,$1))))
@@ -298,11 +306,8 @@ define asl_template
 $(CONFIG_CBFS_PREFIX)/$(1).aml-file = $(obj)/$(1).aml
 $(CONFIG_CBFS_PREFIX)/$(1).aml-type = raw
 $(CONFIG_CBFS_PREFIX)/$(1).aml-compression = none
-ifeq ($(CONFIG_SOC_AMD_COMMON_BLOCK_LPC_SPI_DMA),y)
-$(CONFIG_CBFS_PREFIX)/$(1).aml-align = 64
-endif
 cbfs-files-$(if $(2),$(2),y) += $(CONFIG_CBFS_PREFIX)/$(1).aml
--include $(obj)/$(1).d
+$(eval DEPENDENCIES += $(obj)/$(1).d)
 $(obj)/$(1).aml: $(src)/mainboard/$(MAINBOARDDIR)/$(1).asl $(obj)/config.h
 	@printf "    IASL       $$(subst $(top)/,,$$(@))\n"
 	$(CC_ramstage) -x assembler-with-cpp -E -MMD -MT $$(@) $$(CPPFLAGS_ramstage) -D__ACPI__ -P -include $(src)/include/kconfig.h -I$(obj) -I$(src) -I$(src)/include -I$(src)/arch/$(ARCHDIR-$(ARCH-ramstage-y))/include -I$(src)/mainboard/$(MAINBOARDDIR) $$< -o $(obj)/$(1).asl
@@ -365,8 +370,9 @@ endef
 cbfs-files-processor-struct= \
 	$(eval $(2): $(1) $(obj)/build.h $(obj)/fmap_config.h $(KCONFIG_AUTOHEADER); \
 		printf "    CC+STRIP   $(1)\n"; \
-		$(CC_ramstage) -MMD $(CPPFLAGS_ramstage) $(CFLAGS_ramstage) --param asan-globals=0 $$(ramstage-c-ccopts) -include $(KCONFIG_AUTOHEADER) -MT $(2) -o $(2).tmp -c $(1) && \
-		$(OBJCOPY_ramstage) -O binary --only-section='.data*' --only-section='.bss*' --set-section-flags .bss*=alloc,contents,load $(2).tmp $(2); \
+		$(CC_ramstage) -MMD $(CPPFLAGS_ramstage) $(CFLAGS_ramstage) -fno-lto --param asan-globals=0 $$(ramstage-c-ccopts) -include $(KCONFIG_AUTOHEADER) -MT $(2) -o $(2).tmp -c $(1) && \
+		$(OBJCOPY_ramstage) -O binary --only-section='.*data*' --only-section='.*bss*' \
+		--set-section-flags .*bss*=alloc,contents,load $(2).tmp $(2); \
 		rm -f $(2).tmp) \
 	$(eval DEPENDENCIES += $(2).d)
 
@@ -473,7 +479,11 @@ COREBOOT_EXTRA_VERSION := -$(call strip_quotes,$(CONFIG_LOCALVERSION))
 COREBOOT_EXPORTS += COREBOOT_EXTRA_VERSION
 endif
 
-CPPFLAGS_common := -Isrc -Isrc/include -Isrc/commonlib/include -Isrc/commonlib/bsd/include -I$(obj)
+CPPFLAGS_common := -Isrc
+CPPFLAGS_common += -Isrc/include
+CPPFLAGS_common += -Isrc/commonlib/include
+CPPFLAGS_common += -Isrc/commonlib/bsd/include
+CPPFLAGS_common += -I$(obj)
 VBOOT_SOURCE ?= 3rdparty/vboot
 CPPFLAGS_common += -I$(VBOOT_SOURCE)/firmware/include
 CPPFLAGS_common += -include $(src)/include/kconfig.h
@@ -491,30 +501,69 @@ ifeq ($(CONFIG_PCI_OPTION_ROM_RUN_YABEL)$(CONFIG_PCI_OPTION_ROM_RUN_REALMODE),y)
 CPPFLAGS_ramstage += -Isrc/device/oprom/include
 endif
 
-CFLAGS_common += -pipe -g -nostdinc -std=gnu11
-CFLAGS_common += -nostdlib -Wall -Wundef -Wstrict-prototypes -Wmissing-prototypes
-CFLAGS_common += -Wwrite-strings -Wredundant-decls -Wno-trigraphs -Wimplicit-fallthrough
-CFLAGS_common += -Wshadow -Wdate-time -Wtype-limits -Wvla -Wold-style-definition
-CFLAGS_common += -Wdangling-else -Wmissing-include-dirs
-CFLAGS_common += -fno-common -ffreestanding -fno-builtin -fomit-frame-pointer
-CFLAGS_common += -fstrict-aliasing -ffunction-sections -fdata-sections -fno-pie
+CFLAGS_common += -pipe
+CFLAGS_common += -g
+CFLAGS_common += -nostdinc
+CFLAGS_common += -std=gnu11
+CFLAGS_common += -nostdlib
+CFLAGS_common += -Wall
+CFLAGS_common += -Wundef
+CFLAGS_common += -Wstrict-prototypes
+CFLAGS_common += -Wmissing-prototypes
+CFLAGS_common += -Wwrite-strings
+CFLAGS_common += -Wredundant-decls
+CFLAGS_common += -Wimplicit-fallthrough
+CFLAGS_common += -Wshadow
+CFLAGS_common += -Wdate-time
+CFLAGS_common += -Wtype-limits
+CFLAGS_common += -Wvla
+CFLAGS_common += -Wold-style-definition
+CFLAGS_common += -Wdangling-else
+CFLAGS_common += -Wmissing-include-dirs
+CFLAGS_common += -fno-common
+CFLAGS_common += -ffreestanding
+CFLAGS_common += -fno-builtin
+CFLAGS_common += -fomit-frame-pointer
+CFLAGS_common += -fstrict-aliasing
+CFLAGS_common += -ffunction-sections
+CFLAGS_common += -fdata-sections
+CFLAGS_common += -fno-pie
+CFLAGS_common += -Wstring-compare
 ifeq ($(CONFIG_COMPILER_GCC),y)
 CFLAGS_common += -Wold-style-declaration
-# Don't add these GCC specific flags when running scan-build
-ifeq ($(CCC_ANALYZER_OUTPUT_FORMAT),)
+CFLAGS_common += -Wcast-function-type
+# Don't add these GCC specific flags when running clang-tidy
+ifeq ($(CLANG_TIDY),)
 CFLAGS_common += -Wno-packed-not-aligned
 CFLAGS_common += -fconserve-stack
 CFLAGS_common += -Wnull-dereference
-CFLAGS_common += -Wlogical-op -Wduplicated-cond -Wno-array-compare
+CFLAGS_common += -Wlogical-op
+CFLAGS_common += -Wduplicated-cond
+CFLAGS_common += -Wno-array-compare
+endif
+endif
+
+ifeq ($(CONFIG_LTO),y)
+CFLAGS_common += -flto
+# Clang can not deal with GCC lto objects
+ifeq ($(CONFIG_COMPILER_GCC),y)
+ADAFLAGS_common += -flto
 endif
 endif
 
 ADAFLAGS_common += -gnatp
-ADAFLAGS_common += -Wuninitialized -Wall -Werror
-ADAFLAGS_common += -pipe -g -nostdinc
-ADAFLAGS_common += -Wstrict-aliasing -Wshadow
-ADAFLAGS_common += -fno-common -fomit-frame-pointer
-ADAFLAGS_common += -ffunction-sections -fdata-sections
+ADAFLAGS_common += -Wuninitialized
+ADAFLAGS_common += -Wall
+ADAFLAGS_common += -Werror
+ADAFLAGS_common += -pipe
+ADAFLAGS_common += -g
+ADAFLAGS_common += -nostdinc
+ADAFLAGS_common += -Wstrict-aliasing
+ADAFLAGS_common += -Wshadow
+ADAFLAGS_common += -fno-common
+ADAFLAGS_common += -fomit-frame-pointer
+ADAFLAGS_common += -ffunction-sections
+ADAFLAGS_common += -fdata-sections
 ADAFLAGS_common += -fno-pie
 # Ada warning options:
 #
@@ -554,7 +603,11 @@ ADAFLAGS_common += -gnatwa.eeD.HHTU.U.W.Y
 # Disable style checks for now
 ADAFLAGS_common += -gnatyN
 
-LDFLAGS_common := --gc-sections -nostdlib --nmagic -static
+LDFLAGS_common := --gc-sections
+LDFLAGS_common += -nostdlib
+LDFLAGS_common += --nmagic
+LDFLAGS_common += -static
+LDFLAGS_common += -z noexecstack
 
 # Workaround for RISC-V linker bug, merge back into above line when fixed.
 # https://sourceware.org/bugzilla/show_bug.cgi?id=27180
@@ -579,7 +632,7 @@ endif
 
 additional-dirs += $(objutil)/cbfstool $(objutil)/ifdtool \
 		   $(objutil)/options $(objutil)/amdfwtool \
-		   $(objutil)/cbootimage
+		   $(objutil)/cbootimage $(objutil)/ffs
 
 export $(COREBOOT_EXPORTS)
 
@@ -621,6 +674,8 @@ IFITTOOL:=$(objutil)/cbfstool/ifittool
 AMDCOMPRESS:=$(objutil)/cbfstool/amdcompress
 CSE_FPT:=$(objutil)/cbfstool/cse_fpt
 CSE_SERGER:=$(objutil)/cbfstool/cse_serger
+ECCTOOL:=$(objutil)/ffs/ecc/ecc
+CREATE_CONTAINER:=$(objutil)/open-power-signing-utils/create-container
 
 $(obj)/cbfstool: $(CBFSTOOL)
 	cp $< $@
@@ -661,6 +716,18 @@ IFDTOOL:=$(objutil)/ifdtool/ifdtool
 
 AMDFWTOOL:=$(objutil)/amdfwtool/amdfwtool
 AMDFWREAD:=$(objutil)/amdfwtool/amdfwread
+
+$(ECCTOOL):
+	@printf "    Compile ECCTOOL\n"
+	cp -r $(top)/3rdparty/ffs $(objutil)
+	cd $(objutil)/ffs && autoreconf -i && ./configure
+	$(MAKE) -C $(objutil)/ffs
+
+$(CREATE_CONTAINER):
+	@printf "    Compile Open-Power SecureBoot Signing Utils\n"
+	cp -r $(top)/3rdparty/open-power-signing-utils $(objutil)
+	cd $(objutil)/open-power-signing-utils && autoreconf -i -Wno-unsupported && ./configure
+	$(MAKE) -C $(objutil)/open-power-signing-utils
 
 APCB_EDIT_TOOL:=$(top)/util/apcb/apcb_edit.py
 
@@ -705,6 +772,10 @@ SCONFIG_OPTIONS += --output_d=$(DEVICETREE_DEVICENAMES_H)
 DEVICETREE_FWCONFIG_H := $(obj)/static_fw_config.h
 SCONFIG_OPTIONS += --output_f=$(DEVICETREE_FWCONFIG_H)
 
+# Generated at the same time as static.c
+$(DEVICETREE_STATIC_H): $(DEVICETREE_STATIC_C)
+	true
+
 $(DEVICETREE_STATIC_C): $(DEVICETREE_FILE) $(OVERRIDE_DEVICETREE_FILE) $(CHIPSET_DEVICETREE_FILE) $(objutil)/sconfig/sconfig
 	@printf "    SCONFIG    $(subst $(src)/,,$(<))\n"
 	mkdir -p $(dir $(DEVICETREE_STATIC_C))
@@ -717,13 +788,13 @@ bootblock-y+=$(DEVICETREE_STATIC_C)
 postcar-y+=$(DEVICETREE_STATIC_C)
 smm-y+=$(DEVICETREE_STATIC_C)
 
-# Ensure static.c and static.h are created before any objects are compiled
-ramstage-c-deps+=$(DEVICETREE_STATIC_C)
-romstage-c-deps+=$(DEVICETREE_STATIC_C)
-verstage-c-deps+=$(DEVICETREE_STATIC_C)
-bootblock-c-deps+=$(DEVICETREE_STATIC_C)
-postcar-c-deps+=$(DEVICETREE_STATIC_C)
-smm-c-deps+=$(DEVICETREE_STATIC_C)
+# Ensure static.h is generated before any objects are compiled
+ramstage-c-gen-deps+=$(DEVICETREE_STATIC_H)
+romstage-c-gen-deps+=$(DEVICETREE_STATIC_H)
+verstage-c-gen-deps+=$(DEVICETREE_STATIC_H)
+bootblock-c-gen-deps+=$(DEVICETREE_STATIC_H)
+postcar-c-gen-deps+=$(DEVICETREE_STATIC_H)
+smm-c-gen-deps+=$(DEVICETREE_STATIC_H)
 
 # Ensure fmap_config.h are created before any objects are compiled
 ramstage-c-deps+=$(obj)/fmap_config.h
@@ -772,7 +843,7 @@ install-git-commit-clangfmt:
 include util/crossgcc/Makefile.mk
 
 .PHONY: tools
-tools: $(objutil)/kconfig/conf $(objutil)/kconfig/toada $(CBFSTOOL) $(objutil)/cbfstool/cbfs-compression-tool $(FMAPTOOL) $(RMODTOOL) $(IFWITOOL) $(objutil)/nvramtool/nvramtool $(objutil)/sconfig/sconfig $(IFDTOOL) $(CBOOTIMAGE) $(AMDFWTOOL) $(AMDCOMPRESS) $(FUTILITY) $(BINCFG) $(IFITTOOL) $(objutil)/supermicro/smcbiosinfo $(CSE_FPT) $(CSE_SERGER) $(AMDFWREAD)
+tools: $(objutil)/kconfig/conf $(objutil)/kconfig/toada $(CBFSTOOL) $(objutil)/cbfstool/cbfs-compression-tool $(FMAPTOOL) $(RMODTOOL) $(IFWITOOL) $(objutil)/nvramtool/nvramtool $(objutil)/sconfig/sconfig $(IFDTOOL) $(CBOOTIMAGE) $(AMDFWTOOL) $(AMDCOMPRESS) $(FUTILITY) $(BINCFG) $(IFITTOOL) $(objutil)/supermicro/smcbiosinfo $(CSE_FPT) $(CSE_SERGER) $(AMDFWREAD) $(ECCTOOL) $(CREATE_CONTAINER)
 
 ###########################################################################
 # Common recipes for all stages
@@ -914,7 +985,6 @@ endif
 #
 # CBFSTOOL_ADD_CMD_OPTIONS can be used by arch/SoC/mainboard to supply
 # add commands with any additional arguments for cbfstool.
-# Example: --ext-win-base <base> --ext-win-size <size>
 define cbfs-add-cmd-for-region
 	$(CBFSTOOL) $@.tmp \
 	add$(if $(filter stage,$(call extract_nth,3,$(1))),-stage)$(if \
@@ -1023,10 +1093,8 @@ endif # ifeq($(CONFIG_HAVE_IFD_BIN),y)
 endif # ifneq($(CONFIG_IFD_CHIPSET),)
 
 # entire flash
-FMAP_ROM_ADDR := $(call int-subtract, 0x100000000 $(CONFIG_ROM_SIZE))
 FMAP_ROM_SIZE := $(CONFIG_ROM_SIZE)
 # entire "BIOS" region (everything directly of concern to the host system)
-# relative to ROM_BASE
 FMAP_BIOS_BASE := $(call int-align, $(call int-subtract, $(CONFIG_ROM_SIZE) $(CONFIG_CBFS_SIZE)), 0x10000)
 FMAP_BIOS_SIZE := $(call int-align-down, $(shell echo $(CONFIG_CBFS_SIZE) | tr A-F a-f), 0x10000)
 # position and size of flashmap, relative to BIOS_BASE
@@ -1112,10 +1180,8 @@ else # ifeq ($(CONFIG_ARCH_X86),y)
 
 DEFAULT_FLASHMAP:=$(top)/util/cbfstool/default.fmd
 # entire flash
-FMAP_ROM_ADDR := 0
 FMAP_ROM_SIZE := $(CONFIG_ROM_SIZE)
 # entire "BIOS" region (everything directly of concern to the host system)
-# relative to ROM_BASE
 FMAP_BIOS_BASE := 0
 FMAP_BIOS_SIZE := $(CONFIG_CBFS_SIZE)
 # position and size of flashmap, relative to BIOS_BASE
@@ -1160,8 +1226,7 @@ FMAP_CBFS_SIZE := $(call int-subtract,$(FMAP_BIOS_SIZE) $(FMAP_CBFS_BASE))
 endif # ifeq ($(CONFIG_ARCH_X86),y)
 
 $(obj)/fmap.fmd: $(top)/Makefile.mk $(DEFAULT_FLASHMAP) $(obj)/config.h
-	sed -e "s,##ROM_BASE##,$(FMAP_ROM_ADDR)," \
-	    -e "s,##ROM_SIZE##,$(FMAP_ROM_SIZE)," \
+	sed -e "s,##ROM_SIZE##,$(FMAP_ROM_SIZE)," \
 	    -e "s,##BIOS_BASE##,$(FMAP_BIOS_BASE)," \
 	    -e "s,##BIOS_SIZE##,$(FMAP_BIOS_SIZE)," \
 	    -e "s,##FMAP_BASE##,$(FMAP_FMAP_BASE)," \
@@ -1265,6 +1330,21 @@ ifeq ($(CONFIG_CBFS_VERIFICATION),y)
 	fi
 endif # CONFIG_CBFS_VERIFICATION
 
+LTO_LINK_CFLAGS := -Wno-stack-usage
+
+define link_stage
+# $1 stage name
+ifeq ($(CONFIG_LTO),y)
+$$(objcbfs)/$(1).debug: $$$$($(1)-libs) $$$$($(1)-objs)
+	@printf "    LINK       $$(subst $$(obj)/,,$$(@))\n"
+	$$(CC_$(1)) $$(CPPFLAGS_$(1)) $$(CFLAGS_$(1)) $$(LDFLAGS_$(1):%=-Wl,%) $(LTO_LINK_CFLAGS) -o $$@ -L$$(obj) $$(COMPILER_RT_FLAGS_$(1):%=-Wl,%) -Wl,--whole-archive -Wl,--start-group $$(filter-out %.ld,$$($(1)-objs)) $$($(1)-libs) -Wl,--no-whole-archive $$(COMPILER_RT_$(1)) -Wl,--end-group -T $(call src-to-obj,$(1),$(CONFIG_MEMLAYOUT_LD_FILE))
+else
+$$(objcbfs)/$(1).debug: $$$$($(1)-libs) $$$$($(1)-objs)
+	@printf "    LINK       $$(subst $$(obj)/,,$$(@))\n"
+	$$(LD_$(1)) $$(LDFLAGS_$(1)) -o $$@ -L$$(obj) $$(COMPILER_RT_FLAGS_$(1)) --whole-archive --start-group $$(filter-out %.ld,$$($(1)-objs)) $$($(1)-libs) --no-whole-archive $$(COMPILER_RT_$(1)) --end-group -T $(call src-to-obj,$(1),$(CONFIG_MEMLAYOUT_LD_FILE))
+endif
+endef
+
 ifeq ($(CONFIG_SEPARATE_ROMSTAGE),y)
 cbfs-files-y += $(CONFIG_CBFS_PREFIX)/romstage
 $(CONFIG_CBFS_PREFIX)/romstage-file := $(objcbfs)/romstage.elf
@@ -1274,15 +1354,6 @@ ifeq ($(CONFIG_ARCH_ROMSTAGE_ARM),y)
 $(CONFIG_CBFS_PREFIX)/romstage-options := -b 0
 endif
 ifeq ($(CONFIG_ARCH_ROMSTAGE_X86_32)$(CONFIG_ARCH_ROMSTAGE_X86_64),y)
-# Use a 64 byte alignment to provide a minimum alignment
-# requirement for the overall romstage. While the first object within
-# romstage could have a 4 byte minimum alignment that doesn't mean the linker
-# won't decide the entire section should be aligned to a larger value. In the
-# future cbfstool should add XIP files proper and honor the alignment
-# requirements of the program segment.
-#
-# Make sure that segment for .car.data is ignored while adding romstage.
-$(CONFIG_CBFS_PREFIX)/romstage-align := 64
 ifeq ($(CONFIG_NO_XIP_EARLY_STAGES),y)
 $(CONFIG_CBFS_PREFIX)/romstage-options := -S ".car.data"
 else
@@ -1306,6 +1377,7 @@ $(CONFIG_CBFS_PREFIX)/romstage-options += $(TXTIBB)
 endif
 else # CONFIG_SEPARATE_ROMSTAGE
 postinclude-hooks += $$(eval bootblock-srcs += $$(romstage-srcs))
+postinclude-hooks += $$(eval bootblock-libs += $$(romstage-libs))
 endif
 
 cbfs-files-$(CONFIG_HAVE_RAMSTAGE) += $(CONFIG_CBFS_PREFIX)/ramstage
@@ -1387,7 +1459,7 @@ $(call add_intermediate, check-ramstage-overlaps)
 	        if [ -z $$rstart ]; then rstart=$$(($$y)) ; continue ; fi ; \
 	        rend=$$(($$y)) ; \
 	        if [ $$pstart -lt $$rend -a $$rstart -lt $$pend ]; then \
-	            echo "ERROR: Ramstage region _$$rname overlapped by:" \
+	            echo "ERROR: Ramstage region _$$rname@($$rstart,$$rend) overlapped by($$pstart,$$pend):" \
 	                 $(check-ramstage-overlap-files) ; \
 	            exit 1 ; \
 	        fi ; \

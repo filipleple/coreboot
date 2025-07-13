@@ -23,7 +23,7 @@ static const struct {
 	{0xa13a, 0x8086, "Intel iTPM"}
 };
 
-static const char *tis_get_dev_name(struct tpm2_info *info)
+static const char *tis_get_dev_name(struct crb_tpm_info *info)
 {
 	int i;
 
@@ -36,7 +36,7 @@ static const char *tis_get_dev_name(struct tpm2_info *info)
 static tpm_result_t crb_tpm_sendrecv(const uint8_t *sendbuf, size_t sbuf_size, uint8_t *recvbuf,
 				     size_t *rbuf_len)
 {
-	int len = tpm2_process_command(sendbuf, sbuf_size, recvbuf, *rbuf_len);
+	int len = crb_tpm_process_command(sendbuf, sbuf_size, recvbuf, *rbuf_len);
 
 	if (len == 0)
 		return TPM_CB_FAIL;
@@ -46,18 +46,9 @@ static tpm_result_t crb_tpm_sendrecv(const uint8_t *sendbuf, size_t sbuf_size, u
 	return TPM_SUCCESS;
 }
 
-tis_sendrecv_fn tis_probe(void)
+tis_sendrecv_fn crb_tis_probe(enum tpm_family *family)
 {
-	struct tpm2_info info;
-
-	/* Wake TPM up (if necessary) */
-	if (tpm2_init())
-		return NULL;
-
-	tpm2_get_info(&info);
-
-	printk(BIOS_INFO, "Initialized TPM device %s revision %d\n", tis_get_dev_name(&info),
-	       info.revision);
+	struct crb_tpm_info info;
 
 	if (CONFIG(HAVE_INTEL_PTT)) {
 		if (!ptt_active()) {
@@ -66,6 +57,19 @@ tis_sendrecv_fn tis_probe(void)
 		}
 		printk(BIOS_DEBUG, "%s: Intel PTT is active.\n", __func__);
 	}
+
+	/* Wake TPM up (if necessary) */
+	if (crb_tpm_init())
+		return NULL;
+
+	/* CRB interface exists only in TPM2 */
+	if (family != NULL)
+		*family = TPM_2;
+
+	crb_tpm_get_info(&info);
+
+	printk(BIOS_INFO, "Initialized TPM device %s revision %d\n", tis_get_dev_name(&info),
+	       info.revision);
 
 	return &crb_tpm_sendrecv;
 }
@@ -86,7 +90,10 @@ static void crb_tpm_fill_ssdt(const struct device *dev)
 
 	acpi_device_write_uid(dev);
 
-	acpigen_write_STA(ACPI_STATUS_DEVICE_ALL_ON);
+	if (CONFIG(HAVE_INTEL_PTT) && ptt_active())
+		acpigen_write_STA(ACPI_STATUS_DEVICE_ALL_ON);
+	else
+		acpigen_write_STA(ACPI_STATUS_DEVICE_ALL_OFF);
 
 	/* Resources */
 	acpigen_write_name("_CRS");
@@ -116,7 +123,7 @@ static tpm_result_t tpm_get_cap(uint32_t property, uint32_t *value)
 	if (!value)
 		return TPM_CB_INVALID_ARG;
 
-	rc = tlcl_get_capability(TPM_CAP_TPM_PROPERTIES, property, 1, &cap_data);
+	rc = tlcl2_get_capability(TPM_CAP_TPM_PROPERTIES, property, 1, &cap_data);
 
 	if (rc)
 		return rc;
@@ -133,12 +140,15 @@ static tpm_result_t tpm_get_cap(uint32_t property, uint32_t *value)
 
 static int smbios_write_type43_tpm(struct device *dev, int *handle, unsigned long *current)
 {
-	struct tpm2_info info;
+	struct crb_tpm_info info;
 	uint32_t tpm_manuf, tpm_family;
 	uint32_t fw_ver1, fw_ver2;
 	uint8_t major_spec_ver, minor_spec_ver;
 
-	tpm2_get_info(&info);
+	if (tlcl_get_family() == TPM_1)
+		return 0;
+
+	crb_tpm_get_info(&info);
 
 	/* If any of these have invalid values, assume TPM not present or disabled */
 	if (info.vendor_id == 0 || info.vendor_id == 0xFFFF ||

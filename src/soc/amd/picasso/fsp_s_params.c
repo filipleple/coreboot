@@ -2,11 +2,13 @@
 
 #include <assert.h>
 #include <amdblocks/ioapic.h>
+#include <amdblocks/vbt.h>
 #include <device/pci.h>
 #include <soc/iomap.h>
 #include <soc/pci_devs.h>
 #include <soc/platform_descriptors.h>
 #include <soc/soc_util.h>
+#include <static.h>
 #include <fsp/api.h>
 #include "chip.h"
 
@@ -184,7 +186,12 @@ static void fsp_edp_tuning_upds(FSP_S_CONFIG *scfg,
 
 static void fsp_assign_vbios_upds(FSP_S_CONFIG *scfg)
 {
-	scfg->vbios_buffer_addr = CONFIG(RUN_FSP_GOP) ? PCI_VGA_RAM_IMAGE_START : 0;
+	/*
+	 * The VBIOS contains the ATOMBIOS tables that will be modified as
+	 * part of FSP GOP init. We can delay loading of the VBIOS until
+	 * before FSP notify AFTER_PCI_ENUM.
+	 */
+	scfg->vbios_buffer_addr = (uintptr_t)vbt_get();
 }
 
 void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)

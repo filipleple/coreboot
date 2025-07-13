@@ -30,6 +30,7 @@ romstage-y += gpio.c
 romstage-y += gspi.c
 romstage-y += i2c.c
 romstage-y += me.c
+romstage-y += pcie_rp.c
 romstage-y += pmutil.c
 romstage-y += reset.c
 romstage-y += spi.c
@@ -50,6 +51,7 @@ ramstage-y += lockdown.c
 ramstage-y += lpc.c
 ramstage-y += me.c
 ramstage-y += p2sb.c
+ramstage-y += pcie_rp.c
 ramstage-y += pmc.c
 ramstage-y += pmutil.c
 ramstage-y += reset.c
@@ -108,9 +110,5 @@ endif
 
 CPPFLAGS_common += -I$(src)/soc/intel/skylake
 CPPFLAGS_common += -I$(src)/soc/intel/skylake/include
-
-ifeq ($(CONFIG_BOARD_STARLABS_STARBOOK_ADL) $(CONFIG_BOARD_STARLABS_LABTOP_CML) $(CONFIG_BOARD_STARLABS_STARBOOK_TGL) $(CONFIG_BOARD_OCP_TIOGAPASS),y)
-CPPFLAGS_common += -I3rdparty/blobs/mainboard/$(MAINBOARDDIR)
-endif
 
 endif

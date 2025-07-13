@@ -192,7 +192,9 @@ int print_mchbar(struct pci_dev *nb, struct pci_access *pacc, const char *dump_s
 		mchbar_phys = pci_read_long(nb, 0x48) & 0xfffffffe;
 		mchbar_phys |= ((uint64_t)pci_read_long(nb, 0x4c)) << 32;
 		break;
-	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN:
+	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_D:
+	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_M:
+	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_0048:
 		mchbar_phys = pci_read_long(nb, 0x48);
 		mchbar_phys |= ((uint64_t)pci_read_long(nb, 0x4c)) << 32;
 		mchbar_phys &= 0x0000000fffffc000UL; /* 35:14 */
@@ -238,9 +240,25 @@ int print_mchbar(struct pci_dev *nb, struct pci_access *pacc, const char *dump_s
 		mchbar_phys &= 0x0000007fffff0000UL; /* 38:16 */
 		size = 32768;
 		break;
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_1:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_2:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_3:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_4:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_5:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_6:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_7:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_8:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_9:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_10:
+	case PCI_DEVICE_ID_INTEL_ELKHART_LAKE_11:
+		mchbar_phys = pci_read_long(nb, 0x48);
+		mchbar_phys |= ((uint64_t)pci_read_long(nb, 0x4c)) << 32;
+		mchbar_phys &= 0x0000007fffff0000UL; /* 38:16 */
+		size = 65536;
+		break;
 	default:
 		printf("Error: Dumping MCHBAR on this northbridge is not (yet) supported.\n");
-		printf("Error: Unknown PCI id: %08x/%08x\n", nb->vendor_id, nb->device_id);
+		printf("Error: Unknown PCI id: %04x/%04x\n", nb->vendor_id, nb->device_id);
 		return 1;
 	}
 
@@ -266,7 +284,9 @@ int print_mchbar(struct pci_dev *nb, struct pci_access *pacc, const char *dump_s
 
 	switch (nb->device_id)
 	{
-	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN:
+	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_D:
+	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_M:
+	case PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_0048:
 		printf ("clock_speed_index = %x\n", read_500 (0,0x609, 6) >> 1);
 		dump_timings ();
 		if (dump_spd_file != NULL)

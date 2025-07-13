@@ -83,7 +83,12 @@ void __noreturn prepare_and_run_postcar(void)
 
 static void finalize_load(uintptr_t *reloc_params, uintptr_t mtrr_frame_ptr)
 {
+	/*
+	 * set postcar(rmodule)'s parameter.
+	 * the parameter is defined as post_car_mtrrs in cpu/x86/mtrr/earlymtrr.c
+	 */
 	*reloc_params = mtrr_frame_ptr;
+
 	/*
 	 * Signal to rest of system that another update was made to the
 	 * postcar program prior to running it.
@@ -147,7 +152,8 @@ static void postcar_flush_cache(void)
 	uintptr_t stage_cache_base;
 	size_t stage_cache_size;
 
-	cbmem_get_region((void **)&cbmem_base, &cbmem_size);
+	if (cbmem_get_region((void **)&cbmem_base, &cbmem_size))
+		die("Could not find cbmem region");
 	prog_segment_loaded(cbmem_base, cbmem_size, SEG_FINAL);
 	if (CONFIG(TSEG_STAGE_CACHE) && !romstage_handoff_is_resume()) {
 		stage_cache_external_region((void **)&stage_cache_base, &stage_cache_size);
@@ -181,7 +187,7 @@ static void run_postcar_phase(struct postcar_frame *pcf)
 
 	postcar_flush_cache();
 
-	prog_set_arg(&prog, cbmem_top());
+	prog_set_arg(&prog, (void *)cbmem_top());
 
 	prog_run(&prog);
 }

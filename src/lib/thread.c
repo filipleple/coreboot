@@ -143,7 +143,7 @@ static void terminate_thread(struct thread *t, enum cb_err error)
 	schedule(NULL);
 }
 
-static void asmlinkage call_wrapper(void *unused)
+static asmlinkage void call_wrapper(void *unused)
 {
 	struct thread *current = current_thread();
 	enum cb_err error;
@@ -159,7 +159,7 @@ struct block_boot_state {
 };
 
 /* Block the provided state until thread is complete. */
-static void asmlinkage call_wrapper_block_state(void *arg)
+static asmlinkage void call_wrapper_block_state(void *arg)
 {
 	struct block_boot_state *bbs = arg;
 	struct thread *current = current_thread();
@@ -251,7 +251,7 @@ static void threads_initialize(void)
 
 	set_current_thread(t);
 
-	t->stack_orig = (uintptr_t)NULL; /* We never free the main thread */
+	t->stack_orig = 0; /* We never free the main thread */
 	t->id = 0;
 	t->can_yield = 1;
 

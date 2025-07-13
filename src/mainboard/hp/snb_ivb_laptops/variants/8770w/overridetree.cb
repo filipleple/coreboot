@@ -12,7 +12,7 @@ chip northbridge/intel/sandybridge
 		device ref igd off end
 
 		chip southbridge/intel/bd82x6x # Intel Series 7 Panther Point PCH
-			register "docking_supported" = "0"
+			register "docking_supported" = "false"
 			# mailbox at 0x200/0x201 and PM1 at 0x220
 			register "gen1_dec" = "0x007c0201"
 			register "gen2_dec" = "0x000c0101"
@@ -22,8 +22,23 @@ chip northbridge/intel/sandybridge
 			register "pcie_hotplug_map" = "{ 0, 1, 1, 0, 0, 0, 0, 0 }"
 			register "sata_port_map" = "0x1f"
 			register "superspeed_capable_ports" = "0x0000000f"
-			register "xhci_overcurrent_mapping" = "0x00000c03"
 			register "xhci_switchable_ports"    = "0x0000000f"
+			register "usb_port_config" = "{
+				{1, 1, 0}, /* Dock USB3.0 */
+				{1, 1, 0}, /* Conn */
+				{1, 1, 1}, /* USB 3.0 */
+				{1, 1, 1}, /* USB 3.0 */
+				{1, 0, 2}, /* Express Card */
+				{1, 0, 2}, /* Bluetooth */
+				{0, 0, 3},
+				{1, 0, 3}, /* Smart Card */
+				{1, 1, 4}, /* Fingerprint Reader */
+				{1, 1, 4}, /* Conn (Charger) */
+				{1, 0, 5}, /* Camera */
+				{1, 0, 5}, /* Dock */
+				{1, 0, 6}, /* WWAN */
+				{1, 0, 6}  /* Conn (eSATA Combo) */
+			}"
 
 			device ref xhci on  end
 			device ref pcie_rp1 on  end

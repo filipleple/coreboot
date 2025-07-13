@@ -10,9 +10,6 @@
 #ifndef _EC_STARLABS_GLK_EC_DEFS_H
 #define _EC_STARLABS_GLK_EC_DEFS_H
 
-/* IT8987 chip ID byte values. */
-#define ITE_CHIPID_VAL		0x8987
-
 /* EC RAM offsets. */
 #define ECRAM_TRACKPAD_STATE	0x14
 #define ECRAM_KBL_STATE		0x19
@@ -23,6 +20,8 @@
 #define ECRAM_MAX_CHARGE	dead_code_t(uint8_t)
 #define ECRAM_FAN_MODE		dead_code_t(uint8_t)
 #define ECRAM_FAST_CHARGE	dead_code_t(uint8_t)
-#define ECRAM_MIRROR_FLAG	0x04
+#define ECRAM_CHARGING_SPEED	dead_code_t(uint8_t)
+#define ECRAM_LID_SWITCH	dead_code_t(uint8_t)
+#define ECRAM_POWER_LED		0x1f
 
 #endif

@@ -32,6 +32,10 @@ romstage-$(CONFIG_PLATFORM_USES_FSP2_0) += fsp_relocate.c
 endif
 ramstage-$(CONFIG_PLATFORM_USES_FSP2_0) += fsp_relocate.c
 
+bootblock-$(CONFIG_FLATTENED_DEVICE_TREE) += device_tree.c
+romstage-$(CONFIG_FLATTENED_DEVICE_TREE) += device_tree.c
+ramstage-$(CONFIG_FLATTENED_DEVICE_TREE) += device_tree.c
+
 bootblock-y += bsd/cbfs_private.c
 verstage-y += bsd/cbfs_private.c
 romstage-y += bsd/cbfs_private.c
@@ -65,3 +69,7 @@ decompressor-y += bsd/gcd.c
 all-y += bsd/gcd.c
 
 all-y += bsd/ipchksum.c
+
+decompressor-y += bsd/string.c
+smm-y += bsd/string.c
+all-y += bsd/string.c

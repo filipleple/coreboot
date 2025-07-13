@@ -2,7 +2,6 @@
 
 #include <console/console.h>
 #include <device/mmio.h>
-#include <soc/infracfg.h>
 #include <soc/pll.h>
 #include <soc/pmif_spi.h>
 #include <soc/pmif_sw.h>
@@ -272,6 +271,11 @@ static void init_staupd(struct pmif *arb)
 			STAUPD_CTRL_PMIC0_EINT_STA, 1);
 }
 
+__weak void pmif_spi_setting(struct pmif *arb)
+{
+	/* do nothing, only for special setting of IC */
+}
+
 int pmif_spi_init(struct pmif *arb)
 {
 	pmif_spi_config(arb);
@@ -310,14 +314,14 @@ int pmif_spi_init(struct pmif *arb)
 	write32(&arb->mtk_pmif->timer_ctrl, 0x3);
 
 	/* Enable interfaces and arbitration */
-	write32(&arb->mtk_pmif->inf_en, PMIF_SPI_HW_INF | PMIF_SPI_MD |
-		PMIF_SPI_AP_SECURE | PMIF_SPI_AP);
+	write32(&arb->mtk_pmif->inf_en, PMIF_SPI_INF_EN);
 
-	write32(&arb->mtk_pmif->arb_en, PMIF_SPI_HW_INF | PMIF_SPI_MD | PMIF_SPI_AP_SECURE |
-		PMIF_SPI_AP | PMIF_SPI_STAUPD | PMIF_SPI_TSX_HW | PMIF_SPI_DCXO_HW);
+	write32(&arb->mtk_pmif->arb_en, PMIF_SPI_ARB_EN);
 
 	/* Enable GPS AUXADC HW 0 and 1 */
 	SET32_BITFIELDS(&arb->mtk_pmif->other_inf_en, INTGPSADCINF_EN, 0x3);
+
+	pmif_spi_setting(arb);
 
 	/* Set INIT_DONE */
 	write32(&arb->mtk_pmif->init_done, 0x1);

@@ -55,10 +55,13 @@ chip soc/intel/apollolake
 	register "slp_s3_assertion_width_usecs"	= "28000"
 
 	device domain 0 on
-		device ref igd		on  end
+		device ref igd		on
+			register "gfx"				= "GMA_DEFAULT_PANEL(0)"
+		end
 		device ref cnvi		on
 			chip drivers/wifi/generic
-				register "wake" = "GPE0A_CNVI_PME_STS"
+				register "add_acpi_dma_property"	= "true"
+				register "enable_cnvi_ddr_rfim"		= "true"
 				device generic 0 on end
 			end
 		end
@@ -66,7 +69,9 @@ chip soc/intel/apollolake
 		device ref p2sb		on  end
 		device ref fast_spi	on  end
 		device ref sram		on  end
-		device ref hda		on  end
+		device ref hda		on
+			subsystemid 0x10ec 0x111e
+		end
 		device ref heci1	on  end
 		device ref heci2	on  end
 		device ref heci3	on  end
@@ -74,15 +79,15 @@ chip soc/intel/apollolake
 			register "sata_ports_enable[0]"	= "1"
 		end
 		device ref xhci		on
-			# Motherboard USB Type C
+			# Motherboard USB 3.0 Type-C
 			register "usb2_port[0]"		= "PORT_EN(OC1)"
 			register "usb3_port[0]"		= "PORT_EN(OC1)"
 
-			# Motherboard USB 3.0
+			# Motherboard USB 3.0 Type-A
 			register "usb2_port[1]"		= "PORT_EN(OC0)"
 			register "usb3_port[1]"		= "PORT_EN(OC0)"
 
-			# Daughterboard USB 3.0
+			# Daughterboard USB 3.0 Type-A
 			register "usb2_port[3]"		= "PORT_EN(OC1)"
 			register "usb3_port[4]"		= "PORT_EN(OC1)"
 
@@ -97,12 +102,12 @@ chip soc/intel/apollolake
 		device ref uart2	on  end
 		device ref spi2		on  end
 		device ref lpc_espi	on
-			register "gen1_dec"			= "0x000c06a1"
-			register "gen2_dec"			= "0x000c0081"
+			register "gen1_dec"			= "0x00040069"
+			register "gen2_dec"			= "0x00fc0201"
+			register "gen3_dec"			= "0x000c0081"
 
 			chip ec/starlabs/merlin
 				# Port pair 4Eh/4Fh
-				device pnp 4e.00 on  end			# IO Interface
 				device pnp 4e.04 off end			# System Wake-Up
 				device pnp 4e.05 off end			# Mouse
 				device pnp 4e.06 on				# Keyboard
@@ -118,8 +123,8 @@ chip soc/intel/apollolake
 				device pnp 4e.1e off end			# Power Management Channel 4
 			end
 		end
-	end
-	chip drivers/crb
-		device mmio 0xfed40000 on end
+		chip drivers/crb
+			device mmio 0xfed40000 on end
+		end
 	end
 end

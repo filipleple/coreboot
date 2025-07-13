@@ -11,9 +11,8 @@ config SOC_SPECIFIC_OPTIONS
 	select ARCH_X86
 	select DEFAULT_X2APIC
 	select HAVE_ACPI_TABLES
-	select HAVE_EXP_X86_64_SUPPORT
+	select HAVE_X86_64_SUPPORT
 	select HAVE_SMI_HANDLER
-	select RESET_VECTOR_IN_RAM
 	select SOC_AMD_COMMON
 	select SOC_AMD_COMMON_BLOCK_ACPI
 	select SOC_AMD_COMMON_BLOCK_ACPIMMIO
@@ -29,6 +28,7 @@ config SOC_SPECIFIC_OPTIONS
 	select SOC_AMD_COMMON_BLOCK_DATA_FABRIC_EXTENDED_MMIO
 	select SOC_AMD_COMMON_BLOCK_HAS_ESPI
 	select SOC_AMD_COMMON_BLOCK_I2C
+	select SOC_AMD_COMMON_BLOCK_I3C
 	select SOC_AMD_COMMON_BLOCK_IOMMU
 	select SOC_AMD_COMMON_BLOCK_LPC
 	select SOC_AMD_COMMON_BLOCK_MCAX
@@ -41,6 +41,7 @@ config SOC_SPECIFIC_OPTIONS
 	select SOC_AMD_COMMON_BLOCK_SMM
 	select SOC_AMD_COMMON_BLOCK_SMU
 	select SOC_AMD_COMMON_BLOCK_SMU_SX_ENTRY
+	select SOC_AMD_COMMON_BLOCK_SPI
 	select SOC_AMD_COMMON_BLOCK_SVI3
 	select SOC_AMD_COMMON_BLOCK_TSC
 	select SOC_AMD_COMMON_BLOCK_UART
@@ -48,9 +49,9 @@ config SOC_SPECIFIC_OPTIONS
 	select SOC_AMD_COMMON_BLOCK_USE_ESPI
 	select SOC_AMD_OPENSIL
 	select SOC_AMD_OPENSIL_GENOA_POC
-	select X86_CUSTOM_BOOTMEDIA
+	select OPENSIL_DRIVER
 
-config USE_EXP_X86_64_SUPPORT
+config USE_X86_64_SUPPORT
 	default y
 
 config CHIPSET_DEVICETREE
@@ -98,7 +99,7 @@ config PRERAM_CBMEM_CONSOLE_SIZE
 
 config C_ENV_BOOTBLOCK_SIZE
 	hex
-	default 0x10000
+	default 0x20000
 	help
 	  Sets the size of the bootblock stage that should be loaded in DRAM.
 	  This variable controls the DRAM allocation size in linker script
@@ -106,13 +107,13 @@ config C_ENV_BOOTBLOCK_SIZE
 
 config ROMSTAGE_ADDR
 	hex
-	default 0x7040000
+	default 0x7050000
 	help
 	  Sets the address in DRAM where romstage should be loaded.
 
 config ROMSTAGE_SIZE
 	hex
-	default 0x80000
+	default 0x70000
 	help
 	  Sets the size of DRAM allocation for romstage in linker script.
 

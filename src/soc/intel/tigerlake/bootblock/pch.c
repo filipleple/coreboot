@@ -18,15 +18,16 @@
 #include <intelblocks/pcr.h>
 #include <intelblocks/pmclib.h>
 #include <intelblocks/rtc.h>
+#include <intelpch/espi.h>
 #include <soc/bootblock.h>
 #include <soc/soc_chip.h>
-#include <soc/espi.h>
 #include <soc/iomap.h>
 #include <soc/p2sb.h>
 #include <soc/pch.h>
 #include <soc/pci_devs.h>
 #include <soc/pcr_ids.h>
 #include <soc/pm.h>
+#include <static.h>
 
 #if CONFIG(SOC_INTEL_TIGERLAKE_PCH_H)
 #define PCR_PSF3_TO_SHDW_PMC_REG_BASE	0x1000

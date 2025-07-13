@@ -97,7 +97,7 @@ chip soc/intel/meteorlake
 	#  slew rate for IA Domain: Fast/8
 	#  slew rate for GT Domain: Fast/8
 	#  Ignore slew rate configuration for SA Domain
-	register "enable_acoustic_noise_mitigation" = "1"
+	register "enable_acoustic_noise_mitigation" = "true"
 	register "disable_fast_pkgc_ramp[VR_DOMAIN_IA]" = "1"
 	register "slow_slew_rate_config[VR_DOMAIN_IA]" = "SLEW_FAST_8"
 	register "disable_fast_pkgc_ramp[VR_DOMAIN_GT]" = "1"
@@ -272,7 +272,7 @@ chip soc/intel/meteorlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 alias dptf_policy on end
@@ -498,7 +498,7 @@ chip soc/intel/meteorlake
 				register "compat_string" = ""google,cros-ec-spi""
 				register "irq" = "ACPI_IRQ_WAKE_LEVEL_LOW(GPP_E10_IRQ)"
 				register "wake" = "GPE0_DW1_10"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C21)"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B08)"
 				register "enable_delay_ms" = "3"
@@ -519,7 +519,7 @@ chip soc/intel/meteorlake
 				register "remote_name" = ""IPU0""
 				register "max_dstate_for_probe" = "ACPI_DEVICE_SLEEP_D3_COLD"
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "IMGCLKOUT_2"
 				register "clk_panel.clks[0].freq" = "FREQ_19_2_MHZ"
@@ -549,7 +549,7 @@ chip soc/intel/meteorlake
 				register "chip_name" = ""M24C64X""
 				register "device_type" = "INTEL_ACPI_CAMERA_NVM"
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "gpio_panel.gpio[0].gpio_num" = "GPP_A12" #EN_UCAM_PWR
 

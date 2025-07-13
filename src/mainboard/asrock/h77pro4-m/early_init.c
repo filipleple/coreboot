@@ -5,7 +5,6 @@
 #include <device/pci_ops.h>
 #include <device/pnp_ops.h>
 #include <option.h>
-#include <southbridge/intel/bd82x6x/pch.h>
 #include <superio/nuvoton/common/nuvoton.h>
 #include <superio/nuvoton/nct6776/nct6776.h>
 
@@ -19,23 +18,6 @@ enum cpu_fan_tach_src {
 	CPU_FAN_HEADER_1,
 	CPU_FAN_HEADER_2,
 	CPU_FAN_HEADER_BOTH
-};
-
-const struct southbridge_usb_port mainboard_usb_ports[] = {
-	{ 1, 0, 0 },
-	{ 1, 0, 0 },
-	{ 1, 1, 1 },
-	{ 1, 1, 1 },
-	{ 1, 1, 2 },
-	{ 1, 1, 2 },
-	{ 1, 0, 3 },
-	{ 1, 0, 3 },
-	{ 1, 0, 4 },
-	{ 1, 0, 4 },
-	{ 1, 0, 6 },
-	{ 1, 1, 5 },
-	{ 1, 1, 5 },
-	{ 1, 0, 6 },
 };
 
 /*

@@ -22,14 +22,15 @@
 #include <intelblocks/pmclib.h>
 #include <intelblocks/rtc.h>
 #include <intelblocks/tco.h>
+#include <intelpch/espi.h>
 #include <security/vboot/vbnv.h>
-#include <soc/espi.h>
 #include <soc/gpe.h>
 #include <soc/iomap.h>
 #include <soc/pci_devs.h>
 #include <soc/pm.h>
 #include <soc/smbus.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 #include <types.h>
 
 /*
@@ -153,11 +154,27 @@ uint32_t *soc_pmc_etr_addr(void)
 	return (uint32_t *)(soc_read_pmc_base() + ETR);
 }
 
+static void pmc_gpe0_different_values(const struct soc_intel_alderlake_config *config)
+{
+	bool all_zero = (config->pmc_gpe0_dw0 == 0) &&
+			 (config->pmc_gpe0_dw1 == 0) &&
+			 (config->pmc_gpe0_dw2 == 0);
+
+	/* Check if all values are different AND not all zero */
+	bool all_different = (config->pmc_gpe0_dw0 != config->pmc_gpe0_dw1) &&
+			 (config->pmc_gpe0_dw0 != config->pmc_gpe0_dw2) &&
+			 (config->pmc_gpe0_dw1 != config->pmc_gpe0_dw2);
+
+	assert(all_different || all_zero);
+}
+
 void soc_get_gpi_gpe_configs(uint8_t *dw0, uint8_t *dw1, uint8_t *dw2)
 {
 	DEVTREE_CONST struct soc_intel_alderlake_config *config;
 
 	config = config_of_soc();
+
+	pmc_gpe0_different_values(config);
 
 	/* Assign to out variable */
 	*dw0 = config->pmc_gpe0_dw0;

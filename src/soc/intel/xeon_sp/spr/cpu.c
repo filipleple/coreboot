@@ -1,27 +1,17 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-#include <acpi/acpigen.h>
-#include <acpi/acpi.h>
-#include <console/console.h>
 #include <console/debug.h>
-#include <cpu/cpu.h>
-#include <cpu/intel/cpu_ids.h>
 #include <cpu/intel/common/common.h>
-#include <cpu/intel/em64t101_save_state.h>
 #include <cpu/intel/microcode.h>
 #include <cpu/intel/smm_reloc.h>
 #include <cpu/intel/turbo.h>
-#include <cpu/x86/lapic.h>
 #include <cpu/x86/mp.h>
-#include <cpu/x86/mtrr.h>
-#include <device/pci_mmio_cfg.h>
+#include <cpu/x86/topology.h>
 #include <intelblocks/cpulib.h>
 #include <intelblocks/mp_init.h>
 #include <intelpch/lockdown.h>
 #include <soc/msr.h>
-#include <soc/pci_devs.h>
 #include <soc/pm.h>
-#include <soc/soc_util.h>
 #include <soc/smmrelocate.h>
 #include <soc/util.h>
 
@@ -82,6 +72,8 @@ static void each_cpu_init(struct device *cpu)
 	       __func__, dev_path(cpu), cpu_index(), cpu->path.apic.apic_id,
 	       cpu->path.apic.package_id);
 
+	assert (cpu->path.apic.node_id < CONFIG_MAX_SOCKET);
+
 	/*
 	 * Enable PWR_PERF_PLTFRM_OVR and PROCHOT_LOCK.
 	 * The value set by FSP is 20_005f, we set it to 1a_00a4_005b.
@@ -103,14 +95,18 @@ static void each_cpu_init(struct device *cpu)
 	wrmsr(MSR_VR_CURRENT_CONFIG, msr);
 
 	/* Set Turbo Ratio Limits */
-	msr.lo = chip_config->turbo_ratio_limit & 0xffffffff;
-	msr.hi = (chip_config->turbo_ratio_limit >> 32) & 0xffffffff;
-	wrmsr(MSR_TURBO_RATIO_LIMIT, msr);
+	if (chip_config->turbo_ratio_limit) {
+		msr.lo = chip_config->turbo_ratio_limit & 0xffffffff;
+		msr.hi = (chip_config->turbo_ratio_limit >> 32) & 0xffffffff;
+		wrmsr(MSR_TURBO_RATIO_LIMIT, msr);
+	}
 
 	/* Set Turbo Ratio Limit Cores */
-	msr.lo = chip_config->turbo_ratio_limit_cores & 0xffffffff;
-	msr.hi = (chip_config->turbo_ratio_limit_cores >> 32) & 0xffffffff;
-	wrmsr(MSR_TURBO_RATIO_LIMIT_CORES, msr);
+	if (chip_config->turbo_ratio_limit_cores) {
+		msr.lo = chip_config->turbo_ratio_limit_cores & 0xffffffff;
+		msr.hi = (chip_config->turbo_ratio_limit_cores >> 32) & 0xffffffff;
+		wrmsr(MSR_TURBO_RATIO_LIMIT_CORES, msr);
+	}
 
 	/* Set energy policy */
 	msr = rdmsr(MSR_ENERGY_PERF_BIAS_CONFIG);
@@ -182,6 +178,7 @@ static const struct cpu_device_id cpu_table[] = {
 	{X86_VENDOR_INTEL, CPUID_SAPPHIRERAPIDS_SP_E3, CPUID_EXACT_MATCH_MASK},
 	{X86_VENDOR_INTEL, CPUID_SAPPHIRERAPIDS_SP_E4, CPUID_EXACT_MATCH_MASK},
 	{X86_VENDOR_INTEL, CPUID_SAPPHIRERAPIDS_SP_Ex, CPUID_EXACT_MATCH_MASK},
+	{X86_VENDOR_INTEL, CPUID_EMERALDRAPIDS, CPUID_EXACT_MATCH_MASK},
 	CPU_TABLE_END
 };
 
@@ -226,15 +223,6 @@ static void pre_mp_init(void)
 	x86_mtrr_check();
 }
 
-static int get_thread_count(void)
-{
-	unsigned int num_phys = 0, num_virts = 0;
-
-	cpu_read_topology(&num_phys, &num_virts);
-	printk(BIOS_SPEW, "Detected %u cores and %u threads\n", num_phys, num_virts);
-	return num_virts * soc_get_num_cpus();
-}
-
 static void post_mp_init(void)
 {
 	/* Set Max Ratio */
@@ -249,7 +237,7 @@ static void post_mp_init(void)
 
 static const struct mp_ops mp_ops = {
 	.pre_mp_init = pre_mp_init,
-	.get_cpu_count = get_thread_count,
+	.get_cpu_count = get_platform_thread_count,
 #if CONFIG(HAVE_SMI_HANDLER)
 	.get_smm_info = get_smm_info,
 	.pre_mp_smm_init = smm_southbridge_clear_state,
@@ -268,12 +256,9 @@ void mp_init_cpus(struct bus *bus)
 	chip_config = bus->dev->chip_info;
 
 	microcode_patch = intel_microcode_find();
-
-	if (!microcode_patch)
-		printk(BIOS_ERR, "microcode not found in CBFS!\n");
-
 	intel_microcode_load_unlocked(microcode_patch);
 
-	if (mp_init_with_smm(bus, &mp_ops) < 0)
-		printk(BIOS_ERR, "MP initialization failure.\n");
+	enum cb_err ret = mp_init_with_smm(bus, &mp_ops);
+	if (ret != CB_SUCCESS)
+		printk(BIOS_ERR, "MP initialization failure %d.\n", ret);
 }

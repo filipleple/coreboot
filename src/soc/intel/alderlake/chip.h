@@ -42,6 +42,13 @@ struct ibecc_config {
 	/* add ECC error injection if needed by a mainboard */
 };
 
+/* FSPM UPD for setting the boot frequency  */
+enum fspm_boot_freq {
+	MAX_BATTERY_PERFORMANCE,
+	MAX_NONTURBO_PERFORMANCE,
+	TURBO_PERFORMANCE
+};
+
 /* Types of different SKUs */
 enum soc_intel_alderlake_power_limits {
 	ADL_P_142_242_282_15W_CORE,
@@ -54,9 +61,13 @@ enum soc_intel_alderlake_power_limits {
 	ADL_M_242_CORE,
 	ADL_P_442_45W_CORE,
 	ADL_N_081_7W_CORE,
+	ADL_N_081_9W_CORE,
 	ADL_N_081_15W_CORE,
 	ADL_N_041_6W_CORE,
+	ADL_N_041_12W_CORE,
+	ADL_N_041_15W_CORE,
 	ADL_N_021_6W_CORE,
+	ADL_N_021_10W_CORE,
 	ADL_S_882_35W_CORE,
 	ADL_S_882_65W_CORE,
 	ADL_S_882_125W_CORE,
@@ -72,6 +83,7 @@ enum soc_intel_alderlake_power_limits {
 	ADL_S_402_35W_CORE,
 	ADL_S_202_46W_CORE,
 	ADL_S_202_35W_CORE,
+	ASL_041_9W_CORE,
 	RPL_P_682_642_482_45W_CORE,
 	RPL_P_682_482_282_28W_CORE,
 	RPL_P_282_242_142_15W_CORE,
@@ -111,6 +123,7 @@ enum soc_intel_alderlake_cpu_tdps {
 	TDP_6W  = 6,
 	TDP_7W  = 7,
 	TDP_9W  = 9,
+	TDP_10W = 10,
 	TDP_12W = 12,
 	TDP_15W = 15,
 	TDP_28W = 28,
@@ -148,12 +161,17 @@ static const struct {
 	{ PCI_DID_INTEL_ADL_M_ID_1, ADL_M_282_12W_CORE, TDP_12W },
 	{ PCI_DID_INTEL_ADL_M_ID_1, ADL_M_282_15W_CORE, TDP_15W },
 	{ PCI_DID_INTEL_ADL_M_ID_2, ADL_M_242_CORE, TDP_9W },
-	{ PCI_DID_INTEL_ADL_N_ID_1, ADL_N_081_7W_CORE, TDP_7W },
 	{ PCI_DID_INTEL_ADL_N_ID_1, ADL_N_081_15W_CORE, TDP_15W },
+	{ PCI_DID_INTEL_ADL_N_ID_1, ADL_N_081_7W_CORE, TDP_7W },
 	{ PCI_DID_INTEL_ADL_N_ID_2, ADL_N_041_6W_CORE, TDP_6W },
 	{ PCI_DID_INTEL_ADL_N_ID_3, ADL_N_041_6W_CORE, TDP_6W },
 	{ PCI_DID_INTEL_ADL_N_ID_4, ADL_N_021_6W_CORE, TDP_6W },
 	{ PCI_DID_INTEL_ADL_N_ID_5, ADL_N_041_6W_CORE, TDP_6W },
+	{ PCI_DID_INTEL_ADL_N_ID_5, ADL_N_041_15W_CORE, TDP_15W },
+	{ PCI_DID_INTEL_ADL_N_ID_6, ADL_N_041_12W_CORE, TDP_12W },
+	{ PCI_DID_INTEL_ADL_N_ID_7, ADL_N_041_12W_CORE, TDP_12W },
+	{ PCI_DID_INTEL_ADL_N_ID_8, ADL_N_021_6W_CORE, TDP_6W },
+	{ PCI_DID_INTEL_ADL_N_ID_9, ADL_N_021_10W_CORE, TDP_10W },
 	{ PCI_DID_INTEL_ADL_S_ID_1, ADL_S_882_35W_CORE, TDP_35W },
 	{ PCI_DID_INTEL_ADL_S_ID_1, ADL_S_882_65W_CORE, TDP_65W },
 	{ PCI_DID_INTEL_ADL_S_ID_1, ADL_S_882_125W_CORE, TDP_125W },
@@ -169,6 +187,7 @@ static const struct {
 	{ PCI_DID_INTEL_ADL_S_ID_11, ADL_S_402_60W_CORE, TDP_60W },
 	{ PCI_DID_INTEL_ADL_S_ID_12, ADL_S_202_35W_CORE, TDP_35W },
 	{ PCI_DID_INTEL_ADL_S_ID_12, ADL_S_202_46W_CORE, TDP_46W },
+	{ PCI_DID_INTEL_ASL_ID_2, ASL_041_9W_CORE, TDP_9W },
 	{ PCI_DID_INTEL_RPL_P_ID_1, RPL_P_682_642_482_45W_CORE, TDP_45W },
 	{ PCI_DID_INTEL_RPL_P_ID_1, RPL_P_682_482_282_28W_CORE, TDP_28W },
 	{ PCI_DID_INTEL_RPL_P_ID_2, RPL_P_682_482_282_28W_CORE, TDP_28W },
@@ -323,7 +342,6 @@ enum slew_rate {
 };
 
 struct soc_intel_alderlake_config {
-
 	/* Common struct containing soc config data required by common code */
 	struct soc_intel_common_config common_soc_config;
 
@@ -466,12 +484,21 @@ struct soc_intel_alderlake_config {
 		IGD_SM_60MB = 0xFE,
 	} igd_dvmt50_pre_alloc;
 
+	enum {
+		IGD_AP_SZ_128MB = 0x00,
+		IGD_AP_SZ_256MB = 0x01,
+		IGD_AP_SZ_512MB = 0x02,
+		/*
+		 * Values below require use of above 4G MMIO,
+		 * otherwise FSP will hang
+		 */
+		IGD_AP_SZ_4G_512MB = 0x03,
+		IGD_AP_SZ_4G_1024MB = 0x07,
+		IGD_AP_SZ_4G_2048MB = 0x15,
+	} igd_aperture_size;
+
 	bool skip_ext_gfx_scan;
-
-	/* Enable/Disable EIST. 1b:Enabled, 0b:Disabled */
 	bool eist_enable;
-
-	/* Enable C6 DRAM */
 	bool enable_c6dram;
 
 	/*
@@ -580,10 +607,13 @@ struct soc_intel_alderlake_config {
 	uint8_t cpu_ratio_override;
 
 	/*
-	 * Enable(0)/Disable(1) DMI Power Optimizer on PCH side.
-	 * Default 0. Setting this to 1 disables the DMI Power Optimizer.
+	 * Enable/Disable DMI Power Optimizer on PCH side.
+	 * Default is "false".
 	 */
 	bool dmi_power_optimize_disable;
+
+	/* Enable/Disable Energy Efficient Turbo */
+	bool energy_efficient_turbo;
 
 	/*
 	 * Used to communicate the power delivery design capability of the board. This
@@ -778,6 +808,25 @@ struct soc_intel_alderlake_config {
 	 * Set this to 0 in order to disable hwp scalability tracking.
 	 */
 	bool enable_hwp_scalability_tracking;
+
+	/*
+	 * (ADL-N/TWL only) Vccin Aux Imon Iccmax
+	 * Defaults to 27000 (27A), the value has to align with HW design.
+	 * Recommended value: 25000 (PD_TIER_PREMIUM) or 27000 (PD_TIER_VOLUME)
+	 */
+	enum {
+		PD_TIER_PREMIUM = 25000,
+		PD_TIER_VOLUME  = 27000
+	} vccin_aux_imon_iccmax;
+
+	/* Enable / Disable(default) Type C Port x Convert to TypeA */
+	bool enabletcsscovtypea[4];
+
+	/*
+	 * PCH xhci port x for Type C Port x mapping.
+	 * Input PCH xhci port x for Type C Port 0 mapping.
+	 */
+	uint8_t mappingpchxhciusba[4];
 };
 
 typedef struct soc_intel_alderlake_config config_t;

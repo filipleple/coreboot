@@ -239,11 +239,12 @@ chip soc/intel/alderlake
 				register "generic.detect" = "1"
 				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
 				register "generic.reset_delay_ms" = "200"
-				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C6)"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "generic.enable_delay_ms" = "12"
 				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C6)"
 				register "generic.stop_off_delay_ms" = "200"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 41 on end
 			end
@@ -252,7 +253,7 @@ chip soc/intel/alderlake
 				register "gpio" = "ACPI_GPIO_INPUT_ACTIVE_LOW(GPP_F13)"
 				register "key.wake_gpe" = "GPE0_DW2_15"
 				register "key.wakeup_route" = "WAKEUP_ROUTE_SCI"
-				register "key.wakeup_event_action" = "EV_ACT_DEASSERTED"
+				register "key.wakeup_event_action" = "EV_ACT_ANY"
 				register "key.dev_name" = ""EJCT""
 				register "key.linux_code" = "SW_PEN_INSERTED"
 				register "key.linux_input_type" = "EV_SW"
@@ -275,7 +276,7 @@ chip soc/intel/alderlake
 				register "link_freq[0]" = "560 * MHz"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "IMGCLKOUT_3"
 				register "clk_panel.clks[0].freq" = "FREQ_19_2_MHZ"
@@ -312,7 +313,7 @@ chip soc/intel/alderlake
 
 				register "vcm_compat" = ""dongwoon,dw9714""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "gpio_panel.gpio[0].gpio_num" = "GPP_D15"  # EN_PP2800_AFVDD
 
@@ -348,15 +349,13 @@ chip soc/intel/alderlake
 			end
 		end
 		device ref i2c3 on
-			chip drivers/i2c/generic
+			chip drivers/i2c/rt5645
 				register "hid" = ""10EC5650""
 				register "name" = ""RT58""
 				register "desc" = ""Realtek RT5650""
 				register "irq_gpio" = "ACPI_GPIO_IRQ_EDGE_BOTH(GPP_A23)"
-				register "property_count" = "1"
-				register "property_list[0].type" = "ACPI_DP_TYPE_INTEGER"
-				register "property_list[0].name" = ""realtek,jd-mode""
-				register "property_list[0].integer" = "2"
+				register "cbj_sleeve" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_A11)"
+				register "jd_mode" = "2"
 				device i2c 1a on end
 			end
 		end

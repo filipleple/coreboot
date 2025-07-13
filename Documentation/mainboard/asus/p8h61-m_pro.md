@@ -4,7 +4,7 @@ This page describes how to run coreboot on the [ASUS P8H61-M Pro].
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+------------+
 | Type                | Value      |
 +=====================+============+
@@ -78,7 +78,7 @@ region is not readable even by the host.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | Northbridge      | :doc:`../../northbridge/intel/sandybridge/index` |
 +------------------+--------------------------------------------------+
@@ -100,4 +100,4 @@ region is not readable even by the host.
 
 [ASUS P8H61-M Pro]: https://www.asus.com/Motherboards/P8H61M_Pro/
 [W25Q32BV]: https://www.winbond.com/resource-files/w25q32bv_revi_100413_wo_automotive.pdf
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/

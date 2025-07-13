@@ -9,6 +9,8 @@ fw_config
 end
 
 chip soc/intel/meteorlake
+	# Enable CNVi WiFi
+	register "cnvi_wifi_core" = "true"
 
 	# GPE configuration
 	register "pmc_gpe0_dw0" = "GPP_B"
@@ -50,13 +52,13 @@ chip soc/intel/meteorlake
 	register "cnvi_bt_core" = "true"
 
 	# Enable S0ix
-	register "s0ix_enable" = "1"
+	register "s0ix_enable" = "true"
 
 	# Disable C1 C-state auto-demotion
-	register "disable_c1_state_auto_demotion" = "1"
+	register "disable_c1_state_auto_demotion" = "true"
 
 	# Disable PKGC-state demotion
-	register "disable_package_c_state_demotion" = "1"
+	register "disable_package_c_state_demotion" = "true"
 
 	# Enable energy reporting
 	register "pch_pm_energy_report_enable" = "1"
@@ -113,7 +115,7 @@ chip soc/intel/meteorlake
 	register "pch_hda_idisp_codec_enable" = "1"
 
 	# DPTF enable
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	device domain 0 on
 		device ref igpu on end
@@ -212,7 +214,7 @@ chip soc/intel/meteorlake
 					[9] = {   0,    0,   0,   50, }
 				}"
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 				device generic 0 alias dptf_policy on end
 			end
@@ -402,8 +404,8 @@ chip soc/intel/meteorlake
 						device ref usb2_port9 on end
 					end
 					chip drivers/usb/acpi
-						register "desc" = ""USB2 Type-A Port 10""
-						register "type" = "UPC_TYPE_A"
+						register "desc" = ""USB2 Bluetooth""
+						register "type" = "UPC_TYPE_INTERNAL"
 						register "group" = "ACPI_PLD_GROUP(10, 1)"
 						device ref usb2_port10 on end
 					end
@@ -426,6 +428,7 @@ chip soc/intel/meteorlake
 			chip drivers/wifi/generic
 				register "wake" = "GPE0_PME_B0"
 				register "enable_cnvi_ddr_rfim" = "true"
+				use usb2_port10 as bluetooth_companion
 				device generic 0 on end
 			end
 		end
@@ -442,7 +445,7 @@ chip soc/intel/meteorlake
 				register "link_freq[0]" = "560000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "0"
 				register "clk_panel.clks[0].freq" = "1" #19.2 Mhz
@@ -481,7 +484,7 @@ chip soc/intel/meteorlake
 				register "link_freq[0]" = "560000000"
 				register "remote_name" = ""IPU0""
 
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				#Controls
 				register "clk_panel.clks[0].clknum" = "2"
 				register "clk_panel.clks[0].freq" = "1" #19.2 Mhz
@@ -603,6 +606,9 @@ chip soc/intel/meteorlake
 					chip drivers/soundwire/alc711
 						# SoundWire Link 0 ID 1
 						register "desc" = ""Headset Codec""
+						register "alc711_address.version" = "SOUNDWIRE_VERSION_1_1"
+						register "alc711_address.class" = "MIPI_CLASS_NONE"
+						register "alc711_address.part_id" = "MIPI_DEV_ID_REALTEK_ALC711"
 						device generic 0.1 on
 							probe AUDIO MTL_ALC711_SNDW
 						end

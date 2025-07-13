@@ -74,7 +74,7 @@ config COMPILER_GCC
 
 config COMPILER_LLVM_CLANG
 	bool "LLVM/clang"
-	depends on ALLOW_EXPERIMENTAL_CLANG || ARCH_SUPPORTS_CLANG
+	depends on ALLOW_EXPERIMENTAL_CLANG || !CLANG_UNSUPPORTED
 	help
 	  Use LLVM/clang to build coreboot.  To use this, you must build the
 	  coreboot version of the clang compiler.  Run the command
@@ -85,15 +85,15 @@ config COMPILER_LLVM_CLANG
 
 endchoice
 
-config ARCH_SUPPORTS_CLANG
+config CLANG_UNSUPPORTED
 	bool
 	help
-	  Opt-in flag for architectures that generally work well with CLANG.
-	  By default the option would be hidden.
+	  Set this flag on platforms that do not support building with the
+	  clang compiler.
 
 config ALLOW_EXPERIMENTAL_CLANG
 	bool "Allow experimental LLVM/Clang"
-	depends on !ARCH_SUPPORTS_CLANG
+	depends on CLANG_UNSUPPORTED
 	help
 	  On some architectures CLANG does not work that well.
 	  Use this only to try to get CLANG working.
@@ -109,13 +109,19 @@ config ANY_TOOLCHAIN
 
 config CCACHE
 	bool "Use ccache to speed up (re)compilation"
-	default n
 	help
 	  Enables the use of ccache for faster builds.
 
 	  Requires the ccache utility in your system $PATH.
 
 	  For details see https://ccache.samba.org.
+
+config LTO
+	bool "Use link time optimization (LTO) (experimental)"
+	default n
+	help
+	  Compile with link time optimization. This can often decrease the
+	  final binary size, but may increase compilation time.
 
 config IWYU
 	bool "Test platform with include-what-you-use"
@@ -143,6 +149,7 @@ config UTIL_GENPARSER
 
 choice
 	prompt "Option backend to use"
+	default USE_CBFS_FILE_OPTION_BACKEND if CHROMEOS && PLATFORM_USES_FSP2_0
 	default USE_MAINBOARD_SPECIFIC_OPTION_BACKEND if HAVE_MAINBOARD_SPECIFIC_OPTION_BACKEND
 	default USE_OPTION_TABLE if NVRAMCUI_SECONDARY_PAYLOAD
 	default USE_UEFI_VARIABLE_STORE if DRIVERS_EFI_VARIABLE_STORE && \
@@ -157,6 +164,12 @@ config USE_OPTION_TABLE
 	help
 	  Enable this option if coreboot shall read options from the "CMOS"
 	  NVRAM instead of using hard-coded values.
+
+config USE_CBFS_FILE_OPTION_BACKEND
+	bool "Use CBFS files for configuration values"
+	help
+	  Enable this option if coreboot shall read options from files in CBFS.
+	  Options can be set using `cbfstool add-int -n option/<option-name> -i value`.
 
 config USE_UEFI_VARIABLE_STORE
 	bool "Use UEFI variable-store in SPI flash as option backend"
@@ -507,42 +520,38 @@ config BOOTSPLASH_CONVERT_COLORSWAP
 	  If your colors seem all wrong, try this option.
 
 config FW_CONFIG
-	bool "Firmware Configuration Probing"
-	default n
+	bool
 	help
 	  Enable support for probing devices with fw_config.  This is a simple
 	  bitmask broken into fields and options for probing.
+	  Select this option in the Mainboard Kconfig.
 
 config FW_CONFIG_SOURCE_CHROMEEC_CBI
-	bool "Obtain Firmware Configuration value from Google Chrome EC CBI"
+	bool
 	depends on FW_CONFIG && EC_GOOGLE_CHROMEEC
-	default n
 	help
 	  This option tells coreboot to read the firmware configuration value
 	  from the Google Chrome Embedded Controller CBI interface.  This source
 	  is not tried if FW_CONFIG_SOURCE_CBFS is enabled and the value was
 	  found in CBFS.
+	  Select this option in the Mainboard Kconfig.
 
 config FW_CONFIG_SOURCE_CBFS
 	bool "Obtain Firmware Configuration value from CBFS"
 	depends on FW_CONFIG
-	default n
 	help
 	  With this option enabled coreboot will look for the 32bit firmware
 	  configuration value in CBFS at the selected prefix with the file name
-	  "fw_config".  This option will override other sources and allow the
-	  local image to preempt the mainboard selected source and can be used as
-	  FW_CONFIG_SOURCE_CHROMEEC_CBI fallback option.
+	  "fw_config".  This option gets run if no value is found with CBI, so acts
+	  as a FW_CONFIG_SOURCE_CHROMEEC_CBI fallback option.
 
 config FW_CONFIG_SOURCE_VPD
 	bool "Obtain Firmware Configuration value from VPD"
 	depends on FW_CONFIG && VPD
-	default n
 	help
 	  With this option enabled coreboot will look for the 32bit firmware
-	  configuration value in VPD key name "fw_config".  This option will
-	  override other sources and allow the local image to preempt the mainboard
-	  selected source and can be used for other FW_CONFIG_SOURCEs fallback option.
+	  configuration value in VPD key name "fw_config".  This option runs if no
+	  FW_CONFIG value is set by either CBI or CBFS.
 
 config HAVE_RAMPAYLOAD
 	bool
@@ -625,29 +634,30 @@ config FMDFILE
 	  When an fmd is specified, it overrides the default format.
 
 config CBFS_SIZE
-	hex "Size of CBFS filesystem in ROM"
+	hex "Size of coreboot owned area in ROM"
 	depends on FMDFILE = ""
 	# Default value set at the end of the file
 	help
-	  This is the part of the ROM actually managed by CBFS, located at the
-	  end of the ROM (passed through cbfstool -o) on x86 and at the start
-	  of the ROM (passed through cbfstool -s) everywhere else. It defaults
-	  to span the whole ROM on all but Intel systems that use an Intel Firmware
-	  Descriptor.  It can be overridden to make coreboot live alongside other
-	  components like ChromeOS's vboot/FMAP or Intel's IFD / ME / TXE
-	  binaries. This symbol should only be used to generate a default FMAP and
-	  is unused when a non-default fmd file is provided via CONFIG_FMDFILE.
+	  This is the part of ROM (Read-Only Memory) actually managed by coreboot,
+	  located at the end of the ROM on x86 systems and at the start of the ROM
+	  everywhere else. It defaults to span the whole ROM on all systems except for
+	  Intel systems that use an Intel Flash Descriptor. It can be overridden to
+	  make coreboot live alongside other vendor blobs like Intel's IFD (Intel
+	  Flash Descriptor), ME (Management Engine), and TXE (Trusted Execution
+	  Engine) binaries. This symbol is only used to generate a default FMAP
+	  (Flash Memory Map) and is unused when a .fmd file is provided
+	  via CONFIG_FMDFILE.
 
 endmenu
 
 # load site-local kconfig to allow user specific defaults and overrides
 source "site-local/Kconfig"
 
-config SYSTEM_TYPE_LAPTOP
+config SYSTEM_TYPE_ALL_IN_ONE
 	default n
 	bool
 
-config SYSTEM_TYPE_TABLET
+config SYSTEM_TYPE_CONVERTIBLE
 	default n
 	bool
 
@@ -655,7 +665,22 @@ config SYSTEM_TYPE_DETACHABLE
 	default n
 	bool
 
-config SYSTEM_TYPE_CONVERTIBLE
+config SYSTEM_TYPE_LAPTOP
+	default n
+	bool
+
+config SYSTEM_TYPE_MINIPC
+	default n
+	bool
+	help
+	  For devices like chromebox, mac-mini etc. These devices
+	  without built-in display and operates on AC supply alone.
+
+config SYSTEM_TYPE_SERVER
+	default n
+	bool
+
+config SYSTEM_TYPE_TABLET
 	default n
 	bool
 
@@ -919,8 +944,9 @@ config GENERATE_PIRQ_TABLE
 	  If unsure, say Y.
 
 config GENERATE_SMBIOS_TABLES
-	depends on ARCH_X86
+	depends on ARCH_X86 || ARCH_ARM64
 	bool "Generate SMBIOS tables"
+	default n if ARCH_ARM64
 	default y
 	help
 	  Generate SMBIOS tables for this board.
@@ -1016,7 +1042,8 @@ comment "General Debug Settings"
 config GDB_STUB
 	bool "GDB debugging support"
 	default n
-	depends on DRIVERS_UART
+# FIXME Not implemented in long mode
+	depends on DRIVERS_UART && !USE_X86_64_SUPPORT
 	help
 	  If enabled, you will be able to set breakpoints for gdb debugging.
 	  See src/arch/x86/c_start.S for details.
@@ -1536,3 +1563,12 @@ config HAVE_RAMSTAGE
 
 config SEPARATE_ROMSTAGE
 	default y
+
+config POSTPONE_SPI_ACCESS
+	bool
+	help
+	  Enable this option to postpone SPI access to later boot phase
+	  (BS_PAYLOAD_BOOT) to prevent flash write access delays caused by
+	  simultaneous accesses from other SPI masters like CSE. This symptom
+	  was found in Intel SoCs (Panther Lake and Wildcat Lake) but it can be
+	  used other SOCs.

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
 # TODO: Evaluate what can be moved to a common directory
-# TODO: Update for Phoenix
 
 config SOC_AMD_PHOENIX_BASE
 	bool
@@ -22,7 +21,6 @@ config SOC_AMD_PHOENIX_BASE
 	select PSP_SUPPORTS_EFS2_RELATIVE_ADDR if VBOOT_STARTS_BEFORE_BOOTBLOCK
 	# TODO: (b/303516266) Re-enable CCP DMA after addressing a stall
 	# select PSP_VERSTAGE_CCP_DMA if VBOOT_STARTS_BEFORE_BOOTBLOCK
-	select RESET_VECTOR_IN_RAM
 	select RTC
 	select SOC_AMD_COMMON
 	select SOC_AMD_COMMON_BLOCK_ACP_GEN2
@@ -49,6 +47,7 @@ config SOC_AMD_PHOENIX_BASE
 	select SOC_AMD_COMMON_BLOCK_HAS_ESPI_ALERT_ENABLE
 	select SOC_AMD_COMMON_BLOCK_I2C
 	select SOC_AMD_COMMON_BLOCK_I23C_PAD_CTRL
+	select SOC_AMD_COMMON_BLOCK_I3C
 	select SOC_AMD_COMMON_BLOCK_IOMMU
 	select SOC_AMD_COMMON_BLOCK_LPC
 	select SOC_AMD_COMMON_BLOCK_MCAX
@@ -104,13 +103,14 @@ config SOC_AMD_PHOENIX_OPENSIL
 	bool
 	select SOC_AMD_PHOENIX_BASE
 	select SOC_AMD_OPENSIL
-	select SOC_AMD_OPENSIL_STUB
+	select OPENSIL_DRIVER
 
 if SOC_AMD_PHOENIX_BASE
 
 config CHIPSET_DEVICETREE
 	string
-	default "soc/amd/phoenix/chipset.cb"
+	default "soc/amd/phoenix/chipset_fsp.cb" if SOC_AMD_PHOENIX_FSP
+	default "soc/amd/phoenix/chipset_opensil.cb"
 
 config EARLY_RESERVED_DRAM_BASE
 	hex
@@ -176,7 +176,7 @@ config CBFS_MCACHE_SIZE
 
 config C_ENV_BOOTBLOCK_SIZE
 	hex
-	default 0x10000
+	default 0x20000
 	help
 	  Sets the size of the bootblock stage that should be loaded in DRAM.
 	  This variable controls the DRAM allocation size in linker script
@@ -184,13 +184,13 @@ config C_ENV_BOOTBLOCK_SIZE
 
 config ROMSTAGE_ADDR
 	hex
-	default 0x2060000
+	default 0x2070000
 	help
 	  Sets the address in DRAM where romstage should be loaded.
 
 config ROMSTAGE_SIZE
 	hex
-	default 0x80000
+	default 0x70000
 	help
 	  Sets the size of DRAM allocation for romstage in linker script.
 
@@ -468,3 +468,11 @@ config FSP_TEMP_RAM_SIZE
 	  The amount of coreboot-allocated heap and stack usage by the FSP.
 
 endif # SOC_AMD_PHOENIX_FSP
+
+if SOC_AMD_PHOENIX_OPENSIL
+
+config SOC_AMD_OPENSIL_STUB
+	prompt "Build with openSIL stub"
+	default y
+
+endif # SOC_AMD_PHOENIX_OPENSIL

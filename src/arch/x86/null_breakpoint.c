@@ -12,7 +12,7 @@ static struct breakpoint_handle null_fetch_bp;
 static int handle_fetch_breakpoint(struct breakpoint_handle handle, struct eregs *regs)
 {
 	printk(BIOS_ERR, "Instruction fetch from address zero\n");
-	return CONFIG(DEBUG_NULL_DEREF_HALT);
+	return 0;
 }
 
 static int handle_deref_breakpoint(struct breakpoint_handle handle, struct eregs *regs)
@@ -22,7 +22,7 @@ static int handle_deref_breakpoint(struct breakpoint_handle handle, struct eregs
 #else
 	printk(BIOS_ERR, "Null dereference at eip: 0x%x\n", regs->eip);
 #endif
-	return CONFIG(DEBUG_NULL_DEREF_HALT);
+	return 0;
 }
 
 static void create_deref_breakpoint(void)
@@ -58,16 +58,16 @@ void null_breakpoint_init(void)
 	create_instruction_breakpoint();
 }
 
-void null_breakpoint_disable(void)
+void null_breakpoint_remove(void)
 {
 	breakpoint_remove(null_fetch_bp);
 	breakpoint_remove(null_deref_bp);
 }
 
-static void null_breakpoint_disable_hook(void *unused)
+static void null_breakpoint_remove_hook(void *unused)
 {
-	null_breakpoint_disable();
+	null_breakpoint_remove();
 }
 
-BOOT_STATE_INIT_ENTRY(BS_OS_RESUME, BS_ON_ENTRY, null_breakpoint_disable_hook, NULL);
-BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_BOOT, BS_ON_ENTRY, null_breakpoint_disable_hook, NULL);
+BOOT_STATE_INIT_ENTRY(BS_OS_RESUME, BS_ON_ENTRY, null_breakpoint_remove_hook, NULL);
+BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_BOOT, BS_ON_ENTRY, null_breakpoint_remove_hook, NULL);

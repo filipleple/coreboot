@@ -15,7 +15,7 @@ config BOARD_SPECIFIC_OPTIONS
 	select DRIVERS_USB_ACPI
 	select EC_GOOGLE_CHROMEEC
 	select EC_GOOGLE_CHROMEEC_BOARDID
-	select EC_GOOGLE_CHROMEEC_SKUID
+	select EC_GOOGLE_CHROMEEC_SMBIOS
 	select EC_GOOGLE_CHROMEEC_LPC
 	select HAVE_ACPI_RESUME
 	select HAVE_ACPI_TABLES
@@ -41,9 +41,6 @@ config VBOOT
 	select VBOOT_LID_SWITCH
 	select HAS_RECOVERY_MRC_CACHE
 	select VBOOT_EARLY_EC_SYNC
-
-config DIMM_SPD_SIZE
-	default 512
 
 config DEVICETREE
 	default "variants/baseboard/devicetree.cb"

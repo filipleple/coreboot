@@ -71,15 +71,13 @@ chip soc/intel/cannonlake
 	}"
 
 	# PCIe port 7 for M.2 E-key WLAN
-	register "PcieRpEnable[6]" = "1"
-	register "PcieRpLtrEnable[6]" = "1"
+	register "PcieRpLtrEnable[6]" = "true"
 	# RP 7 uses CLK SRC 3
 	register "PcieClkSrcUsage[3]" = "6"
 	register "PcieClkSrcClkReq[3]" = "3"
 
 	# Enable Root port 13 (x4) for dGPU
-	register "PcieRpEnable[12]" = "1"
-	register "PcieRpLtrEnable[12]" = "1"
+	register "PcieRpLtrEnable[12]" = "true"
 	# RP 13 uses CLK SRC 5
 	register "PcieClkSrcUsage[5]" = "12"
 	# ClkReq-to-ClkSrc mapping for CLK SRC 5
@@ -114,7 +112,7 @@ chip soc/intel/cannonlake
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_D9)"
 				register "enable_delay_ms" = "10"
 				register "enable_off_delay_ms" = "1"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C4)"
 				register "stop_off_delay_ms" = "5"
 				device i2c 49 on end
@@ -178,6 +176,8 @@ chip soc/intel/cannonlake
 				device i2c 1a on end
 			end
 		end
+		device ref pcie_rp7	on  end
+		device ref pcie_rp13	on  end
 		device ref gspi1	on
 			chip drivers/spi/acpi
 				register "name" = ""CRFP""

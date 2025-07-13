@@ -5,7 +5,6 @@ config ARCH_X86
 	select PCI
 	select RELOCATABLE_MODULES
 	select HAVE_ASAN_IN_RAMSTAGE
-	select ARCH_SUPPORTS_CLANG
 
 if ARCH_X86
 
@@ -65,27 +64,29 @@ config ARCH_ALL_STAGES_X86_64
 	select ARCH_ROMSTAGE_X86_64
 	select ARCH_RAMSTAGE_X86_64
 
-config HAVE_EXP_X86_64_SUPPORT
+config HAVE_X86_64_SUPPORT
 	bool
 	help
-	  Enable experimental support to build and run coreboot in 64-bit mode.
-	  When selecting this option for a new platform, it is highly advisable
-	  to provide a config file for Jenkins to build-test the 64-bit option.
+	  Enable support to build and run coreboot in 64-bit mode.
+	  When enabling this option for a new platform, it is recommended to
+	  provide a config file for Jenkins to build-test the 64-bit option.
 
-config USE_EXP_X86_64_SUPPORT
-	bool "[EXPERIMENTAL] Run coreboot in long (64-bit) mode"
-	depends on HAVE_EXP_X86_64_SUPPORT
+config USE_X86_64_SUPPORT
+	bool "Run coreboot in long (64-bit) mode"
+	depends on HAVE_X86_64_SUPPORT
 	select ARCH_ALL_STAGES_X86_64
 	help
 	  When set, most of coreboot runs in long (64-bit) mode instead of the
 	  usual protected flat (32-bit) mode. 64-bit CPUs and OSes can be used
-	  irrespective of whether coreboot runs in 32-bit or 64-bit mode. This
-	  is an experimental option: do not enable unless one wants to test it
-	  and has the means to recover a system when coreboot fails to boot.
+	  irrespective of whether coreboot runs in 32-bit or 64-bit mode.
+
+config PAGE_TABLES_IN_CBFS
+	bool
+	default n
 
 config ARCH_X86_64_PGTBL_LOC
 	hex "x86_64 page table location in CBFS"
-	depends on ARCH_BOOTBLOCK_X86_64
+	depends on ARCH_BOOTBLOCK_X86_64 && PAGE_TABLES_IN_CBFS
 	default 0xfffe9000
 	help
 	  The position where to place pagetables. Needs to be known at
@@ -367,13 +368,20 @@ config DEBUG_NULL_DEREF_BREAKPOINTS_IN_ALL_STAGES
 	default y
 	depends on DEBUG_NULL_DEREF_BREAKPOINTS && DEBUG_HW_BREAKPOINTS_IN_ALL_STAGES
 
-config DEBUG_NULL_DEREF_HALT
+config DEBUG_STACK_OVERFLOW_BREAKPOINTS
+	bool
+	default y
+	depends on DEBUG_HW_BREAKPOINTS
+	help
+	  Enable support for catching stack overflows
+
+config DEBUG_STACK_OVERFLOW_BREAKPOINTS_IN_ALL_STAGES
 	bool
 	default n
-	depends on DEBUG_NULL_DEREF_BREAKPOINTS
+	depends on DEBUG_STACK_OVERFLOW_BREAKPOINTS && DEBUG_HW_BREAKPOINTS_IN_ALL_STAGES
 	help
-	  When enabled null dereferences and instruction fetches will halt execution.
-	  Otherwise an error will be printed.
+	  Disabled as false-positive stack corruptions where observed on some platforms.
+	  TODO: Investigate those reported errors before defaulting to yes.
 
 # Some EC need an "EC firmware pointer" (a data structure hinting the address
 # of its firmware blobs) being put at a fixed position. Its space
@@ -410,4 +418,45 @@ config SOC_PHYSICAL_ADDRESS_WIDTH
 	  If not set, both CPU and SoC physical address width are
 	  assume to be the same.
 
+config X86_BOOTBLOCK_EXTRA_PROGRAM_SZ
+	int
+	default 1024 if CHROMEOS
+	default 0
+	help
+	  Add extra space to prevent overlap between .text and .init sections.
+	  This is necessary for older linkers (pre-binutils 2.4x) like those used
+	  on ChromeOS platforms.
+
+	  The default value is 1024 bytes (1 KiB) for ChromeOS and 0 for other platforms.
+
+config DEFAULT_EBDA_LOWMEM
+	hex
+	default 0x100000
+	help
+	  The default value of EBDA low memory is (1024 << 10).
+
+config DEFAULT_EBDA_SEGMENT
+	hex
+	default 0xF600
+	help
+	  The default value of EBDA segment is 0xF600.
+
+config DEFAULT_EBDA_SIZE
+	hex
+	default 0x400
+	help
+	  The default value of EBDA size is 0x400.
+
+config SHADOW_ROM_TABLE_TO_EBDA
+	bool
+	default n
+	help
+	  For platforms without writable PAM-F segment support. Put ROM table
+	  pointers (e.g. ACPI/SMBIOS low pointers) into EBDA.
+
+config SOC_FILL_CPU_CACHE_INFO
+	bool
+	default n
+	help
+	  SoC selects this if it implements soc_fill_cpu_cache_info.
 endif

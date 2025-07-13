@@ -10,8 +10,6 @@
 #include <soc/pci_devs.h>
 #include <soc/soc_util.h>
 #include <soc/util.h>
-#include <stdlib.h>
-#include <string.h>
 #include <pc80/mc146818rtc.h>
 
 const EWL_PRIVATE_DATA *get_ewl_hob(void)
@@ -92,8 +90,11 @@ bool is_ioat_iio_stack_res(const STACK_RES *res)
  */
 bool is_iio_cxl_stack_res(const STACK_RES *res)
 {
+	/* pds should be setup ahead of this call */
+	assert(pds.num_pds);
+
 	for (uint8_t i = 0; i < pds.num_pds; i++) {
-		if (pds.pds[i].pd_type == PD_TYPE_PROCESSOR)
+		if (pds.pds[i].pd_type != PD_TYPE_GENERIC_INITIATOR)
 			continue;
 
 		uint32_t bus = PCI_BDF(pds.pds[i].dev) >> 20;
@@ -135,20 +136,6 @@ uint8_t get_cxl_node_count(void)
 	return count;
 }
 
-/* Returns the UBOX(offset) bus number for socket0 */
-uint8_t socket0_get_ubox_busno(uint8_t offset)
-{
-	const IIO_UDS *hob = get_iio_uds();
-
-	for (int stack = 0; stack < MAX_LOGIC_IIO_STACK; ++stack) {
-		if (hob->PlatformData.IIO_resource[0].StackRes[stack].Personality
-		    == TYPE_UBOX)
-			return (hob->PlatformData.IIO_resource[0].StackRes[stack].BusBase
-				+ offset);
-	}
-	die("Unable to locate UBOX BUS NO");
-}
-
 void bios_done_msr(void *unused)
 {
 	msr_t msr = rdmsr(MSR_BIOS_DONE);
@@ -165,7 +152,6 @@ void soc_set_mrc_cold_boot_flag(bool cold_boot_required)
 	printk(BIOS_SPEW, "MRC status: 0x%02x want 0x%02x\n", mrc_status, new_mrc_status);
 	if (new_mrc_status != mrc_status)
 		cmos_write(new_mrc_status, CMOS_OFFSET_MRC_STATUS);
-
 }
 
 bool is_memtype_reserved(uint16_t mem_type)
@@ -187,4 +173,18 @@ bool is_memtype_processor_attached(uint16_t mem_type)
 	 * processor attached memory
 	 */
 	return (mem_type < MemTypeCxlAccVolatileMem);
+}
+
+unsigned int get_prmrr_count(void)
+{
+	return 0x7;
+}
+
+bool get_mmio_high_base_size(resource_t *base, resource_t *size)
+{
+	const IIO_UDS *hob = get_iio_uds();
+	*base = hob->PlatformData.PlatGlobalMmio64Base;
+	*size = hob->PlatformData.PlatGlobalMmio64Limit - (*base) + 1;
+
+	return true;
 }

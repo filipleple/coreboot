@@ -11,7 +11,7 @@
 #include <smbios.h>
 #include <soc/gpio.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 
 #include "board_id.h"
 

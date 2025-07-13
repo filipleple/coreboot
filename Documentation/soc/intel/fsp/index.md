@@ -77,7 +77,11 @@ those are fixed. If possible a workaround is described here as well.
 
 ## Additional Features in FSP 2.1 specification
 
-- [PPI](ppi/ppi.md)
+```{toctree}
+:maxdepth: 1
+
+PPI <ppi/ppi.md>
+```
 
 ## Official bugtracker
 

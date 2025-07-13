@@ -4,6 +4,7 @@
 #include <device/device.h>
 #include <drivers/intel/usb4/retimer/retimer.h>
 #include <intelblocks/tcss.h>
+#include <static.h>
 
 int retimer_get_index_for_typec(uint8_t typec_port)
 {
@@ -17,11 +18,8 @@ int retimer_get_index_for_typec(uint8_t typec_port)
 	};
 
 	for (uint8_t i = 0; i < MAX_TYPE_C_PORTS; i++) {
-		if (i == typec_port) {
-			printk(BIOS_INFO, "USB Type-C %d mapped to EC port %d\n", typec_port,
-					ec_port);
+		if (i == typec_port)
 			return ec_port;
-		}
 
 		if (is_dev_enabled(tcss_port_arr[i]))
 			ec_port++;

@@ -173,8 +173,7 @@ chip soc/intel/cannonlake
 	}"
 
 	# PCIe port 11 (x2) for NVMe hybrid storage devices
-	register "PcieRpEnable[10]" = "1"
-	register "PcieRpLtrEnable[10]" = "1"
+	register "PcieRpLtrEnable[10]" = "true"
 	# Uses CLK SRC 0
 	register "PcieClkSrcUsage[0]" = "6"
 	register "PcieClkSrcClkReq[0]" = "0"
@@ -233,7 +232,7 @@ chip soc/intel/cannonlake
 				register "controls.fan_perf[9]" = "{   0,    0,   0,   50, }"
 
 				# Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 on end
@@ -386,7 +385,7 @@ chip soc/intel/cannonlake
 		device ref emmc		on end
 		device ref pcie_rp11	on
 			# X2 NVMe
-			register "PcieRpSlotImplemented[10]" = "1"
+			register "PcieRpSlotImplemented[10]" = "true"
 		end
 		device ref hda		on
 			chip drivers/sof

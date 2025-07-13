@@ -2,17 +2,12 @@
 
 #include <variants.h>
 
-/*
- * All definitions are taken from a comparison of the output of "inteltool -a"
- * using the stock BIOS and with coreboot.
- */
-
 /* Early pad configuration in bootblock */
 const struct pad_config early_gpio_table[] = {
-	/* C20:	 UART2_RXD			*/
-	PAD_CFG_NF(GPP_C20, NONE, DEEP, NF1),
-	/* C21:	 UART2_TXD			*/
-	PAD_CFG_NF(GPP_C21, NONE, DEEP, NF1),
+	/* Debug Connector */
+	PAD_CFG_NF(GPP_C20, NONE, DEEP, NF1),				/* RXD */
+	PAD_CFG_NF(GPP_C21, NONE, DEEP, NF1),				/* TXD */
+
 	/* E22:	BRD_ID0				*/
 	PAD_CFG_GPO(GPP_E22, 1, PLTRST),
 	/* E23:	BRD_ID1				*/
@@ -31,26 +26,53 @@ const struct pad_config *variant_early_gpio_table(size_t *num)
 
 /* Pad configuration in ramstage. */
 const struct pad_config gpio_table[] = {
-	/* REFERENCE:	EP PER SCHEMATIC	*/
+	/* General Purpose I/O Deep */
+	PAD_CFG_NF(GPD0, NONE, DEEP, NF1),				/* Battery Low */
+	PAD_CFG_NF(GPD1, NONE, DEEP, NF1),				/* Charger Connected */
+	PAD_CFG_NF(GPD3, UP_20K, DEEP, NF1),				/* Power Button */
+	PAD_CFG_NF(GPD4, NONE, DEEP, NF1),				/* Sleep S3 */
+	PAD_CFG_NF(GPD5, NONE, DEEP, NF1),				/* Sleep S4 */
+	PAD_CFG_NF(GPD8, NONE, DEEP, NF1),				/* Bluetooth Suspend */
 
-	/* GPD0:	PCH_BATLOW#		*/
-	PAD_CFG_NF(GPD0, NONE, DEEP, NF1),
-	/* GPD1:	AC_PRESENT		*/
-	PAD_CFG_NF(GPD1, NONE, DEEP, NF1),
+	/* Touchpad */
+	PAD_CFG_NF(GPP_C16, NONE, DEEP, NF1),				/* Data */
+	PAD_CFG_NF(GPP_C17, NONE, DEEP, NF1),				/* Clock */
+	PAD_CFG_GPI_APIC_LOW(GPP_B3, NONE, PLTRST),			/* Interrupt */
+
+	/* SSD */
+	PAD_CFG_NF(GPP_B6, NONE, DEEP, NF1),				/* Clock Request 1 */
+
+	/* Wireless */
+	PAD_CFG_NF(GPP_F4, UP_20K, DEEP, NF1),				/* BRI Data */
+	PAD_CFG_NF(GPP_F5, UP_20K, DEEP, NF1),				/* BRI Response */
+	PAD_CFG_NF(GPP_F6, UP_20K, DEEP, NF1),				/* RGI Data */
+	PAD_CFG_NF(GPP_F7, UP_20K, DEEP, NF1),				/* RGI Response */
+	PAD_CFG_NF(GPP_H1, UP_20K, DEEP, NF3),				/* RF Reset */
+	PAD_CFG_NF(GPP_H2, UP_20K, DEEP, NF3),				/* Modem Clock Request */
+	PAD_CFG_GPO(GPP_C2, 1, DEEP),					/* WiFi RF Kill */
+	PAD_CFG_GPO(GPP_B4, 1, DEEP),					/* Bluetooth RF Kill */
+
+	/* Display */
+	PAD_CFG_NF(GPP_E17, NONE, DEEP, NF1),				/* eDP Hot Plug */
+	PAD_CFG_NF(GPP_E13, NONE, DEEP, NF1),				/* HDMI Hot Plug */
+	PAD_CFG_NF(GPP_E18, NONE, DEEP, NF1),				/* HDMI Clock */
+	PAD_CFG_NF(GPP_E19, NONE, DEEP, NF1),				/* HDMI Data */
+	PAD_CFG_NF(GPP_E14, NONE, DEEP, NF1),				/* TCP0 Hot Plug */
+
+	/* PCH */
+	PAD_CFG_NF(GPP_H18, NONE, DEEP, NF1),				/* C10 Gate */
+	PAD_CFG_NF(GPP_B13, NONE, DEEP, NF1),				/* Platform Reset */
+
+	/* SMBus */
+	PAD_CFG_NF(GPP_C0, NONE, DEEP, NF1),				/* Clock */
+	PAD_CFG_NF(GPP_C1, NONE, DEEP, NF1),				/* Data */
+
 	/* GPD2:	LAN_WAKE#		*/
 	PAD_NC(GPD2, NONE),
-	/* GPD3:	SIO_PWRBTN#		*/
-	PAD_CFG_NF(GPD3, UP_20K, DEEP, NF1),
-	/* GPD4:	SIO_SLP_S3#		*/
-	PAD_CFG_NF(GPD4, NONE, DEEP, NF1),
-	/* GPD5:	SIO_SLP_S4#		*/
-	PAD_CFG_NF(GPD5, NONE, DEEP, NF1),
 	/* GPD6:	SIO_SLP_A#		*/
 	PAD_CFG_NF(GPD6, NONE, DEEP, NF1),
 	/* GPD7:	PCH_TBT_PERST#		*/
 	PAD_CFG_GPO(GPD7, 0, PLTRST),
-	/* GPD8:	SUSCLK			*/
-	PAD_CFG_NF(GPD8, NONE, DEEP, NF1),
 	/* GPD9:	SIO_SLP_WLAN#		*/
 	PAD_CFG_NF(GPD9, NONE, DEEP, NF1),
 	/* GPD10:	SIO_SLP_S5#		*/
@@ -113,14 +135,8 @@ const struct pad_config gpio_table[] = {
 	PAD_NC(GPP_B1, NONE),
 	/* B2:	Not Connected			*/
 	PAD_NC(GPP_B2, NONE),
-	/* B3:	CLICK_PAD_INT_R_N		*/
-	PAD_CFG_GPI_APIC_LOW(GPP_B3, NONE, PLTRST),
-	/* B4:	BT_RF_KILL_N			*/
-	PAD_CFG_GPO(GPP_B4, 1, DEEP),
-	/* B5:	 WLAN_CLKREQ#			*/
+	/* B5:	WLAN_CLKREQ#			*/
 	PAD_CFG_NF(GPP_B5, NONE, DEEP, NF1),
-	/* B6:	 CLKREQ1_SSD_N			*/
-	PAD_CFG_NF(GPP_B6, NONE, DEEP, NF1),
 	/* B7:	 LAN_CLKREQ#			*/
 	PAD_CFG_NF(GPP_B7, NONE, DEEP, NF1),
 	/* B8:	Not Connected			*/
@@ -133,8 +149,6 @@ const struct pad_config gpio_table[] = {
 	PAD_CFG_GPO(GPP_B11, 1, PLTRST),
 	/* B12:	 PM_SLP_S0_N			*/
 	PAD_CFG_NF(GPP_B12, NONE, DEEP, NF1),
-	/* B13:	 PLT_RST_N			*/
-	PAD_CFG_NF(GPP_B13, NONE, DEEP, NF1),
 	/* B14:	 TCH_PNL_PWR_EN			*/
 	PAD_CFG_GPO(GPP_B14, 1, PLTRST),
 	/* B15:	Not Connected			*/
@@ -156,12 +170,6 @@ const struct pad_config gpio_table[] = {
 	/* B23:	 EC_SLP_S0IX_N			*/
 	PAD_NC(GPP_B23, NONE),
 
-	/* C0:	 SMB_CLK			*/
-	PAD_CFG_NF(GPP_C0, NONE, DEEP, NF1),
-	/* C1:	 SMB_DATA			*/
-	PAD_CFG_NF(GPP_C1, NONE, DEEP, NF1),
-	/* C2:	 WIFI_RF_KILL_N			*/
-	PAD_CFG_GPO(GPP_C2, 1, DEEP),
 	/* C3:	Not Connected			*/
 	PAD_NC(GPP_C3, NONE),
 	/* C4:	Not Connected			*/
@@ -188,10 +196,6 @@ const struct pad_config gpio_table[] = {
 	PAD_NC(GPP_C14, NONE),
 	/* C15:	 TBT_RST_N			*/
 	PAD_NC(GPP_C15, NONE),
-	/* C16:	 I2C0_SDA			*/
-	PAD_CFG_NF(GPP_C16, NONE, DEEP, NF1),
-	/* C17:	 I2C0_SCL			*/
-	PAD_CFG_NF(GPP_C17, NONE, DEEP, NF1),
 	/* C18:	 TOUCH_I2C_SDA			*/
 	PAD_NC(GPP_C18, NONE),
 	/* C19:	 TOUCH_I2C_SDL			*/
@@ -276,20 +280,10 @@ const struct pad_config gpio_table[] = {
 	PAD_CFG_NF(GPP_E11, NONE, DEEP, NF1),
 	/* E12:	 GPPC_E12_USB2_OCB_3		*/
 	PAD_CFG_NF(GPP_E12, NONE, DEEP, NF1),
-	/* E13:	 DDI1_HPD			*/
-	PAD_CFG_NF(GPP_E13, NONE, DEEP, NF1),
-	/* E14:	 DDI2_HPD			*/
-	PAD_CFG_NF(GPP_E14, NONE, DEEP, NF1),
 	/* E15:	 SMC_SMI_N			*/
 	PAD_CFG_GPI_SMI_LOW(GPP_E15, NONE, DEEP, EDGE_SINGLE),
 	/* E16:	 SMC_SCI_N			*/
 	PAD_CFG_GPI_SCI_LOW(GPP_E16, NONE, PLTRST, LEVEL),
-	/* E17:	 EDP_HPD			*/
-	PAD_CFG_NF(GPP_E17, NONE, DEEP, NF1),
-	/* E18:	 DDI1_DDC_SCL			*/
-	PAD_CFG_NF(GPP_E18, NONE, DEEP, NF1),
-	/* E19:	 DDI1_DDC_SDA			*/
-	PAD_CFG_NF(GPP_E19, NONE, DEEP, NF1),
 	/* E20:	 DDI2_CTRL_CLK			*/
 	PAD_CFG_NF(GPP_E20, NONE, DEEP, NF1),
 	/* E21:	 DDI2_CTRL_DATA			*/
@@ -303,14 +297,6 @@ const struct pad_config gpio_table[] = {
 	PAD_NC(GPP_F2, NONE),
 	/* F3:	Not Connected			*/
 	PAD_NC(GPP_F3, NONE),
-	/* F4:	CNV_BRI_DT_R			*/
-	PAD_CFG_NF(GPP_F4, UP_20K, DEEP, NF1),
-	/* F5:	CNV_BRI_RSP			*/
-	PAD_CFG_NF(GPP_F5, UP_20K, DEEP, NF1),
-	/* F6:	CNV_RGI_DT_R			*/
-	PAD_CFG_NF(GPP_F6, UP_20K, DEEP, NF1),
-	/* F7:	CNV_RGI_RSP			*/
-	PAD_CFG_NF(GPP_F7, UP_20K, DEEP, NF1),
 	/* F8:	Not Connected			*/
 	PAD_NC(GPP_F8, NONE),
 	/* F9:	Not Connected			*/
@@ -363,10 +349,6 @@ const struct pad_config gpio_table[] = {
 
 	/* H0:	Not Connected			*/
 	PAD_NC(GPP_H0, NONE),
-	/* H1:	 GPPC_H1_SSP2_SFRM		*/
-	PAD_CFG_NF(GPP_H1, UP_20K, DEEP, NF3),
-	/* H2:	 GPPC_H2_SSP2_TXD		*/
-	PAD_CFG_NF(GPP_H2, UP_20K, DEEP, NF3),
 	/* H3:	Not Connected			*/
 	PAD_NC(GPP_H3, UP_20K),
 	/* H4:	 GSENSOR_I2C_SDA		*/
@@ -393,8 +375,6 @@ const struct pad_config gpio_table[] = {
 	PAD_NC(GPP_H16, NONE),
 	/* H17:	 GPPC_H_17_WWAN_DISABLE_N	*/
 	PAD_CFG_GPO(GPP_H17, 0, DEEP),
-	/* H18:	 GPPC_H_18_CPU_C10		*/
-	PAD_CFG_NF(GPP_H18, NONE, DEEP, NF1),
 	/* H19:	Not Connected			*/
 	PAD_NC(GPP_H19, NONE),
 	/* H20:	Not Connected			*/

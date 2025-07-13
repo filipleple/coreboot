@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-/* TODO: Update for Phoenix */
 /* TODO: See what can be made common */
 
 /* ACPI - create the Fixed ACPI Description Tables (FADT) */
@@ -17,9 +16,10 @@
 #include <console/console.h>
 #include <cpu/amd/cpuid.h>
 #include <device/device.h>
+#include <drivers/amd/opensil/opensil.h>
 #include <soc/iomap.h>
+#include <static.h>
 #include <types.h>
-#include <vendorcode/amd/opensil/genoa_poc/opensil.h>
 #include "chip.h"
 
 /*
@@ -39,7 +39,7 @@ void acpi_fill_fadt(acpi_fadt_t *fadt)
 		fadt->gpe0_blk = ACPI_GPE0_BLK;
 	} else {
 		/* Fill in pm1_evt, pm1_cnt, pm_tmr, gpe0_blk from openSIL input structure */
-		opensil_fill_fadt_io_ports(fadt);
+		amd_opensil_fill_fadt_io_ports(fadt);
 	}
 
 	fadt->pm1_evt_len = 4;	/* 32 bits */
@@ -72,6 +72,8 @@ unsigned long soc_acpi_write_tables(const struct device *device, unsigned long c
 
 	if (CONFIG(PLATFORM_USES_FSP2_0))
 		current = acpi_add_fsp_tables(current, rsdp);
+	else
+		current = acpi_add_opensil_tables(current, rsdp);
 
 	return current;
 }

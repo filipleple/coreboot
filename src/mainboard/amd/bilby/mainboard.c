@@ -10,6 +10,7 @@
 #include <soc/southbridge.h>
 #include <soc/pci_devs.h>
 #include <soc/platform_descriptors.h>
+#include <static.h>
 #include <types.h>
 #include <commonlib/helpers.h>
 #include <soc/amd/picasso/chip.h>
@@ -66,7 +67,6 @@ static void program_display_sel_gpios(void)
 		else if (port_type == DP)
 			gpio_output(display_sel[idx], 1);
 	}
-
 }
 
 static void mainboard_init(void *chip_info)

@@ -9,6 +9,7 @@
 #include <soc/iomap.h>
 #include <soc/soc_chip.h>
 #include <soc/systemagent.h>
+#include <static.h>
 
 /*
  * SoC implementation
@@ -60,5 +61,4 @@ void soc_systemagent_init(struct device *dev)
 	config = config_of_soc();
 	soc_config = &config->power_limits_config;
 	set_power_limits(MOBILE_SKU_PL1_TIME_SEC, soc_config);
-
 }

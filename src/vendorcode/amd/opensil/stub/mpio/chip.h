@@ -1,10 +1,14 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+#ifndef OPENSIL_STUB_MPIO_CHIP_H
+#define OPENSIL_STUB_MPIO_CHIP_H
+
 #include <types.h>
 
 enum mpio_engine_type {
-	ENGINE_PCIE,
-	ENGINE_SATA,
+	IFTYPE_UNUSED,
+	IFTYPE_PCIE,
+	IFTYPE_SATA,
 };
 
 /* Sync with PCIE_HOTPLUG_TYPE */
@@ -56,7 +60,7 @@ enum pcie_slot_power_limit_scale {
 	SLOT_POWER_LIMIT_DIVISOR_1000 = 3,	/* Scale factor 0.001 */
 };
 
-struct vendorcode_amd_opensil_stub_mpio_config {
+struct drivers_amd_opensil_mpio_config {
 	enum mpio_engine_type type;
 	uint8_t start_lane;
 	uint8_t end_lane;
@@ -72,3 +76,5 @@ struct vendorcode_amd_opensil_stub_mpio_config {
 	enum pcie_slot_power_limit_scale slot_power_limit_scale;
 	bool bmc;
 };
+
+#endif /* OPENSIL_STUB_MPIO_CHIP_H */

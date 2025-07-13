@@ -8,6 +8,8 @@
 #include <device/device.h>
 #include <device/path.h>
 #include <elog.h>
+#include <halt.h>
+#include <reset.h>
 #include <rtc.h>
 #include <security/vboot/vboot_common.h>
 #include <stdlib.h>
@@ -687,6 +689,19 @@ int google_chromeec_cbi_get_sku_id(uint32_t *id)
 	return cbi_get_uint32(id, CBI_TAG_SKU_ID);
 }
 
+uint32_t google_chromeec_get_board_sku(void)
+{
+	static uint32_t sku_id = CROS_SKU_UNKNOWN;
+
+	if (sku_id != CROS_SKU_UNKNOWN)
+		return sku_id;
+
+	if (google_chromeec_cbi_get_sku_id(&sku_id))
+		sku_id = CROS_SKU_UNKNOWN;
+
+	return sku_id;
+}
+
 int google_chromeec_cbi_get_fw_config(uint64_t *fw_config)
 {
 	uint32_t config;
@@ -721,6 +736,19 @@ int google_chromeec_cbi_get_board_version(uint32_t *version)
 int google_chromeec_cbi_get_ssfc(uint32_t *ssfc)
 {
 	return cbi_get_uint32(ssfc, CBI_TAG_SSFC);
+}
+
+bool google_chromeec_get_ucsi_enabled(void)
+{
+	int rv;
+
+	rv = google_chromeec_check_feature(EC_FEATURE_UCSI_PPM);
+	if (rv < 0) {
+		printk(BIOS_INFO, "Cannot check if EC_FEATURE_UCSI_PPM is available: status = %d\n", rv);
+		return false;
+	}
+
+	return rv != 0;
 }
 
 static int cbi_get_string(char *buf, size_t bufsize, uint32_t tag)
@@ -953,6 +981,66 @@ int google_chromeec_get_usb_pd_power_info(enum usb_chg_type *type,
 	return 0;
 }
 
+/*
+ * This API checks the current status of the USB-C port and returns
+ * whether a USB Power Delivery (PD) charger is currently connected.
+ */
+bool google_chromeec_is_usb_pd_attached(void)
+{
+	const struct ec_params_usb_pd_power_info params = {
+		.port = PD_POWER_CHARGING_PORT,
+	};
+	struct ec_response_usb_pd_power_info resp = {};
+	int rv;
+
+	rv = ec_cmd_usb_pd_power_info(PLAT_EC, &params, &resp);
+	if (rv != 0)
+		return false;
+
+	return resp.type == USB_CHG_TYPE_PD;
+}
+
+/* This API checks if charger is present. */
+bool google_chromeec_is_charger_present(void)
+{
+	struct ec_params_battery_dynamic_info params = {
+		.index = 0,
+	};
+	struct ec_response_battery_dynamic_info resp;
+
+	if (ec_cmd_battery_get_dynamic(PLAT_EC, &params, &resp) == 0) {
+		/* Check if AC charger is present */
+		if (resp.flags & EC_BATT_FLAG_AC_PRESENT)
+			return true;
+	}
+
+	return false;
+}
+
+/*
+ * Using below scenarios to conclude if device has a barrel charger attached.
+ * +-----------+-----------------+------------------+---------------------------------+
+ * | Scenarios | Charger Present | USB-C PD Present | Conclusion: Barrel Present ?    |
+ * +-----------+-----------------+------------------+---------------------------------+
+ * |  #1       | Yes             | Yes              | Non Conclusive (comments below) |
+ * |  #2       | No              | Yes              | Not possible                    |
+ * |  #3       | Yes             | No               | Must be barrel charger          |
+ * |  #4       | No              | No               | Barrel not present              |
+ * +-----------+-----------------+------------------+---------------------------------+
+ */
+bool google_chromeec_is_barrel_charger_present(void)
+{
+	/*
+	 * If both the barrel charger and USB-C PD are connected, the barrel charger takes
+	 * precedence over USB-C PD. This means google_chromeec_is_usb_pd_attached()
+	 * will return false in such a scenario.
+	 *
+	 * This behavior allows us to reliably detect the presence of a barrel
+	 * charger, even when a USB-C PD charger is also connected.
+	 */
+	return google_chromeec_is_charger_present() && !google_chromeec_is_usb_pd_attached();
+}
+
 int google_chromeec_override_dedicated_charger_limit(uint16_t current_lim,
 						     uint16_t voltage_lim)
 {
@@ -1155,6 +1243,17 @@ int google_chromeec_get_num_pd_ports(unsigned int *num_ports)
 
 	*num_ports = resp.num_ports;
 	return 0;
+}
+
+int google_chromeec_get_pd_chip_info(int port, int renew,
+				struct ec_response_pd_chip_info *r)
+{
+	const struct ec_params_pd_chip_info p = {
+		.port = port,
+		.live = renew,
+	};
+
+	return ec_cmd_pd_chip_info(PLAT_EC, &p, r);
 }
 
 int google_chromeec_get_pd_port_caps(int port,
@@ -1552,4 +1651,48 @@ bool google_chromeec_is_battery_present_and_above_critical_threshold(void)
 	}
 
 	return false;
+}
+
+bool google_chromeec_is_below_critical_threshold(void)
+{
+	struct ec_params_battery_dynamic_info params = {
+		.index = 0,
+	};
+	struct ec_response_battery_dynamic_info resp;
+
+	if (ec_cmd_battery_get_dynamic(PLAT_EC, &params, &resp) == 0) {
+		/* Check if battery LEVEL_CRITICAL is set */
+		if (resp.flags & EC_BATT_FLAG_LEVEL_CRITICAL)
+			return true;
+	}
+
+	return false;
+}
+
+bool google_chromeec_is_battery_present(void)
+{
+	struct ec_params_battery_dynamic_info params = {
+		.index = 0,
+	};
+	struct ec_response_battery_dynamic_info resp;
+
+	if (ec_cmd_battery_get_dynamic(PLAT_EC, &params, &resp) == 0) {
+		/* Check if battery is present */
+		if (resp.flags & EC_BATT_FLAG_BATT_PRESENT)
+			return true;
+	}
+
+	return false;
+}
+
+/*
+ * Performs early power off.
+ *
+ * This function handles the necessary steps to initiate an early power off
+ * sequence.
+ */
+void platform_do_early_poweroff(void)
+{
+	google_chromeec_reboot(EC_REBOOT_COLD_AP_OFF, 0);
+	halt();
 }

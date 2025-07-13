@@ -31,7 +31,10 @@ static void initialize_window(enum window_type type, uintptr_t host_base,
 	mem_region_device_ro_init(&shadow_devs[type], (void *)host_base, size);
 	xlate_window_init(&real_dev_windows[type], &shadow_devs[type].rdev,
 			  flash_base, size);
-	printk(BIOS_INFO, "MMAP window: SPI flash base=0x%lx, Host base=0x%lx, Size=0x%zx\n",
+	printk(BIOS_INFO, "%s: ",
+		(type == FIXED_DECODE_WINDOW) ?
+		 "Fixed Decode Window" : "Extended Decode Window");
+	printk(BIOS_INFO, "SPI flash base=0x%lx, Host base=0x%lx, Size=0x%zx\n",
 	       flash_base, host_base, size);
 }
 
@@ -170,7 +173,6 @@ uint32_t spi_flash_get_mmap_windows(struct flash_mmap_window *table)
 	bios_mmap_init();
 
 	for (i = 0; i < TOTAL_DECODE_WINDOWS; i++) {
-
 		if (region_sz(&real_dev_windows[i].sub_region) == 0)
 			continue;
 

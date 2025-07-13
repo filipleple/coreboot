@@ -1,9 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 /*
- * Provide a simple API around the Wuffs JPEG decoder
- * Uses the heap (and lots of it) for the image-size specific
- * work buffer, so ramstage-only.
+ * Provide a simple API around the Wuffs JPEG decoder.
  */
 
 #include <stdint.h>
@@ -21,38 +19,38 @@
 /* ~16K is big enough to move this off the stack */
 static wuffs_jpeg__decoder dec;
 
-int jpeg_fetch_size(unsigned char *filedata, size_t filesize, unsigned int *width,
-		    unsigned int *height)
+const char *jpeg_fetch_size(unsigned char *filedata, size_t filesize, unsigned int *width,
+			    unsigned int *height)
 {
 	if (!width || !height) {
-		return JPEG_DECODE_FAILED;
+		return "invalid arg";
 	}
 
 	wuffs_base__status status = wuffs_jpeg__decoder__initialize(
 		&dec, sizeof(dec), WUFFS_VERSION, WUFFS_INITIALIZE__DEFAULT_OPTIONS);
 	if (status.repr) {
-		return JPEG_DECODE_FAILED;
+		return status.repr;
 	}
 
 	wuffs_base__image_config imgcfg;
 	wuffs_base__io_buffer src = wuffs_base__ptr_u8__reader(filedata, filesize, true);
 	status = wuffs_jpeg__decoder__decode_image_config(&dec, &imgcfg, &src);
 	if (status.repr) {
-		return JPEG_DECODE_FAILED;
+		return status.repr;
 	}
 
 	*width = wuffs_base__pixel_config__width(&imgcfg.pixcfg);
 	*height = wuffs_base__pixel_config__height(&imgcfg.pixcfg);
 
-	return 0;
+	return NULL;
 }
 
-int jpeg_decode(unsigned char *filedata, size_t filesize, unsigned char *pic,
-		unsigned int width, unsigned int height, unsigned int bytes_per_line,
-		unsigned int depth)
+const char *jpeg_decode(unsigned char *filedata, size_t filesize, unsigned char *pic,
+			unsigned int width, unsigned int height, unsigned int bytes_per_line,
+			unsigned int depth)
 {
 	if (!filedata || !pic) {
-		return JPEG_DECODE_FAILED;
+		return "invalid arg";
 	}
 	/* Relatively arbitrary limit that shouldn't hurt anybody.
 	 * 300M (10k*10k*3bytes/pixel) is already larger than our heap, so
@@ -61,7 +59,7 @@ int jpeg_decode(unsigned char *filedata, size_t filesize, unsigned char *pic,
 	 * calculations in this function.
 	 */
 	if ((width > 10000) || (height > 10000)) {
-		return JPEG_DECODE_FAILED;
+		return "invalid arg";
 	}
 
 	uint32_t pixfmt;
@@ -76,20 +74,38 @@ int jpeg_decode(unsigned char *filedata, size_t filesize, unsigned char *pic,
 		pixfmt = WUFFS_BASE__PIXEL_FORMAT__BGRA_NONPREMUL;
 		break;
 	default:
-		return JPEG_DECODE_FAILED;
+		return "invalid arg";
 	}
 
 	wuffs_base__status status = wuffs_jpeg__decoder__initialize(
 		&dec, sizeof(dec), WUFFS_VERSION, WUFFS_INITIALIZE__DEFAULT_OPTIONS);
 	if (status.repr) {
-		return JPEG_DECODE_FAILED;
+		return status.repr;
 	}
+
+	/* Opting in to lower quality means that we can pass an empty slice as the
+	 * "work buffer" argument to wuffs_jpeg__decoder__decode_frame below.
+	 *
+	 * Decoding progressive (not sequential) JPEGs would still require dynamic
+	 * memory allocation (and the amount of work buffer required depends on the
+	 * image dimensions), but we choose to just reject progressive JPEGs. It is
+	 * simpler than sometimes calling malloc (which can fail, especially for
+	 * large allocations) and free.
+	 *
+	 * More commentary about these quirks is at
+	 * https://github.com/google/wuffs/blob/beaf45650085a16780b5f708b72daaeb1aa865c8/std/jpeg/decode_quirks.wuffs
+	 */
+	wuffs_jpeg__decoder__set_quirk(
+		&dec, WUFFS_BASE__QUIRK_QUALITY,
+		WUFFS_BASE__QUIRK_QUALITY__VALUE__LOWER_QUALITY);
+	wuffs_jpeg__decoder__set_quirk(
+		&dec, WUFFS_JPEG__QUIRK_REJECT_PROGRESSIVE_JPEGS, 1);
 
 	wuffs_base__image_config imgcfg;
 	wuffs_base__io_buffer src = wuffs_base__ptr_u8__reader(filedata, filesize, true);
 	status = wuffs_jpeg__decoder__decode_image_config(&dec, &imgcfg, &src);
 	if (status.repr) {
-		return JPEG_DECODE_FAILED;
+		return status.repr;
 	}
 
 	wuffs_base__pixel_config pixcfg;
@@ -101,25 +117,11 @@ int jpeg_decode(unsigned char *filedata, size_t filesize, unsigned char *pic,
 		wuffs_base__make_table_u8(pic, width * (depth / 8), height, bytes_per_line),
 		wuffs_base__empty_slice_u8());
 	if (status.repr) {
-		return JPEG_DECODE_FAILED;
+		return status.repr;
 	}
 
-	uint64_t workbuf_len_min_incl = wuffs_jpeg__decoder__workbuf_len(&dec).min_incl;
-	uint8_t *workbuf_array = malloc(workbuf_len_min_incl);
-	if ((workbuf_array == NULL) && workbuf_len_min_incl) {
-		return JPEG_DECODE_FAILED;
-	}
-
-	wuffs_base__slice_u8 workbuf =
-		wuffs_base__make_slice_u8(workbuf_array, workbuf_len_min_incl);
 	status = wuffs_jpeg__decoder__decode_frame(&dec, &pixbuf, &src,
-						   WUFFS_BASE__PIXEL_BLEND__SRC, workbuf, NULL);
-
-	free(workbuf_array);
-
-	if (status.repr) {
-		return JPEG_DECODE_FAILED;
-	}
-
-	return 0;
+						   WUFFS_BASE__PIXEL_BLEND__SRC,
+						   wuffs_base__empty_slice_u8(), NULL);
+	return status.repr;
 }

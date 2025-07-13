@@ -8,6 +8,22 @@
 #include <arch/cpu.h>
 #endif
 
+#define MTRR_VERBOSE_LEVEL BIOS_NEVER
+
+/* MTRRs are at a 4KiB granularity. */
+#define RANGE_SHIFT 12
+#define ADDR_SHIFT_TO_RANGE_SHIFT(x) \
+	(((x) > RANGE_SHIFT) ? ((x) - RANGE_SHIFT) : RANGE_SHIFT)
+#define PHYS_TO_RANGE_ADDR(x) ((x) >> RANGE_SHIFT)
+#define RANGE_TO_PHYS_ADDR(x) (((resource_t)(x)) << RANGE_SHIFT)
+
+/* Helpful constants. */
+#define RANGE_1MB PHYS_TO_RANGE_ADDR(1ULL << 20)
+#define RANGE_4GB (1ULL << (ADDR_SHIFT_TO_RANGE_SHIFT(32)))
+
+#define MTRR_ALGO_SHIFT (8)
+#define MTRR_TAG_MASK ((1 << MTRR_ALGO_SHIFT) - 1)
+
 /*  These are the region types  */
 #define MTRR_TYPE_UNCACHEABLE		0
 #define MTRR_TYPE_WRCOMB		1
@@ -61,6 +77,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <lib.h>
 
 /*
  * The MTRR code has some side effects that the callers should be aware for.
@@ -86,10 +103,10 @@ void x86_setup_mtrrs_with_detect_no_above_4gb(void);
 /*
  * x86_setup_var_mtrrs() parameters:
  * address_bits - number of physical address bits supported by cpu
- * above4gb - if set setup MTRRs for addresses above 4GiB else ignore
+ * above4gb - if true, set setup MTRRs for addresses above 4GiB else ignore
  *            memory ranges above 4GiB
  */
-void x86_setup_var_mtrrs(unsigned int address_bits, unsigned int above4gb);
+void x86_setup_var_mtrrs(unsigned int address_bits, bool above4gb);
 void enable_fixed_mtrr(void);
 /* Unhide Rd/WrDram bits and allow modification for AMD. */
 void fixed_mtrrs_expose_amd_rwdram(void);
@@ -107,9 +124,11 @@ static inline int get_var_mtrr_count(void)
 	return rdmsr(MTRR_CAP_MSR).lo & MTRR_CAP_VCNT;
 }
 
-void set_var_mtrr(unsigned int reg, unsigned int base, unsigned int size,
+int acquire_and_configure_mtrr(unsigned int base, unsigned int size, unsigned int type);
+void set_var_mtrr(unsigned int index, unsigned int base, unsigned int size,
 	unsigned int type);
 int get_free_var_mtrr(void);
+void clear_var_mtrr(int index);
 void clear_all_var_mtrr(void);
 
 asmlinkage void display_mtrrs(void);
@@ -128,29 +147,11 @@ int var_mtrr_set(struct var_mtrr_context *ctx, uintptr_t addr, size_t size, int 
 void commit_mtrr_setup(const struct var_mtrr_context *ctx);
 void postcar_mtrr_setup(void);
 
-/* fms: find most significant bit set, stolen from Linux Kernel Source. */
-static inline unsigned int fms(unsigned int x)
+static inline uint64_t calculate_var_mtrr_size(uint64_t mask)
 {
-	unsigned int r;
-
-	__asm__("bsrl %1,%0\n\t"
-		"jnz 1f\n\t"
-		"movl $0,%0\n"
-		"1:" : "=r" (r) : "mr" (x));
-	return r;
+	return 1 << (__ffs64(mask >> RANGE_SHIFT) + RANGE_SHIFT);
 }
 
-/* fls: find least significant bit set */
-static inline unsigned int fls(unsigned int x)
-{
-	unsigned int r;
-
-	__asm__("bsfl %1,%0\n\t"
-		"jnz 1f\n\t"
-		"movl $32,%0\n"
-		"1:" : "=r" (r) : "mr" (x));
-	return r;
-}
 #endif /* !defined(__ASSEMBLER__) */
 
 /* Align up/down to next power of 2, suitable for assembler

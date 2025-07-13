@@ -6,14 +6,15 @@
 #include <device/pci_ops.h>
 #include <intelblocks/itss.h>
 #include <intelblocks/lpc_lib.h>
+#include <intelpch/espi.h>
 #include <pc80/isa-dma.h>
 #include <pc80/i8259.h>
-#include <soc/espi.h>
 #include <soc/iomap.h>
 #include <soc/irq.h>
 #include <soc/pci_devs.h>
 #include <soc/pcr_ids.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 
 void soc_get_gen_io_dec_range(uint32_t gen_io_dec[LPC_NUM_GENERIC_IO_RANGES])
 {

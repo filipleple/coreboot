@@ -3,7 +3,6 @@
 #include <acpi/acpigen.h>
 #include <arch/smp/mpspec.h>
 #include <arch/vga.h>
-#include <assert.h>
 #include <cpu/intel/turbo.h>
 #include <device/mmio.h>
 #include <device/pci.h>
@@ -48,16 +47,13 @@ void soc_fill_fadt(acpi_fadt_t *fadt)
 	fadt->pm2_cnt_len = 1;
 	fadt->pm_tmr_len = 4;
 
-	fadt->iapc_boot_arch = ACPI_FADT_LEGACY_DEVICES | ACPI_FADT_8042;
+	fadt->iapc_boot_arch = ACPI_FADT_LEGACY_DEVICES;
 
 	/* PM Extended Registers */
 	fill_fadt_extended_pm_io(fadt);
 }
 
-void uncore_fill_ssdt(const struct device *device)
+void soc_power_states_generation(int core_id, int cores_per_package)
 {
-}
-
-void soc_power_states_generation(int core, int cores_per_package)
-{
+	generate_p_state_entries(core_id, cores_per_package);
 }

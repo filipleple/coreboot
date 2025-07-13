@@ -6,7 +6,7 @@
 #include <acpi/acpi.h>
 #include <device/device.h>
 #include <device/mmio.h>
-#include <stdint.h>
+#include <types.h>
 
 #define HDA_GCAP_REG		0x00
 #define HDA_GCTL_REG		0x08
@@ -18,9 +18,10 @@
 #define   HDA_ICII_BUSY		(1 << 0)
 #define   HDA_ICII_VALID	(1 << 1)
 
-int azalia_set_bits(void *port, u32 mask, u32 val);
-int azalia_enter_reset(u8 *base);
-int azalia_exit_reset(u8 *base);
+#define AZALIA_MAX_CODECS	15
+
+enum cb_err azalia_enter_reset(u8 *base);
+enum cb_err azalia_exit_reset(u8 *base);
 u32 azalia_find_verb(const u32 *verb_table, u32 verb_table_bytes, u32 viddid, const u32 **verb);
 int azalia_program_verb_table(u8 *base, const u32 *verbs, u32 verb_size);
 void azalia_codec_init(u8 *base, int addr, const u32 *verb_table, u32 verb_table_bytes);

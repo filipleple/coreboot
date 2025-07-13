@@ -3,6 +3,7 @@
 #ifndef MTK_COMMON_I2C_H
 #define MTK_COMMON_I2C_H
 
+#include <commonlib/bsd/helpers.h>
 #include <device/i2c.h>
 
 /* I2C DMA Registers */
@@ -153,5 +154,7 @@ int mtk_i2c_calculate_speed(uint8_t bus, uint32_t clk_src,
 			    uint32_t *timing_sample_cnt);
 void mtk_i2c_speed_init(uint8_t bus, uint32_t speed);
 void mtk_i2c_config_timing(struct mt_i2c_regs *regs, struct mtk_i2c *bus_ctrl);
+void mtk_i2c_set_gpio_pinmux(uint8_t bus);
+void mtk_i2c_bus_init(uint8_t bus, uint32_t speed);
 
 #endif

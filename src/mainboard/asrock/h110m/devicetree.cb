@@ -4,7 +4,7 @@ chip soc/intel/skylake
 
 	register "deep_sx_config" = "DSX_EN_WAKE_PIN"
 
-	register "eist_enable" = "1"
+	register "eist_enable" = "true"
 
 	# GPE configuration
 	# Note that GPE events called out in ASL code rely on this
@@ -15,7 +15,7 @@ chip soc/intel/skylake
 	register "gpe0_dw2" = "GPP_E"
 
 	# Enable DPTF
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# FSP Configuration
 	register "PrimaryDisplay" = "Display_PEG"
@@ -41,7 +41,6 @@ chip soc/intel/skylake
 	# Send an extra VR mailbox command for the PS4 exit issue
 	register "SendVrMbxCmd" = "2"
 
-	device cpu_cluster 0 on end
 	device domain 0 on
 		device ref system_agent	on
 			subsystemid 0x1849 0x191f
@@ -114,29 +113,26 @@ chip soc/intel/skylake
 		end
 		device ref pcie_rp1	on	end
 		device ref pcie_rp5	on
-			register "PcieRpEnable[4]"			= "1"
 			register "PcieRpClkReqSupport[4]"		= "1"
 			register "PcieRpClkReqNumber[4]"		= "2"
 			register "PcieRpAdvancedErrorReporting[4]"	= "1"
-			register "PcieRpLtrEnable[4]"			= "1"
+			register "PcieRpLtrEnable[4]"			= "true"
 			register "PcieRpClkSrcNumber[4]"		= "2"
 			register "PcieRpHotPlug[4]"			= "1"
 		end
 		device ref pcie_rp6	on
-			register "PcieRpEnable[5]"			= "1"
 
 			# Disable CLKREQ#, since onboard LAN is always present
 			register "PcieRpClkReqSupport[5]"		= "0"
 			register "PcieRpAdvancedErrorReporting[5]"	= "1"
-			register "PcieRpLtrEnable[5]"			= "1"
+			register "PcieRpLtrEnable[5]"			= "true"
 			register "PcieRpClkSrcNumber[5]"		= "1"
 		end
 		device ref pcie_rp7	on
-			register "PcieRpEnable[6]"			= "1"
 			register "PcieRpClkReqSupport[6]"		= "1"
 			register "PcieRpClkReqNumber[6]"		= "3"
 			register "PcieRpAdvancedErrorReporting[6]"	= "1"
-			register "PcieRpLtrEnable[6]"			= "1"
+			register "PcieRpLtrEnable[6]"			= "true"
 			register "PcieRpClkSrcNumber[6]"		= "3"
 			register "PcieRpHotPlug[6]"			= "1"
 		end

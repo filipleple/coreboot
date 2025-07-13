@@ -2,26 +2,8 @@
 
 #include <bootblock_common.h>
 #include <device/pnp_ops.h>
-#include <southbridge/intel/bd82x6x/pch.h>
 #include <superio/nuvoton/common/nuvoton.h>
 #include <superio/nuvoton/nct6776/nct6776.h>
-
-const struct southbridge_usb_port mainboard_usb_ports[] = {
-	{ 1, 0, 0 },
-	{ 1, 0, 0 },
-	{ 1, 0, 1 },
-	{ 1, 0, 1 },
-	{ 1, 0, 2 },
-	{ 1, 0, 2 },
-	{ 1, 0, 3 },
-	{ 1, 0, 3 },
-	{ 1, 0, 4 },
-	{ 1, 0, 4 },
-	{ 1, 0, 5 },
-	{ 1, 0, 5 },
-	{ 1, 0, 6 },
-	{ 1, 0, 6 },
-};
 
 void bootblock_mainboard_early_init(void)
 {

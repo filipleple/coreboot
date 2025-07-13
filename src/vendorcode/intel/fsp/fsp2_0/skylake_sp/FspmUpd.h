@@ -37,6 +37,9 @@ are permitted provided that the following conditions are met:
 
 #pragma pack(1)
 
+/* Must not use VOID * since that would break x86_64 coreboot support! */
+#define PTR_32B(type) UINT32
+
 /**
  FSP Header Version Number
 **/
@@ -137,9 +140,7 @@ typedef enum {
 } IIO_STACKS;
 
 #define IioStack0 CSTACK
-/* MAX_LOGIC_IIO_STACK is needed by uncore_acpi.c, define the same value from nb_acpi.c for
-   Skylake-SP to keep the same behavior. */
-#define MAX_LOGIC_IIO_STACK PSTACK2
+#define MAX_LOGIC_IIO_STACK MAX_STACKS
 
 /**
  NTB Per Port Definition
@@ -263,7 +264,7 @@ typedef struct {
 /**
  GPIOTABLE_CONFIG:
  GpioTable -       Base Address of the Gpio Table declared by the
-		bootloader.
+		bootloader. Pointer to UPD_GPIO_INIT_CONFIG.
 		Default: NULL
  NumberofEntries - Number of Entries in the GPIO Table provided
 		Default: 0
@@ -271,8 +272,8 @@ typedef struct {
  configuration using default GPIO_INIT_CONFIG tables
 **/
 typedef struct {
-	UPD_GPIO_INIT_CONFIG  *GpioTable;
-	UINT32                NumberOfEntries;
+	PTR_32B(UPD_GPIO_INIT_CONFIG) GpioTablePtr;
+	UINT32                        NumberOfEntries;
 } GPIOTABLE_CONFIG;
 
 /**
@@ -295,7 +296,7 @@ typedef struct {
 /**
  IIOBIFURCATION_CONFIG:
  IIoBifurcationTable - Base Address of the IIO Bifurcation table
-		declared by the bootloader
+		declared by the bootloader. Pointer to UPD_IIO_BIFURCATION_DATA_ENTRY.
 		Default: NULL
  NumberofEntries -     Number of Entries in the IIO Bifurcation Table
 		Default: 0
@@ -303,8 +304,8 @@ typedef struct {
  bifurcation using default IIO_BIFURCATION_DATA_ENTRY tables
 **/
 typedef struct {
-	UPD_IIO_BIFURCATION_DATA_ENTRY  *IIoBifurcationTable;
-	UINT32                          NumberOfEntries;
+	PTR_32B(UPD_IIO_BIFURCATION_DATA_ENTRY) IIoBifurcationTablePtr;
+	UINT32                                  NumberOfEntries;
 } IIOBIFURCATION_CONFIG;
 
 /**
@@ -383,13 +384,12 @@ typedef struct {
 /**
  PCIEPORT_CONFIG:
  PciePortConfiguration - Pointer to an array of PCIe port configuration structures
-	as declared above
+	as declared above. Pointer to UPD_PCI_PORT_CONFIG.
  NumberOfEntries       - Number of elements in the PciePortConfiguration Array
 **/
 typedef struct {
-	UPD_PCI_PORT_CONFIG  *ConfigurationTable;
-
-	UINT16                NumberOfEntries;
+	PTR_32B(UPD_PCI_PORT_CONFIG) ConfigurationTablePtr;
+	UINT16                       NumberOfEntries;
 } IIOPCIPORT_CONFIG;
 
 /**
@@ -414,12 +414,13 @@ typedef struct {
 
 /**
  IIORESOURCE_CONFIG:
- ResourceConfigTable   - Pointer to an Iio Stack Resource Configuration Structure Array
+ ResourceConfigTable   - Pointer to an Iio Stack Resource Configuration Structure Array.
+                         Pointer to UPD_IIO_STACK_RESOURCE_CONFIG.
  NumberOfEntries       - Number of Entries in the Iio Stack Resource Configuration Array
 **/
 typedef struct {
-	UPD_IIO_STACK_RESOURCE_CONFIG  *ResourceTable;
-	UINT16                         NumberOfEntries;
+	PTR_32B(UPD_IIO_STACK_RESOURCE_CONFIG) ResourceTablePtr;
+	UINT16                                 NumberOfEntries;
 } IIORESOURCE_CONFIG;
 
 /**
@@ -438,6 +439,7 @@ typedef struct {
 /**
  PCHPCIPORT_CONFIG:
  PciPortConfig            - Pointer to an array of PCH PCI Ports to be configured
+                            Pointer to UPD_PCH_PCIE_PORT.
  RootPortFunctionSwapping - Disable root port swapping based on device
 		connection status
  PciePllSsc               - Specifies the Pcie Pll Spread Spectrum Percentage
@@ -448,10 +450,10 @@ typedef struct {
  NumberOfEntries          - Number of entries in the PCH PCI Port configuration
 **/
 typedef struct {
-	UPD_PCH_PCIE_PORT   *PciPortConfig;
-	UINT8               RootPortFunctionSwapping;
-	UINT8               PciePllSsc;
-	UINT16              NumberOfEntries;
+	PTR_32B(UPD_PCH_PCIE_PORT) PciPortConfigPtr;
+	UINT8                      RootPortFunctionSwapping;
+	UINT8                      PciePllSsc;
+	UINT16                     NumberOfEntries;
 } PCHPCIPORT_CONFIG;
 
 /** FSP-M Configuration
@@ -509,12 +511,7 @@ typedef struct {
 **/
 	UINT8                     BoardId;
 
-	UINT8                     reserved2[24];
-
-/** Offset 0x00C2 **/
-	VOID                      *SetupStructPtr;
-
-	UINT8                     reserved3[20];
+	UINT8                     reserved2[48];
 
 /** Offset 0x00DA - IioPciConfig
 	IIO Pci Port Config Struct. Defaults: All pointers are NULL. All values are set to zero.
@@ -531,7 +528,7 @@ typedef struct {
 **/
 	IIORESOURCE_CONFIG        IioResourceConfig;
 
-	UINT8                     reserved4[3];
+	UINT8                     reserved3[3];
 
 /** Offset 0x00F1 - DCI Enable
 	Enable / Disable DCI

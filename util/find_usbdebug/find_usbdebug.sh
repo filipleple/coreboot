@@ -27,15 +27,35 @@ if [ "$uid" -ne 0 ]; then
 	echo "Must be run as root. Exiting."
 	exit 1
 fi
+
+if ! command -v lsusb; then
+	echo "lsusb not found. Please install \"usbutils\" from your
+distribution's package manager. Exiting."
+	exit 1
+fi
+
+if ! command -v lspci; then
+	echo "lspci not found. Please install \"pciutils\" from your
+distribution's package manager. Exiting."
+	exit 1
+fi
+
 dmesgfile=$1
 
 find_devs_in_tree () {
 	bus=$1
 	port=$2
-	busstr=`printf "Bus %02d" "$bus"`
-	portstr="Port $port"
 
-	hubs_to_ignore="8087:0020 8087:0024"
+	# lsusb -t uses 3 digits for bus/port nunmbers as of version 016 and later
+	if [ $(lsusb -V | cut -f 3 -d " ") -lt 16 ]; then
+		busstr=`printf "Bus %02d" "$bus"`
+		portstr="Port $port"
+	else
+		busstr=`printf "Bus %03d" "$bus"`
+		portstr=`printf "Port %03d" "$port"`
+	fi
+
+	hubs_to_ignore="8087:0020 8087:0024 8087:8000 8087:8008"
 	reqlvl=1
 
 	found=

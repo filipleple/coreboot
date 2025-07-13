@@ -12,22 +12,6 @@ chip northbridge/intel/sandybridge
 	register "spd_addresses" = "{0x50, 0, 0x52, 0}"
 	register "max_mem_clock_mhz" = "666"
 
-	register "usb_port_config" = "{
-		{ 1, 0, 0x0080 },
-		{ 1, 1, 0x0040 },
-		{ 1, 0, 0x0040 },
-		{ 1, 0, 0x0040 },
-		{ 1, 2, 0x0080 },
-		{ 0, 0, 0x0000 },
-		{ 0, 0, 0x0000 },
-		{ 0, 0, 0x0000 },
-		{ 1, 4, 0x0040 },
-		{ 1, 4, 0x0040 },
-		{ 1, 4, 0x0040 },
-		{ 0, 4, 0x0000 },
-		{ 1, 6, 0x0040 },
-		{ 1, 5, 0x0040 }, }"
-
 	chip cpu/intel/model_206ax
 		device cpu_cluster 0 on end
 
@@ -53,6 +37,23 @@ chip northbridge/intel/sandybridge
 			register "gen1_dec" = "0x00fc1601"
 			# SuperIO range is 0x700-0x73f
 			register "gen2_dec" = "0x003c0701"
+
+			register "usb_port_config" = "{
+				{ 1, 1, 0 }, /* P0: Front port  (OC0) */
+				{ 1, 0, 1 }, /* P1: Back port   (OC1) */
+				{ 1, 0, -1 }, /* P2: MINIPCIE1   (no OC) */
+				{ 1, 0, -1 }, /* P3: MMC         (no OC) */
+				{ 1, 1, 2 }, /* P4: Front port  (OC2) */
+				{ 0, 0, -1 }, /* P5: Empty */
+				{ 0, 0, -1 }, /* P6: Empty */
+				{ 0, 0, -1 }, /* P7: Empty */
+				{ 1, 0, 4 }, /* P8: Back port   (OC4) */
+				{ 1, 0, -1 }, /* P9: MINIPCIE3   (no OC) */
+				{ 1, 0, -1 }, /* P10: BLUETOOTH  (no OC) */
+				{ 0, 0, -1 }, /* P11: Empty */
+				{ 1, 0, 6 }, /* P12: Back port  (OC6) */
+				{ 1, 0, 5 }, /* P13: Back port  (OC5) */
+			}"
 
 			device ref mei1 on end # Management Engine Interface 1
 			device ref mei2 off end # Management Engine Interface 2
@@ -88,9 +89,10 @@ chip northbridge/intel/sandybridge
 					# Skip keyboard init
 					register "skip_keyboard" = "true"
 					# Enable PECI on TMPIN3
-					register "peci_tmpin" = "3"
+					register "TMPIN3.mode" = "THERMAL_PECI"
 					# Enable FAN3
-					register "fan3_enable" = "true"
+					register "FAN3.mode" = "FAN_SMART_SOFTWARE"
+					register "FAN3.smart.pwm_start" = "30"
 
 					device pnp 2e.0 off end # FDC
 					device pnp 2e.1 on # Serial Port 1

@@ -111,7 +111,7 @@ bsp_init:
 
 	/* Send INIT IPI to all excluding ourself. */
 	movl	LAPIC(ICR), %edi
-	movl	$(LAPIC_DEST_ALLBUT | LAPIC_INT_ASSERT | LAPIC_DM_INIT), %eax
+	movl	$(LAPIC_DEST_ALLBUT | LAPIC_INT_ASSERT | LAPIC_MT_INIT), %eax
 1:	movl	%eax, (%edi)
 	movl	$0x30, %ecx
 2:	pause
@@ -160,7 +160,7 @@ hyper_threading_cpu:
 
 	/* Send Start IPI to all excluding ourself. */
 	movl	LAPIC(ICR), %edi
-	movl	$(LAPIC_DEST_ALLBUT | LAPIC_DM_STARTUP), %eax
+	movl	$(LAPIC_DEST_ALLBUT | LAPIC_MT_STARTUP), %eax
 	orl	$ap_sipi_vector_in_rom, %eax
 1:	movl	%eax, (%edi)
 	movl	$0x30, %ecx
@@ -363,7 +363,7 @@ fill_cache:
 	subl	$4, %esp
 
 #if ENV_X86_64
-	setup_longmode $(CONFIG_ARCH_X86_64_PGTBL_LOC)
+	setup_longmode $PML4E
 
 	movd	%mm2, %rdi
 	shlq	$32, %rdi	/* BIST */

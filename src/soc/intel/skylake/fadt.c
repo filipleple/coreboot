@@ -3,6 +3,7 @@
 #include <acpi/acpi.h>
 #include <soc/iomap.h>
 #include <soc/pm.h>
+#include <static.h>
 #include "chip.h"
 
 void soc_fill_fadt(acpi_fadt_t *fadt)
@@ -24,6 +25,5 @@ void soc_fill_fadt(acpi_fadt_t *fadt)
 
 	if (config->s0ix_enable)
 		fadt->flags |= ACPI_FADT_LOW_PWR_IDLE_S0;
-
 
 }

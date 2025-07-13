@@ -9,6 +9,8 @@
 #include <soc/spm_common.h>
 #include <types.h>
 
+#define SPM_SYSTEM_BASE_OFFSET	0x40000000
+
 /* SPM READ/WRITE CFG */
 #define SPM_PROJECT_CODE			0xb16
 #define SPM_REGWR_CFG_KEY			(SPM_PROJECT_CODE << 16)
@@ -733,15 +735,7 @@ struct mtk_spm_regs {
 	u32 spm_sw_debug_0;
 	u32 spm_sw_flag_1;
 	u32 spm_sw_debug_1;
-	u32 spm_sw_rsv_0;
-	u32 spm_sw_rsv_1;
-	u32 spm_sw_rsv_2;
-	u32 spm_sw_rsv_3;
-	u32 spm_sw_rsv_4;
-	u32 spm_sw_rsv_5;
-	u32 spm_sw_rsv_6;
-	u32 spm_sw_rsv_7;
-	u32 spm_sw_rsv_8;
+	u32 spm_sw_rsv[9];
 	u32 spm_bk_wake_event;
 	u32 spm_bk_vtcxo_dur;
 	u32 spm_bk_wake_misc;

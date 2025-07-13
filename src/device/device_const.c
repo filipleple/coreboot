@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <console/console.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <device/pci_def.h>
 #include <device/pci_type.h>
 #include <fw_config.h>
@@ -119,7 +118,7 @@ static int path_eq(const struct device_path *path1,
 		equal = (path1->apic.apic_id == path2->apic.apic_id);
 		break;
 	case DEVICE_PATH_DOMAIN:
-		equal = (path1->domain.domain == path2->domain.domain);
+		equal = (path1->domain.domain_id == path2->domain.domain_id);
 		break;
 	case DEVICE_PATH_CPU_CLUSTER:
 		equal = (path1->cpu_cluster.cluster
@@ -130,6 +129,9 @@ static int path_eq(const struct device_path *path1,
 		break;
 	case DEVICE_PATH_CPU_BUS:
 		equal = (path1->cpu_bus.id == path2->cpu_bus.id);
+		break;
+	case DEVICE_PATH_IOAPIC:
+		equal = (path1->ioapic.ioapic_id == path2->ioapic.ioapic_id);
 		break;
 	case DEVICE_PATH_GENERIC:
 		equal = (path1->generic.id == path2->generic.id) &&

@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include <console/console.h>
 
@@ -26,7 +25,6 @@ static void print_guid(int log_level, const EFI_GUID *g)
 	printk(log_level, "GUID: %08x-%04x-%04x-%02x%02x%02x%02x%02x%02x%02x%02x",
 		g->Data1, g->Data2, g->Data3, g->Data4[0], g->Data4[1], g->Data4[2],
 		g->Data4[3], g->Data4[4], g->Data4[5], g->Data4[6], g->Data4[7]);
-
 }
 
 static bool compare_guid(const EFI_GUID *a, const EFI_GUID *b)
@@ -164,7 +162,6 @@ static enum cb_err validate_fv_header(const struct region_device *rdev,
 	printk(BIOS_SPEW, PREFIX "UEFI FV with size %lld found\n", fw_vol_hdr->FvLength);
 
 	return CB_SUCCESS;
-
 }
 
 static enum cb_err
@@ -608,7 +605,7 @@ enum cb_err efi_fv_set_option(struct region_device *rdev,
 	found_existing = ret == CB_SUCCESS;
 
 	if (found_existing) {
-		printk(BIOS_ERR, "found existing variable %s, match =%d\n", name, args.match);
+		printk(BIOS_DEBUG, "found existing variable %s, match = %d\n", name, args.match);
 
 		if (args.match)
 			return CB_SUCCESS;

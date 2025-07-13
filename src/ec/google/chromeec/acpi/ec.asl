@@ -12,6 +12,7 @@
 #define EC_OEM_VARIABLE_DATA_MASK	0x7
 #define INT3400_ODVP_CHANGED		0x88
 
+#define ACPI_NOTIFY_CROS_EC_MKBP	0x80
 #define ACPI_NOTIFY_CROS_EC_PANIC	0xB0
 
 // Mainboard specific throttle handler
@@ -100,12 +101,16 @@ Device (EC0)
 		USPP, 8,	// USB Port Power
 		RFWU, 8,	// Retimer Firmware Update
 		PBOK, 8,	// Power source change count from dptf
+		BSRF, 8,	// Battery string readout FIFO
 	}
 
 #if CONFIG(EC_GOOGLE_CHROMEEC_ACPI_MEMMAP)
 	OperationRegion (EMEM, EmbeddedControl,
 			 EC_ACPI_MEM_MAPPED_BEGIN, EC_ACPI_MEM_MAPPED_SIZE)
 	Field (EMEM, ByteAcc, Lock, Preserve)
+#elif CONFIG(EC_GOOGLE_CHROMEEC_LPC_GENERIC_MEMORY_RANGE)
+	OperationRegion (EMEM, SystemMemory, \_SB.PCI0.LPCB.GLGM() + 0x100, EC_MEMMAP_SIZE)
+	Field (EMEM, ByteAcc, NoLock, Preserve)
 #else
 	OperationRegion (EMEM, SystemIO, EC_LPC_ADDR_MEMMAP, EC_MEMMAP_SIZE)
 	Field (EMEM, ByteAcc, NoLock, Preserve)
@@ -190,6 +195,11 @@ Device (EC0)
 		If (CondRefOf (\_SB.DPTC)) {
 			\_SB.DPTC()
 		}
+#endif
+
+#ifdef DPTF_FEATURE_DYNAMIC_THERMAL_TABLE_SWITCH
+		\_SB.DPTF.ODUP(0, STTB)
+		Notify (\_SB.DPTF, INT3400_ODVP_CHANGED)
 #endif
 	}
 
@@ -374,14 +384,6 @@ Device (EC0)
 		Printf ("EC: THROTTLE START")
 		\_TZ.THRT (1)
 #endif
-
-#ifdef DPTF_ENABLE_OEM_VARIABLES
-		Local0 = ToInteger(EOVD) & EC_OEM_VARIABLE_DATA_MASK
-		\_SB.DPTF.ODUP(0, Local0)
-		Local0 = \_SB.DPTF.ODGT(0)
-		\_SB.DPTF.ODVP()
-		Notify (\_SB.DPTF, INT3400_ODVP_CHANGED)
-#endif
 	}
 
 	// Throttle Stop
@@ -436,7 +438,7 @@ Device (EC0)
 	Method (_Q1B, 0, NotSerialized)
 	{
 		Printf ("EC: MKBP")
-		Notify (CREC, 0x80)
+		Notify (CREC, ACPI_NOTIFY_CROS_EC_MKBP)
 	}
 
 #ifdef EC_ENABLE_PD_MCU_DEVICE
@@ -474,6 +476,11 @@ Device (EC0)
 		If (CondRefOf (\_SB.DPTC)) {
 			\_SB.DPTC()
 		}
+#endif
+
+#ifdef DPTF_FEATURE_DYNAMIC_THERMAL_TABLE_SWITCH
+		\_SB.DPTF.ODUP(0, STTB)
+		Notify (\_SB.DPTF, INT3400_ODVP_CHANGED)
 #endif
 	}
 

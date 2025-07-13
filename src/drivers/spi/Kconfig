@@ -146,7 +146,8 @@ config SPI_FLASH_STMICRO
 	default y if SPI_FLASH_INCLUDE_ALL_DRIVERS
 	help
 	  Select this option if your chipset driver needs to store certain
-	  data in the SPI flash and your SPI flash is made by ST MICRO.
+	  data in the SPI flash and your SPI flash is made by ST Micro,
+	  Numonyx or Micron.
 
 config SPI_FLASH_WINBOND
 	bool
@@ -187,6 +188,17 @@ config SPI_FLASH_FORCE_4_BYTE_ADDR_MODE
 	  This will force coreboot to send addresses as 4-bytes instead of 3-bytes.
 	  On some platforms with SPI flashes larger than 16MB, the SPI flash may need
 	  to remain in 4-byte addressing mode.
+
+config SPI_FLASH_SFDP
+	bool
+	help
+	  Include serial flash discoverable parameters (SFDP) support.
+
+config SPI_FLASH_RPMC
+	bool
+	select SPI_FLASH_SFDP
+	help
+	  Include replay-protected monotonic counter (RPMC) support.
 
 endif # SPI_FLASH
 

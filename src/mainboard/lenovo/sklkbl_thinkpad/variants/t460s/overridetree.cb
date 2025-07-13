@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+chip soc/intel/skylake
+	device domain 0 on
+		device ref sata on
+			register "SataPortsEnable[1]" = "1"
+			register "SataPortsDevSlp[1]" = "1"
+		end
+
+		# USB port map
+		device ref south_xhci on
+		    register "usb2_ports" = "{
+				[0] = USB2_PORT_MID(OC0), // Right USB-A
+				[1] = USB2_PORT_MID(OC1), // Left USB-A
+				[2] = USB2_PORT_MID(OC_SKIP), // Smartcard
+				[3] = USB2_PORT_MID(OC_SKIP), // USB-C or WWAN
+				[4] = USB2_PORT_MID(OC_SKIP), // Webcam
+				[5] = USB2_PORT_MID(OC_SKIP), // WLAN Bluetooth
+				[6] = USB2_PORT_MID(OC_SKIP),
+				[7] = USB2_PORT_MID(OC_SKIP),
+				[8] = USB2_PORT_MID(OC_SKIP),
+				[9] = USB2_PORT_MID(OC_SKIP),
+		    }"
+
+		    register "usb3_ports" = "{
+	            [0] = USB3_PORT_DEFAULT(OC0), // Right USB-A
+	            [1] = USB3_PORT_DEFAULT(OC1), // Left USB-A
+	            [2] = USB3_PORT_DEFAULT(OC_SKIP), // maybe unused
+	            [3] = USB3_PORT_DEFAULT(OC_SKIP), // maybe USB-C
+		    }"
+		end
+
+		# PCIe configuration:
+		
+		# SD Card reader (Realtek RTS522A) on RP1
+		device ref pcie_rp1 on
+			register "PcieRpClkReqSupport[0]" = "0"
+			register "PcieRpClkReqNumber[0]" = "0"
+			register "PcieRpClkSrcNumber[0]" = "0"
+			register "PcieRpAdvancedErrorReporting[0]" = "1"
+			register "PcieRpLtrEnable[0]" = "1"
+		end
+
+		device generic 0 alias dgpu off end
+
+		# WLAN (Intel 8260) on RP3
+		device ref pcie_rp3 on
+			register "PcieRpClkReqSupport[2]" = "0"
+			register "PcieRpClkReqNumber[2]" = "1"
+			register "PcieRpClkSrcNumber[2]" = "1"
+			register "PcieRpAdvancedErrorReporting[2]" = "1"
+			register "PcieRpLtrEnable[2]" = "1"
+		end
+
+		# NVMe SSD on RP5
+		device ref pcie_rp5 on
+			register "PcieRpClkReqSupport[4]" = "0"
+			register "PcieRpClkReqNumber[4]" = "5"
+			register "PcieRpClkSrcNumber[4]" = "5"
+			register "PcieRpAdvancedErrorReporting[4]" = "1"
+			register "PcieRpLtrEnable[4]" = "1"
+		end
+
+		# Ethernet 
+		device ref gbe on
+			register "LanClkReqSupported"			= "0"
+			register "LanClkReqNumber"			= "2"
+			register "EnableLanLtr"				= "1"
+			register "EnableLanK1Off"			= "1"
+		end
+
+	end
+end

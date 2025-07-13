@@ -108,8 +108,8 @@ void fast_spi_cache_ext_bios_postcar(struct postcar_frame *pcf);
  */
 void fast_spi_set_bde(void);
 /*
- * Set FAST_SPIBAR Vendor Component Lock bit.
+ * Check if flash descriptor override is asserted
  */
-void fast_spi_set_vcl(void);
+bool fast_spi_flash_descriptor_override(void);
 
 #endif	/* SOC_INTEL_COMMON_BLOCK_FAST_SPI_H */

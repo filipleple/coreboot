@@ -29,9 +29,6 @@ chip soc/intel/meteorlake
 	# Temporary setting TCC of 90C = Tj max (110) - TCC_Offset (20)
 	register "tcc_offset" = "20"
 
-	# Enable CNVi WiFi
-	register "cnvi_wifi_core" = "true"
-
 	device domain 0 on
 		device pci 00.0 alias system_agent on end
 		device pci 01.0 alias pcie_rp12 off end
@@ -72,6 +69,9 @@ chip soc/intel/meteorlake
 			chip drivers/usb/acpi
 				register "type" = "UPC_TYPE_HUB"
 				device usb 0.0 alias tcss_root_hub off
+					chip drivers/usb/acpi
+						device usb 2.0 alias tcss_usb2_port1 off end
+					end
 					chip drivers/usb/acpi
 						device usb 3.0 alias tcss_usb3_port0 off end
 					end
@@ -133,6 +133,12 @@ chip soc/intel/meteorlake
 					end
 					chip drivers/usb/acpi
 						device usb 2.9 alias usb2_port10 off end
+					end
+					chip drivers/usb/acpi
+						device usb 2.a alias usb2_port11 off end
+					end
+					chip drivers/usb/acpi
+						device usb 2.b alias usb2_port12 off end
 					end
 					chip drivers/usb/acpi
 						device usb 3.0 alias usb3_port1 off end

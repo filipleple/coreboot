@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <commonlib/bsd/helpers.h>
 #include <commonlib/storage/sd_mmc.h>
-#include <console/console.h>
 #include <delay.h>
 #include <device/mmio.h>
 #include <lib.h>
@@ -388,7 +387,6 @@ static void msdc_set_ios(struct sd_mmc_ctrlr *ctrlr)
 		msdc_set_clock(host, ctrlr->request_hz);
 
 	msdc_set_buswidth(host, ctrlr->bus_width);
-
 }
 
 static void msdc_update_pointers(struct msdc_ctrlr *host)
@@ -431,7 +429,7 @@ static void msdc_controller_init(struct msdc_ctrlr *host, void *base, void *top_
 	memset(host, 0, sizeof(*host));
 	host->base = base;
 	host->top_base = top_base;
-	host->src_hz = 50 * 1000 * 1000;
+	host->src_hz = 400 * 1000 * 1000;
 
 	add_msdc(host);
 }

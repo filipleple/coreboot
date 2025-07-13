@@ -131,7 +131,6 @@ static void ivrs_add_device_or_bridge(struct device *parent, struct device *dev,
 	} else if ((header_type == PCI_HEADER_TYPE_NORMAL) && !is_pcie) {
 		/* Device is legacy PCI or PCI-X */
 		add_ivhd_dev_entry(parent, dev, current, IVHD_DEV_8_BYTE_ALIAS_SELECT, 0x0);
-
 	}
 }
 
@@ -316,7 +315,6 @@ static unsigned long acpi_fill_ivrs(acpi_ivrs_t *ivrs, unsigned long current)
 	ivhd = &ivrs->ivhd;
 
 	while ((dev = dev_find_path(dev, DEVICE_PATH_DOMAIN)) != NULL) {
-
 		nb_dev = pcidev_path_behind(dev->downstream, PCI_DEVFN(0, 0));
 		iommu_dev = pcidev_path_behind(dev->downstream, PCI_DEVFN(0, 2));
 		if (!nb_dev) {
@@ -334,7 +332,7 @@ static unsigned long acpi_fill_ivrs(acpi_ivrs_t *ivrs, unsigned long current)
 		ivhd->length = sizeof(struct acpi_ivrs_ivhd);
 
 		/* BDF <bus>:00.2 */
-		ivhd->device_id = 0x02 | (nb_dev->upstream->secondary << 8);
+		ivhd->device_id = PCI_DEVFN(0, 2) | (nb_dev->upstream->secondary << 8);
 		ivhd->capability_offset = pci_find_capability(iommu_dev, IOMMU_CAP_ID);
 		ivhd->iommu_base_low = pci_read_config32(iommu_dev, IOMMU_CAP_BASE_LO) & 0xffffc000;
 		ivhd->iommu_base_high = pci_read_config32(iommu_dev, IOMMU_CAP_BASE_HI);

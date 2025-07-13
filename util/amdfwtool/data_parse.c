@@ -117,6 +117,8 @@ static enum platform identify_platform(char *soc_name)
 		return PLATFORM_GLINDA;
 	else if (!strcasecmp(soc_name, "Genoa"))
 		return PLATFORM_GENOA;
+	else if (!strcasecmp(soc_name, "Faegan"))
+		return PLATFORM_FAEGAN;
 	else
 		return PLATFORM_UNKNOWN;
 }
@@ -618,11 +620,16 @@ static int is_valid_entry(char *oneline, regmatch_t match[N_MATCHES])
 		   match[4]: Optional directory level to be dropped
 		   match[6]: Optional hash table ID to put the hash for the entry
 		 */
-		oneline[match[FW_TYPE].rm_eo] = '\0';
-		oneline[match[FW_FILE].rm_eo] = '\0';
-		oneline[match[OPT_LEVEL].rm_eo] = '\0';
-		oneline[match[OPT_HASH_TABLE_ID].rm_eo] = '\0';
-		oneline[match[OPT_FWID_TYPE].rm_eo] = '\0';
+		if (match[FW_TYPE].rm_eo != -1)
+			oneline[match[FW_TYPE].rm_eo] = '\0';
+		if (match[FW_FILE].rm_eo != -1)
+			oneline[match[FW_FILE].rm_eo] = '\0';
+		if (match[OPT_LEVEL].rm_eo != -1)
+			oneline[match[OPT_LEVEL].rm_eo] = '\0';
+		if (match[OPT_HASH_TABLE_ID].rm_eo != -1)
+			oneline[match[OPT_HASH_TABLE_ID].rm_eo] = '\0';
+		if (match[OPT_FWID_TYPE].rm_eo != -1)
+			oneline[match[OPT_FWID_TYPE].rm_eo] = '\0';
 		retval = 1;
 	} else {
 		retval = 0;
@@ -718,9 +725,10 @@ static uint8_t process_one_line(char *oneline, regmatch_t *match, char *dir,
 	return 1;
 }
 
-static bool needs_ish(enum platform platform_type)
+bool needs_ish(enum platform platform_type)
 {
-	if (platform_type == PLATFORM_MENDOCINO || platform_type == PLATFORM_PHOENIX || platform_type == PLATFORM_GLINDA)
+	if (platform_type == PLATFORM_MENDOCINO || platform_type == PLATFORM_PHOENIX ||
+		platform_type == PLATFORM_GLINDA || platform_type == PLATFORM_FAEGAN)
 		return true;
 	else
 		return false;
@@ -741,6 +749,7 @@ static bool is_second_gen(enum platform platform_type)
 	case PLATFORM_PHOENIX:
 	case PLATFORM_GLINDA:
 	case PLATFORM_GENOA:
+	case PLATFORM_FAEGAN:
 		return true;
 	case PLATFORM_UNKNOWN:
 	default:

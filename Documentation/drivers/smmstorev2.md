@@ -74,18 +74,29 @@ has to read the coreboot table with tag `0x0039`, containing:
 struct lb_smmstorev2 {
 	uint32_t tag;
 	uint32_t size;
-	uint32_t num_blocks;	/* Number of writeable blocks in SMM */
-	uint32_t block_size;	/* Size of a block in byte. Default: 64 KiB */
-	uint32_t mmap_addr;	/* MMIO address of the store for read only access */
-	uint32_t com_buffer;	/* Physical address of the communication buffer */
-	uint32_t com_buffer_size;	/* Size of the communication buffer in byte */
-	uint8_t apm_cmd;	/* The command byte to write to the APM I/O port */
-	uint8_t unused[3];	/* Set to zero */
+	uint32_t num_blocks;		/* Number of writable blocks in SMM */
+	uint32_t block_size;		/* Size of a block in byte. Default: 64 KiB */
+	uint32_t mmap_addr_deprecated;	/* 32-bit MMIO address of the store for read only access.
+					   Prefer 'mmap_addr' for new software.
+					   Zero when the address won't fit into 32-bits. */
+	uint32_t com_buffer;		/* Physical address of the communication buffer */
+	uint32_t com_buffer_size;	/* Size of the communication buffer in bytes */
+	uint8_t apm_cmd;		/* The command byte to write to the APM I/O port */
+	uint8_t unused[3];		/* Set to zero */
+	uint64_t mmap_addr;		/* 64-bit MMIO address of the store for read only access.
+					   Introduced after the initial implementation. Users of
+					   this table must check the 'size' field to detect if its
+					   written out by coreboot. */
 };
 ```
 
 The absence of this coreboot table entry indicates that there's no
 SMMSTOREv2 support.
+
+`mmap_addr` is an optional field added after the initial implementation.
+Users of this table must check the size field to know if it's written by coreboot.
+In case it's not present 'mmap_addr_deprecated' is to be used as the SPI ROM MMIO
+address and it must be below 4 GiB.
 
 ### Blocks
 
@@ -124,25 +135,9 @@ additional calling arguments are passed via `%ebx`.
 **NOTE**: The size of the struct entries are in the native word size of
 smihandler. This means 32 bits in almost all cases.
 
-#### - SMMSTORE_CMD_INIT = 4
+#### - SMMSTORE_CMD_INIT_DEPRECATED = 4
 
-This installs the communication buffer to use and thus enables the
-SMMSTORE handler. This command can only be executed once and is done
-by the firmware. Calling this function at runtime has no effect.
-
-The additional parameter buffer `%ebx` contains a pointer to the
-following struct:
-
-```C
-struct smmstore_params_init {
-	uint32_t com_buffer;
-	uint32_t com_buffer_size;
-} __packed;
-```
-
-INPUT:
-- `com_buffer`: Physical address of the communication buffer (CBMEM)
-- `com_buffer_size`: Size in bytes of the communication buffer
+Unused, returns SMMSTORE_REG_UNSUPPORTED.
 
 #### - SMMSTORE_CMD_RAW_READ = 5
 
@@ -213,9 +208,49 @@ coreboot tables, there's no risk that a malicious application capable
 of issuing SMIs could extract arbitrary data or modify the currently
 running kernel.
 
+## Capsule update API
+
+Availability of this command is tied to `CONFIG_DRIVERS_EFI_UPDATE_CAPSULES`.
+
+To allow updating full flash content (except if locked at hardware
+level), few new calls were added. They reuse communication buffer, SMI
+command, return values and calling arguments of SMMSTORE commands listed
+above, with the exception of subcommand passed via `%ah`. If the
+subcommand is to operate on full flash size, it has the highest bit set,
+e.g. it is `0x85` for `SMMSTORE_CMD_RAW_READ` and `0x86` for
+`SMMSTORE_CMD_RAW_WRITE`. Every `block_id` describes block relative to
+the beginning of a flash, maximum value depends on its size.
+
+Attempts to write the protected memory regions can lead to undesired
+consequences ranging from system instability to bricking and security
+vulnerabilities. When this feature is used, care must be taken to temporarily
+lift protections for the duration of an update when the whole flash is
+rewritten or the update must be constrained to affect only writable portions of
+the flash (e.g., "BIOS" region).
+
+There is one new subcommand that must be called before any other subcommands
+with highest bit set can be used.
+
+### - SMMSTORE_CMD_USE_FULL_FLASH = 0x80
+
+This command can only be executed once and is done by the firmware.
+Calling this function at runtime has no effect. It takes one additional
+parameter that, contrary to other commands, isn't a pointer. Instead,
+`%ebx` indicates requested state of full flash access. If it equals 0,
+commands for accessing full flash are permanently disabled, otherwise
+they are permanently enabled until the next boot.
+
+The assumption is that if capsule updates are enabled at build time and
+whole flash access is enabled at runtime, a UEFI payload (highly likely
+EDK2 or its derivative) won't allow a regular OS to boot if the handler is
+enabled without rebooting first. There could be a way of deactivating the
+handler, but coreboot, having no way of enforcing its usage, might as well
+permit access until a reboot and rely on the payload to do the right thing.
+
 ## External links
 
-* [A Tour Beyond BIOS Implementing UEFI Authenticated Variables in SMM with EDKI](https://software.intel.com/sites/default/files/managed/cf/ea/a_tour_beyond_bios_implementing_uefi_authenticated_variables_in_smm_with_edkii.pdf)
+* [A Tour Beyond BIOS Implementing UEFI Authenticated Variables in SMM with EDK II](https://github.com/tianocore-docs/Docs/raw/master/White_Papers/A_Tour_Beyond_BIOS_Implementing_UEFI_Authenticated_Variables_in_SMM_with_EDKII_V2.pdf)
+
 Note that this differs significantly from coreboot's implementation.
 
 [SMM]: ../security/smm.md

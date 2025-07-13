@@ -6,6 +6,7 @@
 #include <amdblocks/psp.h>
 #include <amdblocks/smi.h>
 #include <amdblocks/smm.h>
+#include <amdblocks/smu.h>
 #include <arch/hlt.h>
 #include <arch/io.h>
 #include <console/console.h>
@@ -29,6 +30,7 @@ static void fch_slp_typ_handler(void)
 	uint32_t pci_ctrl, reg32;
 	uint16_t pm1cnt, reg16;
 	uint8_t slp_typ, rst_ctrl;
+	struct smu_payload msg = { 0 };
 
 	/* Figure out SLP_TYP */
 	pm1cnt = acpi_read16(MMIO_ACPI_PM1_CNT_BLK);
@@ -96,8 +98,10 @@ static void fch_slp_typ_handler(void)
 						reg32);
 		} /* if (CONFIG(ELOG_GSMI)) */
 
-		if (slp_typ == ACPI_S3)
+		if (slp_typ == ACPI_S3) {
 			psp_notify_sx_info(ACPI_S3);
+			send_smu_message(SMC_MSG_USBS3ENTRY, &msg);
+		}
 
 		smu_sx_entry(); /* Leave SlpTypeEn clear, SMU will set */
 		printk(BIOS_ERR, "System did not go to sleep\n");
@@ -112,6 +116,7 @@ static void fch_slp_typ_handler(void)
 static const struct smi_sources_t smi_sources[] = {
 	{ .type = SMITYPE_SMI_CMD_PORT, .handler = fch_apmc_smi_handler },
 	{ .type = SMITYPE_SLP_TYP, .handler = fch_slp_typ_handler},
+	{ .type = SMITYPE_PSP, .handler = psp_smi_handler },
 };
 
 void *get_smi_source_handler(int source)

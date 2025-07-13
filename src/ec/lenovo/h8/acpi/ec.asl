@@ -331,7 +331,9 @@ Device(EC)
 #include "sleepbutton.asl"
 #include "lid.asl"
 #include "beep.asl"
+#if !CONFIG(EC_LENOVO_MEC1653)
 #include "thermal.asl"
+#endif
 #include "systemstatus.asl"
 #include "thinkpad.asl"
 }

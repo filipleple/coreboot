@@ -4,7 +4,6 @@
 #include <intelblocks/pcr.h>
 #include <soc/iomap.h>
 #include <soc/irq.h>
-#include <soc/itss.h>
 #include <soc/gpe.h>
 #include <soc/pcr_ids.h>
 
@@ -43,6 +42,9 @@
 
 /* USB XHCI 0:14.0 */
 #include "xhci.asl"
+
+/* CSE/HECI #1 0:16.0 */
+#include <soc/intel/common/block/acpi/acpi/heci.asl>
 
 Method (_OSC, 4)
 {

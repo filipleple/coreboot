@@ -68,6 +68,8 @@ enum {
 	LONGOPT_BIOS_SIG	= 259,
 	LONGOPT_NVRAM_BASE	= 260,
 	LONGOPT_NVRAM_SIZE	= 261,
+	LONGOPT_RPMC_NVRAM_BASE	= 262,
+	LONGOPT_RPMC_NVRAM_SIZE	= 263,
 };
 
 static const char optstring[] = {AMDFW_OPT_CONFIG, ':',
@@ -87,6 +89,8 @@ static struct option long_options[] = {
 	{"nvram",            required_argument, 0, AMDFW_OPT_NVRAM },
 	{"nvram-base",       required_argument, 0, LONGOPT_NVRAM_BASE },
 	{"nvram-size",       required_argument, 0, LONGOPT_NVRAM_SIZE },
+	{"rpmc-nvram-base",  required_argument, 0, LONGOPT_RPMC_NVRAM_BASE },
+	{"rpmc-nvram-size",  required_argument, 0, LONGOPT_RPMC_NVRAM_SIZE },
 	{"soft-fuse",        required_argument, 0, AMDFW_OPT_FUSE },
 	{"token-unlock",           no_argument, 0, AMDFW_OPT_UNLOCK },
 	{"whitelist",        required_argument, 0, AMDFW_OPT_WHITELIST },
@@ -150,6 +154,8 @@ static void usage(void)
 	printf("--token-unlock                 Set token unlock\n");
 	printf("--nvram-base <HEX_VAL>         Base address of nvram\n");
 	printf("--nvram-size <HEX_VAL>         Size of nvram\n");
+	printf("--rpmc-nvram-base <HEX_VAL>    Base address of RPMC nvram\n");
+	printf("--rpmc-nvram-size <HEX_VAL>    Size of RPMC nvram\n");
 	printf("--whitelist                    Set if there is a whitelist\n");
 	printf("--use-pspsecureos              Set if psp secure OS is needed\n");
 	printf("--load-mp2-fw                  Set if load MP2 firmware\n");
@@ -518,7 +524,7 @@ int amdfwtool_getopt(int argc, char *argv[], amd_cb_config *cb_config, context *
 			sub = instance = 0;
 			break;
 		case AMDFW_OPT_SIGNED_ADDR:
-			cb_config->signed_start_addr = strtoull(optarg, NULL, 10);
+			cb_config->signed_start_addr = strtoull(optarg, NULL, 16);
 			sub = instance = 0;
 			break;
 		case LONGOPT_SPI_READ_MODE:
@@ -577,6 +583,16 @@ int amdfwtool_getopt(int argc, char *argv[], amd_cb_config *cb_config, context *
 			register_amd_psp_fw_addr(AMD_FW_PSP_NVRAM, sub, 0, optarg);
 			sub = instance = 0;
 			break;
+		case LONGOPT_RPMC_NVRAM_BASE:
+			/* PSP RPMC NV base */
+			register_amd_psp_fw_addr(AMD_RPMC_NVRAM, sub, optarg, 0);
+			sub = instance = 0;
+			break;
+		case LONGOPT_RPMC_NVRAM_SIZE:
+			/* PSP RPMC NV size */
+			register_amd_psp_fw_addr(AMD_RPMC_NVRAM, sub, 0, optarg);
+			sub = instance = 0;
+			break;
 		case AMDFW_OPT_CONFIG:
 			cb_config->config = optarg;
 			break;
@@ -585,8 +601,7 @@ int amdfwtool_getopt(int argc, char *argv[], amd_cb_config *cb_config, context *
 			break;
 		case AMDFW_OPT_HELP:
 			usage();
-			retval = 1;
-			break;
+			return 1;
 		case AMDFW_OPT_BODY_LOCATION:
 			cb_config->body_location = (uint32_t)strtoul(optarg, &tmp, 16);
 			if (*tmp != '\0') {
@@ -622,16 +637,6 @@ int amdfwtool_getopt(int argc, char *argv[], amd_cb_config *cb_config, context *
 	}
 
 	printf("    AMDFWTOOL  Using ROM size of %dKB\n", ctx->rom_size / 1024);
-
-	if (ctx->rom_size <= MAX_MAPPED_WINDOW) {
-		uint32_t rom_base_address;
-
-		rom_base_address = 0xFFFFFFFF - ctx->rom_size + 1;
-		if (cb_config->efs_location & ~MAX_MAPPED_WINDOW_MASK)
-			cb_config->efs_location = cb_config->efs_location - rom_base_address;
-		if (cb_config->body_location & ~MAX_MAPPED_WINDOW_MASK)
-			cb_config->body_location = cb_config->body_location - rom_base_address;
-	}
 
 	/* If the flash size is larger than 16M, we assume the given
 	   addresses are already relative ones. Otherwise we print error.*/

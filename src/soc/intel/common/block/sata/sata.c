@@ -10,12 +10,13 @@
 static void sata_acpi_fill_ssdt(const struct device *dev)
 {
 	const char *scope = acpi_device_scope(dev);
+	const char *name = soc_acpi_name(dev);
 
-	if (!scope)
+	if (!scope || !name)
 		return;
 
 	acpigen_write_scope(scope);
-	acpigen_write_device(soc_acpi_name(dev));
+	acpigen_write_device(name);
 	acpigen_write_ADR_pci_device(dev);
 	acpigen_write_STA(acpi_device_status(dev));
 	acpigen_pop_len(); /* Device */
@@ -35,6 +36,9 @@ struct device_operations sata_ops = {
 
 static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_MTL_SATA,
+	PCI_DID_INTEL_ARL_SATA,
+	PCI_DID_INTEL_ARP_S_SATA_1,
+	PCI_DID_INTEL_ARP_S_SATA_2,
 	PCI_DID_INTEL_RPP_P_SATA_1,
 	PCI_DID_INTEL_RPP_P_SATA_2,
 	PCI_DID_INTEL_RPP_S_SATA,

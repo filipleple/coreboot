@@ -11,6 +11,7 @@
 #include <soc/pcie.h>
 #include <soc/romstage.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 
 /* ISA Serial Base selection. */
 enum {
@@ -132,7 +133,7 @@ static void fill_fsp_debug_params(FSP_M_CONFIG *m_cfg,
 	m_cfg->SerialIoUartDebugControllerNumber = CONFIG_UART_FOR_CONSOLE;
 
 	/* Set debug probe type */
-	m_cfg->PlatformDebugConsent = CONFIG_SOC_INTEL_ELKHARTLAKE_DEBUG_CONSENT;
+	m_cfg->PlatformDebugConsent = CONFIG_SOC_INTEL_COMMON_DEBUG_CONSENT;
 
 	/* TraceHub configuration */
 	if (is_devfn_enabled(PCH_DEVFN_TRACEHUB) && config->TraceHubMode) {

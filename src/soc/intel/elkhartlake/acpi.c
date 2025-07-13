@@ -19,6 +19,7 @@
 #include <soc/pm.h>
 #include <soc/soc_chip.h>
 #include <soc/systemagent.h>
+#include <static.h>
 
 /*
  * List of supported C-states in this processor.
@@ -175,7 +176,7 @@ static unsigned long soc_fill_dmar(unsigned long current)
 	if (is_devfn_enabled(SA_DEVFN_IGD) && gfxvtbar && gfxvten) {
 		unsigned long tmp = current;
 
-		current += acpi_create_dmar_drhd(current, 0, 0, gfxvtbar);
+		current += acpi_create_dmar_drhd_4k(current, 0, 0, gfxvtbar);
 		current += acpi_create_dmar_ds_pci(current, 0, 2, 0);
 
 		acpi_dmar_drhd_fixup(tmp, current);
@@ -187,7 +188,7 @@ static unsigned long soc_fill_dmar(unsigned long current)
 	if (vtvc0bar && vtvc0en) {
 		const unsigned long tmp = current;
 
-		current += acpi_create_dmar_drhd(current,
+		current += acpi_create_dmar_drhd_4k(current,
 				DRHD_INCLUDE_PCI_ALL, 0, vtvc0bar);
 		current += acpi_create_dmar_ds_ioapic_from_hw(current,
 				IO_APIC_ADDR, V_P2SB_CFG_IBDF_BUS, V_P2SB_CFG_IBDF_DEV,

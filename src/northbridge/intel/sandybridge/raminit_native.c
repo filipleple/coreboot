@@ -9,6 +9,7 @@
 #include <device/pci_def.h>
 #include <device/pci_ops.h>
 #include <northbridge/intel/sandybridge/chip.h>
+#include <static.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -274,7 +275,6 @@ static unsigned int get_mem_min_tck(void)
 
 	/* If non-zero, it was set in the devicetree */
 	if (cfg->max_mem_clock_mhz) {
-
 		if (cfg->max_mem_clock_mhz >= 1066)
 			return TCK_1066MHZ;
 

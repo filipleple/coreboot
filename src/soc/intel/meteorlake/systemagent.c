@@ -5,7 +5,6 @@
 #include <cpu/x86/msr.h>
 #include <device/device.h>
 #include <device/pci.h>
-#include <delay.h>
 #include <intelblocks/cpulib.h>
 #include <intelblocks/msr.h>
 #include <intelblocks/power_limit.h>
@@ -13,6 +12,7 @@
 #include <soc/iomap.h>
 #include <soc/soc_chip.h>
 #include <soc/systemagent.h>
+#include <static.h>
 
 /*
  * SoC implementation

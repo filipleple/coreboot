@@ -1,7 +1,7 @@
 chip soc/intel/jasperlake
 
-	register "eist_enable" = "1"
-	register "s0ix_enable" = "0"
+	register "eist_enable" = "true"
+	register "s0ix_enable" = "false"
 
 	register "SaGv" = "SaGv_Enabled"
 
@@ -39,7 +39,7 @@ chip soc/intel/jasperlake
 	register "SerialIoUartMode[2]" = "PchSerialIoSkipInit"
 
 	# Audio related configurations
-	register "PchHdaDspEnable" = "1"
+	register "PchHdaDspEnable" = "true"
 	register "PchHdaAudioLinkHdaEnable" = "1"
 
 	device domain 0 on

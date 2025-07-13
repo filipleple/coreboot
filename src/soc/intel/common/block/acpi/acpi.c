@@ -107,6 +107,17 @@ void acpi_fill_fadt(acpi_fadt_t *fadt)
 	/* GPE0 STS/EN pairs each 32 bits wide. */
 	fadt->gpe0_blk_len = 2 * GPE0_REG_MAX * sizeof(uint32_t);
 
+	fadt->gpe1_blk = 0;
+	if (CONFIG(SOC_INTEL_COMMON_BLOCK_ACPI_USE_GPE1)) {
+		fadt->gpe1_blk = pmbase + GPE1_STS(0);
+		fadt->gpe1_blk_len = 2 * GPE1_REG_MAX * sizeof(uint32_t);
+		/*
+		 * NOTE: gpe1 is after gpe0, which has _STS and _EN register sets.
+		 * gpe1_base is the starting bit offset for GPE1.
+		 */
+		fadt->gpe1_base = fadt->gpe0_blk_len / 2 * 8;
+	}
+
 	fill_fadt_extended_pm_io(fadt);
 
 	fadt->flags |= ACPI_FADT_WBINVD | ACPI_FADT_C1_SUPPORTED |
@@ -273,7 +284,6 @@ void generate_p_state_entries(int core, int cores_per_package)
 	/* Generate the remaining entries */
 	for (ratio = ratio_min + ((num_entries - 1) * ratio_step);
 	     ratio >= ratio_min; ratio -= ratio_step) {
-
 		/* Calculate power at this ratio */
 		power = common_calculate_power_ratio(power_max, ratio_max, ratio);
 		clock = (ratio * cpu_get_bus_clock()) / KHz;

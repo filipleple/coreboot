@@ -1,5 +1,20 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+#if CONFIG(EC_STARLABS_MERLIN)
+Scope (\_SB.PCI0.LPCB.EC)
+{
+	Method (_Q05, 0, NotSerialized)			// Event: Backlight Brightness Down
+	{
+		^^^^HIDD.HPEM (20)
+	}
+
+	Method (_Q06, 0, NotSerialized)			// Event: Backlight Brightness Up
+	{
+		^^^^HIDD.HPEM (19)
+	}
+}
+#endif
+
 Device (HIDD)							// HID Device
 {
 	Name (_HID, "INTC1051")					// Intel Ultrabook HID Platform Event Driver.
@@ -351,7 +366,11 @@ Device (HIDD)							// HID Device
 					//
 					Case (0x08)
 					{
+#if CONFIG(SYSTEM_TYPE_DETACHABLE)
+						Return (\_SB.PCI0.LPCB.EC.VBTN.VGBS())
+#else
 						Return (0x00)
+#endif
 					}
 					//
 					// Function 9 H2BC. Button implemented state.

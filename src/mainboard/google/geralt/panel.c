@@ -4,14 +4,12 @@
 #include <cbfs.h>
 #include <console/console.h>
 #include <delay.h>
-#include <edid.h>
 #include <gpio.h>
 #include <identity.h>
 #include <soc/gpio_common.h>
 #include <soc/i2c.h>
 #include <soc/pmif.h>
 #include <soc/regulator.h>
-#include <string.h>
 
 #include "gpio.h"
 #include "panel.h"

@@ -2,7 +2,7 @@
 
 ## Specs
 
-- CPU (full processor specs available at https://ark.intel.com)
+- CPU (full processor specs available at <https://ark.intel.com>)
     - Intel i7-8550u  (Kaby Lake Refresh)
 - EC
     - ITE IT8987E
@@ -42,7 +42,7 @@ Please follow the [Star Labs build instructions](common/building.md) to build co
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+------------+
 | Type                | Value      |
 +=====================+============+

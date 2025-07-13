@@ -88,16 +88,21 @@ all: real-all
 help_coreboot help::
 	@echo  '*** coreboot platform targets ***'
 	@echo  '  Use "make [target] V=1" for extra build debug information'
-	@echo  '  all                   - Build coreboot'
-	@echo  '  clean                 - Remove coreboot build artifacts'
-	@echo  '  distclean             - Remove build artifacts and config files'
-	@echo  '  sphinx                - Build sphinx documentation for coreboot'
-	@echo  '  sphinx-lint           - Build sphinx documentation for coreboot with warnings as errors'
-	@echo  '  filelist              - Show files used in current build'
-	@echo  '  printall              - print makefile info for debugging'
-	@echo  '  gitconfig             - set up git to submit patches to coreboot'
-	@echo  '  ctags / ctags-project - make ctags file for all of coreboot or current board'
-	@echo  '  cscope / cscope-project - make cscope.out file for coreboot or current board'
+	@echo  '  all                     - Build coreboot'
+	@echo  '  clean                   - Remove coreboot build artifacts'
+	@echo  '  distclean               - Remove build artifacts and config files'
+	@echo  '  sphinx                  - Build sphinx documentation for coreboot'
+	@echo  '  sphinx-lint             - Build sphinx documentation for coreboot with warnings as errors'
+	@echo  '  filelist                - Show files used in current build'
+	@echo  '  printall                - Print makefile info for debugging'
+	@echo  '  gitconfig               - Set up git to submit patches to coreboot'
+	@echo  '  ctags / ctags-project   - Make ctags file for all of coreboot or current board'
+	@echo  '  cscope / cscope-project - Make cscope.out file for coreboot or current board'
+	@echo
+	@echo  '*** site-local related targets ***'
+	@echo  '  symlink                 - Create symbolic links from site-local into coreboot tree'
+	@echo  '  clean-symlink           - Remove symbolic links created by "make symlink"'
+	@echo  '  cleanall-symlink        - Remove all symbolic links in the coreboot tree'
 	@echo
 
 # This include must come _before_ the pattern rules below!
@@ -217,13 +222,18 @@ endif
 
 # The primary target needs to be here before we include the
 # other files
-
-real-all: real-target
+real-all: site-local-target real-target
 
 # must come rather early
 .SECONDARY:
 .SECONDEXPANSION:
 .DELETE_ON_ERROR:
+
+# conf is treated as an intermediate target and may be built after config.h
+# during a clean build due to the way GNU Make handles intermediates when the
+# .SECONDARY target is present, forcing config.h and thus every object out of
+# date on a subsequent no-op build. Mark it as not intermediate to prevent this
+.NOTINTERMEDIATE: $(objutil)/kconfig/conf
 
 $(KCONFIG_AUTOHEADER): $(KCONFIG_CONFIG) $(objutil)/kconfig/conf
 	$(MAKE) olddefconfig
@@ -363,9 +373,6 @@ $(foreach class,$(classes),$(eval $(class)-alis:=$(call src-to-ali,$(class),$($(
 # For Ada includes
 $(foreach class,$(classes),$(eval $(class)-ada-dirs:=$(sort $(dir $(filter %.ads %.adb,$($(class)-srcs)) $($(class)-extra-specs)))))
 
-# Save all objs before processing them (for dependency inclusion)
-originalobjs:=$(foreach var, $(addsuffix -objs,$(classes)), $($(var)))
-
 # Call post-processors if they're defined
 $(foreach class,$(classes),\
 	$(if $(value $(class)-postprocess),$(eval $(call $(class)-postprocess,$($(class)-objs)))))
@@ -391,16 +398,17 @@ define create_cc_template
 # $2 source suffix (c, S, ld, ...)
 # $3 additional compiler flags
 # $4 additional dependencies
+# $5 generated header dependencies
 ifn$(EMPTY)def $(1)-objs_$(2)_template
 de$(EMPTY)fine $(1)-objs_$(2)_template
 ifn$(EMPTY)eq ($(filter ads adb,$(2)),)
-$$(call src-to-obj,$1,$$(1).$2): $$(1).$2 $$(call create_ada_deps,$1,$$(call src-to-ali,$1,$$(1).$2)) $(4)
+$$(call src-to-obj,$1,$$(1).$2): $$(1).$2 $$(call create_ada_deps,$1,$$(call src-to-ali,$1,$$(1).$2)) $(4) | $(5)
 	@printf "    GCC        $$$$(subst $$$$(obj)/,,$$$$(@))\n"
 	$(GCC_$(1)) \
 		$$$$(ADAFLAGS_$(1)) $$$$(addprefix -I,$$$$($(1)-ada-dirs)) \
 		$(3) -c -o $$$$@ $$$$<
 el$(EMPTY)se
-$$(call src-to-obj,$1,$$(1).$2): $$(1).$2 $(KCONFIG_AUTOHEADER) $(4)
+$$(call src-to-obj,$1,$$(1).$2): $$(1).$2 $(KCONFIG_AUTOHEADER) $(4) | $(5)
 	@printf "    CC         $$$$(subst $$$$(obj)/,,$$$$(@))\n"
 	$(CC_$(1)) \
 		-MMD $$$$(CPPFLAGS_$(1)) $$$$(CFLAGS_$(1)) -MT $$$$(@) \
@@ -415,7 +423,7 @@ $(foreach class,$(classes), \
 	$(foreach type,$(call filetypes-of-class,$(class)), \
 		$(eval $(class)-$(type)-ccopts += $(generic-$(type)-ccopts) $($(class)-generic-ccopts)) \
 		$(if $(generic-objs_$(type)_template_gen),$(eval $(call generic-objs_$(type)_template_gen,$(class))),\
-		$(eval $(call create_cc_template,$(class),$(type),$($(class)-$(type)-ccopts),$($(class)-$(type)-deps))))))
+		$(eval $(call create_cc_template,$(class),$(type),$($(class)-$(type)-ccopts),$($(class)-$(type)-deps),$($(class)-$(type)-gen-deps))))))
 
 foreach-src=$(foreach file,$($(1)-srcs),$(eval $(call $(1)-objs_$(subst .,,$(suffix $(file)))_template,$(basename $(file)))))
 $(eval $(foreach class,$(classes),$(call foreach-src,$(class))))
@@ -465,7 +473,7 @@ $(obj)/project_filelist.txt:
 		echo "*** Error: Project must be built before generating file list ***"; \
 		exit 1; \
 	fi
-	find $(obj) -path "$(obj)/util" -prune -o -path "$(obj)/external" -prune -o -name "*.d" -exec cat {} \; | \
+	find $(obj) -path "$(obj)/util" -prune -o -path "$(obj)/external" -prune -o -path "$(obj)/3rdparty" -prune -o -name "*.d" -exec cat {} \; | \
 	  sed "s|$(top)/||" | sed 's/[:\\]/ /g' | sed 's/ /\n/g' | sort | uniq | \
 	  grep -v '\.o$$' > $(obj)/project_filelist.txt
 
@@ -477,6 +485,9 @@ filelist: $(obj)/project_filelist.txt
 ctags-project: clean-ctags $(obj)/project_filelist.txt
 	cat $(obj)/project_filelist.txt | \
 	  xargs ctags -o tags
+
+ctags:
+	ctags -R
 
 cscope-project: clean-cscope $(obj)/project_filelist.txt
 	cat $(obj)/project_filelist.txt | xargs cscope -b
@@ -490,27 +501,77 @@ sphinx:
 sphinx-lint:
 	$(MAKE) SPHINXOPTS=-W -C Documentation sphinx
 
+# Look at all of the files in the SYMLINK_LIST and create the symbolic links
+# into the coreboot tree. Each symlink.txt file in site-local should be in the
+# directory linked from and have a single line with the path to the location to
+# link to. The path must be relative to the top of the coreboot directory.
 symlink:
-	@echo "Creating Symbolic Links.."; \
+	if [ -z "$(SYMLINK_LIST)" ]; then \
+		echo "No site-local symbolic links to create."; \
+		exit 0; \
+	fi; \
+	echo "Creating symbolic links.."; \
 	for link in $(SYMLINK_LIST); do \
-		SYMLINK=`cat $$link`; \
-		REALPATH=`realpath $$link`; \
-		if [ -L "$$SYMLINK" ]; then \
+		LINKTO="$(top)/$$(head -n 1 "$${link}")"; \
+		LINKFROM=$$(dirname "$$(realpath "$${link}")"); \
+		if [ -L "$${LINKTO}" ]; then \
+			echo "  $${LINKTO} exists - skipping"; \
 			continue; \
-		elif [ ! -e "$$SYMLINK" ]; then \
-			echo -e "\tLINK $$SYMLINK -> $$(dirname $$REALPATH)"; \
-			ln -s $$(dirname $$REALPATH) $$SYMLINK; \
+		fi; \
+		LINKTO="$$(realpath -m "$${LINKTO}")" 2>/dev/null; \
+		if [ "$${LINKTO}" = "$$(echo "$${LINKTO}" | sed "s|^$(top)||" )" ]; then \
+			echo "  FAILED: $${LINKTO} is outside of current directory." >&2; \
+			continue; \
+		fi; \
+		if [ ! -e "$${LINKTO}" ]; then \
+			echo "  LINK $${LINKTO} -> $${LINKFROM}"; \
+			ln -s "$${LINKFROM}" "$${LINKTO}" || \
+				echo "FAILED: Could not create link." >&2; \
 		else \
-			echo -e "\tFAILED: $$SYMLINK exists"; \
-		fi \
+			echo  "  FAILED: $${LINKTO} exists as a file or directory." >&2; \
+		fi; \
 	done
 
 clean-symlink:
-	@echo "Deleting symbolic link";\
-	EXISTING_SYMLINKS=`find -L ./src -xtype l | grep -v 3rdparty`; \
-	for link in $$EXISTING_SYMLINKS; do \
-		echo -e "\tUNLINK $$link"; \
-		rm "$$link"; \
+	if [ -z "$(SYMLINK_LIST)" ]; then \
+		echo "No site-local symbolic links to clean."; \
+		exit 0; \
+	fi; \
+	echo "Removing site-local symbolic links from tree.."; \
+	for link in $(SYMLINK_LIST); do \
+		SYMLINK="$(top)/$$(head -n 1 "$${link}")"; \
+		if [ "$${SYMLINK}" = "$$(echo "$${SYMLINK}" | sed "s|^$(top)||")" ]; then \
+			echo "  FAILED: $${SYMLINK} is outside of current directory." >&2; \
+			continue; \
+		elif [ ! -L "$${SYMLINK}" ]; then \
+			echo "  $${SYMLINK} does not exist - skipping"; \
+			continue; \
+		fi; \
+		if [ -L "$${SYMLINK}" ]; then \
+			REALDIR="$$(realpath "$${link}")"; \
+			echo "  UNLINK $${link} (linked from $${REALDIR})"; \
+			rm "$${SYMLINK}"; \
+		fi; \
+	done; \
+	EXISTING_SYMLINKS="$$(find $(top) -type l | grep -v "3rdparty\|crossgcc" )"; \
+	if [ -z "$${EXISTING_SYMLINKS}" ]; then \
+		echo "  No remaining symbolic links found in tree."; \
+	else \
+		echo "  Remaining symbolic links found:"; \
+		for link in $${EXISTING_SYMLINKS}; do \
+			echo "    $${link}"; \
+		done; \
+	fi
+
+cleanall-symlink:
+	echo "Deleting all symbolic links in the coreboot tree (excluding 3rdparty & crossgcc)"; \
+	EXISTING_SYMLINKS="$$(find $(top) -type l | grep -v "3rdparty\|crossgcc" )"; \
+	for link in $${EXISTING_SYMLINKS}; do \
+		if [ -L "$${link}" ]; then \
+			REALDIR="$$(realpath "$${link}")"; \
+			echo "  UNLINK $${link} (linked from $${REALDIR})"; \
+			rm "$${link}"; \
+		fi; \
 	done
 
 clean-for-update:
@@ -540,4 +601,5 @@ distclean: clean clean-ctags clean-cscope distclean-payloads distclean-utils
 	rm -f abuild*.xml junit.xml* util/lint/junit.xml
 
 .PHONY: $(PHONY) clean clean-for-update clean-cscope cscope distclean sphinx sphinx-lint
-.PHONY: ctags-project cscope-project clean-ctags symlink clean-symlink
+.PHONY: ctags-project cscope-project clean-ctags
+.PHONY: symlink clean-symlink cleanall-symlink

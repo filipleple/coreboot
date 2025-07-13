@@ -4,6 +4,7 @@ config BOARD_GOOGLE_BASEBOARD_SARIEN
 	def_bool n
 	select BOARD_ROMSIZE_KB_32768
 	select DRIVERS_GENERIC_BH720
+	select DRIVERS_GFX_GENERIC
 	select DRIVERS_I2C_GENERIC
 	select DRIVERS_I2C_HID
 	select DRIVERS_SPI_ACPI
@@ -19,6 +20,7 @@ config BOARD_GOOGLE_BASEBOARD_SARIEN
 	select MAINBOARD_HAS_TPM2
 	select MAINBOARD_USES_IFD_EC_REGION
 	select SMBIOS_SERIAL_FROM_VPD if VPD
+	select SOC_INTEL_COMMON_BLOCK_DTT_STATIC_ASL
 	select SOC_INTEL_COMMON_BLOCK_HDA_VERB
 	select SOC_INTEL_COMMON_BLOCK_SMM_ESPI_DISABLE
 	select SOC_INTEL_WHISKEYLAKE
@@ -102,11 +104,6 @@ config DEVICETREE
 config VBOOT
 	select HAS_RECOVERY_MRC_CACHE
 	select VBOOT_LID_SWITCH
-
-# Override the default variant behavior, since the data.vbt is the same
-# for all variants.
-config INTEL_GMA_VBT_FILE
-	default "src/mainboard/\$(MAINBOARDDIR)/data.vbt"
 
 config FMDFILE
 	default "src/mainboard/\$(CONFIG_MAINBOARD_DIR)/default.fmd" if !CHROMEOS

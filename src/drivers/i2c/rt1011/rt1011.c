@@ -5,8 +5,8 @@
 #include <console/console.h>
 #include <device/i2c.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <vendorcode/google/dsm_calib.h>
 #include "chip.h"
 

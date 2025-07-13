@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 #include <assert.h>
+#include <boot/coreboot_tables.h>
 #include <bootmode.h>
 #include <bootsplash.h>
 #include <console/console.h>
@@ -11,12 +12,14 @@
 #include <device/pci_ids.h>
 #include <device/pci_ops.h>
 #include <drivers/intel/gma/i915_reg.h>
+#include <drivers/usb/acpi/chip.h>
 #include <fsp/api.h>
 #include <fsp/fsp_debug_event.h>
 #include <fsp/fsp_gop_blt.h>
 #include <fsp/ppi/mp_service_ppi.h>
 #include <fsp/util.h>
 #include <gpio.h>
+#include <intelblocks/aspm.h>
 #include <intelblocks/irq.h>
 #include <intelblocks/lpss.h>
 #include <intelblocks/mp_init.h>
@@ -32,6 +35,7 @@
 #include <soc/pcie.h>
 #include <soc/ramstage.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
@@ -97,8 +101,8 @@ static const struct slot_irq_constraints irq_constraints[] = {
 	{
 		.slot = SA_DEV_SLOT_CPU_6,
 		.fns = {
-			FIXED_INT_PIRQ(SA_DEVFN_CPU_PCIE6_0, PCI_INT_A, PIRQ_A),
-			FIXED_INT_PIRQ(SA_DEVFN_CPU_PCIE6_2, PCI_INT_C, PIRQ_C),
+			FIXED_INT_PIRQ(SA_DEVFN_CPU_PCIE6_0, PCI_INT_D, PIRQ_A),
+			FIXED_INT_PIRQ(SA_DEVFN_CPU_PCIE6_2, PCI_INT_B, PIRQ_C),
 		},
 	},
 	{
@@ -464,50 +468,9 @@ static const SI_PCH_DEVICE_INTERRUPT_CONFIG *pci_irq_to_fsp(size_t *out_count)
 	return config;
 }
 
-/*
- * Chip config parameter PcieRpL1Substates uses (UPD value + 1)
- * because UPD value of 0 for PcieRpL1Substates means disabled for FSP.
- * In order to ensure that mainboard setting does not disable L1 substates
- * incorrectly, chip config parameter values are offset by 1 with 0 meaning
- * use FSP UPD default. get_l1_substate_control() ensures that the right UPD
- * value is set in fsp_params.
- * 0: Use FSP UPD default
- * 1: Disable L1 substates
- * 2: Use L1.1
- * 3: Use L1.2 (FSP UPD default)
- */
-static int get_l1_substate_control(enum L1_substates_control ctl)
-{
-	if (CONFIG(SOC_INTEL_COMPLIANCE_TEST_MODE))
-		ctl = L1_SS_DISABLED;
-	else if ((ctl > L1_SS_L1_2) || (ctl == L1_SS_FSP_DEFAULT))
-		ctl = L1_SS_L1_2;
-	return ctl - 1;
-}
-
-/*
- * Chip config parameter pcie_rp_aspm uses (UPD value + 1) because
- * a UPD value of 0 for pcie_rp_aspm means disabled. In order to ensure
- * that the mainboard setting does not disable ASPM incorrectly, chip
- * config parameter values are offset by 1 with 0 meaning use FSP UPD default.
- * get_aspm_control() ensures that the right UPD value is set in fsp_params.
- * 0: Use FSP UPD default
- * 1: Disable ASPM
- * 2: L0s only
- * 3: L1 only
- * 4: L0s and L1
- * 5: Auto configuration
- */
-static unsigned int get_aspm_control(enum ASPM_control ctl)
-{
-	if ((ctl > ASPM_AUTO) || (ctl == ASPM_DEFAULT))
-		ctl = ASPM_AUTO;
-	return ctl - 1;
-}
-
 /* This function returns the VccIn Aux Imon IccMax values for ADL and RPL
    SKU's */
-static uint16_t get_vccin_aux_imon_iccmax(void)
+static uint16_t get_vccin_aux_imon_iccmax(const struct soc_intel_alderlake_config *config)
 {
 	struct device *dev = pcidev_path_on_root(SA_DEVFN_ROOT);
 	uint16_t mch_id = dev ? pci_read_config16(dev, PCI_DEVICE_ID) : 0xffff;
@@ -543,13 +506,21 @@ static uint16_t get_vccin_aux_imon_iccmax(void)
 	case PCI_DID_INTEL_ADL_N_ID_3:
 	case PCI_DID_INTEL_ADL_N_ID_4:
 	case PCI_DID_INTEL_ADL_N_ID_5:
-		return ICC_MAX_ID_ADL_N_MA;
+	case PCI_DID_INTEL_ADL_N_ID_6:
+	case PCI_DID_INTEL_ADL_N_ID_7:
+	case PCI_DID_INTEL_ADL_N_ID_8:
+	case PCI_DID_INTEL_ADL_N_ID_9:
+		return config->vccin_aux_imon_iccmax
+			? config->vccin_aux_imon_iccmax : ICC_MAX_ID_ADL_N_MA;
 	case PCI_DID_INTEL_ADL_S_ID_1:
 	case PCI_DID_INTEL_ADL_S_ID_3:
 	case PCI_DID_INTEL_ADL_S_ID_8:
 	case PCI_DID_INTEL_ADL_S_ID_10:
 	case PCI_DID_INTEL_ADL_S_ID_11:
 	case PCI_DID_INTEL_ADL_S_ID_12:
+	case PCI_DID_INTEL_ASL_ID_1:
+	case PCI_DID_INTEL_ASL_ID_2:
+	case PCI_DID_INTEL_ASL_ID_3:
 	case PCI_DID_INTEL_RPL_HX_ID_1:
 	case PCI_DID_INTEL_RPL_HX_ID_2:
 	case PCI_DID_INTEL_RPL_HX_ID_3:
@@ -683,6 +654,13 @@ static void fill_fsps_tcss_params(FSP_S_CONFIG *s_cfg,
 			s_cfg->UsbTcPortEn |= BIT(i);
 	}
 
+	for (int i = 0; i < MAX_TYPE_C_PORTS; i++) {
+		if (config->enabletcsscovtypea[i]) {
+			s_cfg->EnableTcssCovTypeA[i] = config->enabletcsscovtypea[i];
+			s_cfg->MappingPchXhciUsbA[i] = config->mappingpchxhciusba[i];
+		}
+	}
+
 	s_cfg->Usb4CmMode = CONFIG(SOFTWARE_CONNECTION_MANAGER);
 }
 
@@ -693,7 +671,7 @@ static void fill_fsps_chipset_lockdown_params(FSP_S_CONFIG *s_cfg,
 	const bool lockdown_by_fsp = get_lockdown_config() == CHIPSET_LOCKDOWN_FSP;
 	s_cfg->PchLockDownGlobalSmi = lockdown_by_fsp;
 	s_cfg->PchLockDownBiosInterface = lockdown_by_fsp;
-	s_cfg->PchUnlockGpioPads = lockdown_by_fsp;
+	s_cfg->PchUnlockGpioPads = !lockdown_by_fsp;
 	s_cfg->RtcMemoryLock = lockdown_by_fsp;
 	s_cfg->SkipPamLock = !lockdown_by_fsp;
 
@@ -737,6 +715,31 @@ static void fill_fsps_xhci_params(FSP_S_CONFIG *s_cfg,
 			s_cfg->Usb3HsioTxDownscaleAmpEnable[i] = 1;
 			s_cfg->Usb3HsioTxDownscaleAmp[i] =
 				config->usb3_ports[i].tx_downscale_amp;
+		}
+		if (config->usb3_ports[i].tx_rate2_uniq_tran) {
+			s_cfg->Usb3HsioTxRate2UniqTranEnable[i] = 1;
+			s_cfg->Usb3HsioTxRate2UniqTran[i] =
+				config->usb3_ports[i].tx_rate2_uniq_tran;
+		}
+		if (config->usb3_ports[i].ctrl_adapt_offset_cfg_enable) {
+			s_cfg->PchUsb3HsioCtrlAdaptOffsetCfgEnable[i] = 1;
+			s_cfg->PchUsb3HsioCtrlAdaptOffsetCfg[i] =
+				config->usb3_ports[i].ctrl_adapt_offset_cfg;
+		}
+		if (config->usb3_ports[i].olfps_cfg_pull_up_dwn_res) {
+			s_cfg->PchUsb3HsioOlfpsCfgPullUpDwnResEnable[i] = 1;
+			s_cfg->PchUsb3HsioOlfpsCfgPullUpDwnRes[i] =
+				config->usb3_ports[i].olfps_cfg_pull_up_dwn_res;
+		}
+		if (config->usb3_ports[i].filter_sel_n) {
+			s_cfg->PchUsb3HsioFilterSelNEnable[i] = 1;
+			s_cfg->PchUsb3HsioFilterSelN[i] =
+				config->usb3_ports[i].filter_sel_n;
+		}
+		if (config->usb3_ports[i].filter_sel_p) {
+			s_cfg->PchUsb3HsioFilterSelPEnable[i] = 1;
+			s_cfg->PchUsb3HsioFilterSelP[i] =
+				config->usb3_ports[i].filter_sel_p;
 		}
 	}
 
@@ -830,15 +833,45 @@ static void fill_fsps_lan_params(FSP_S_CONFIG *s_cfg,
 static void fill_fsps_cnvi_params(FSP_S_CONFIG *s_cfg,
 		const struct soc_intel_alderlake_config *config)
 {
+	struct device *port = NULL;
+	struct drivers_usb_acpi_config *usb_cfg = NULL;
+	bool usb_audio_offload = false;
+
+	/* Search through the devicetree for matching USB devices */
+	while ((port = dev_find_path(port, DEVICE_PATH_USB)) != NULL) {
+		/* Skip ports that are not enabled or not of USB type */
+		if (!port->enabled || port->path.type != DEVICE_PATH_USB)
+			continue;
+
+		usb_cfg = port->chip_info;
+		if (usb_cfg && usb_cfg->cnvi_bt_audio_offload) {
+			usb_audio_offload = true;
+			break;
+		}
+	}
+
 	/* CNVi */
 	s_cfg->CnviWifiCore = is_devfn_enabled(PCH_DEVFN_CNVI_WIFI);
 	s_cfg->CnviMode = is_devfn_enabled(PCH_DEVFN_CNVI_WIFI);
 	s_cfg->CnviBtCore = config->cnvi_bt_core;
 	s_cfg->CnviBtAudioOffload = config->cnvi_bt_audio_offload;
-	/* Assert if CNVi BT is enabled without CNVi being enabled. */
-	assert(s_cfg->CnviMode || !s_cfg->CnviBtCore);
-	/* Assert if CNVi BT offload is enabled without CNVi BT being enabled. */
-	assert(s_cfg->CnviBtCore || !s_cfg->CnviBtAudioOffload);
+
+	if (!s_cfg->CnviBtCore && s_cfg->CnviBtAudioOffload) {
+		printk(BIOS_ERR, "BT offload is enabled without CNVi BT being enabled\n");
+		s_cfg->CnviBtAudioOffload = 0;
+	}
+	if (!s_cfg->CnviMode && s_cfg->CnviBtCore) {
+		printk(BIOS_ERR, "CNVi BT is enabled without CNVi being enabled\n");
+		s_cfg->CnviBtCore = 0;
+		s_cfg->CnviBtAudioOffload = 0;
+	}
+	if (s_cfg->CnviBtAudioOffload && !usb_audio_offload) {
+		printk(BIOS_WARNING, "CNVi BT Audio offload enabled but not in USB driver.\n");
+	}
+	if (!s_cfg->CnviBtAudioOffload && usb_cfg && usb_audio_offload) {
+		printk(BIOS_ERR, "USB BT Audio offload enabled but CNVi BT offload disabled\n");
+		usb_cfg->cnvi_bt_audio_offload = 0;
+	}
 }
 
 static void fill_fsps_vmd_params(FSP_S_CONFIG *s_cfg,
@@ -912,23 +945,20 @@ static void fill_fsps_pcie_params(FSP_S_CONFIG *s_cfg,
 		if (!(enable_mask & BIT(i)))
 			continue;
 		const struct pcie_rp_config *rp_cfg = &config->pch_pcie_rp[i];
-		s_cfg->PcieRpL1Substates[i] =
-				get_l1_substate_control(rp_cfg->PcieRpL1Substates);
 		s_cfg->PcieRpLtrEnable[i] = !!(rp_cfg->flags & PCIE_RP_LTR);
 		s_cfg->PcieRpAdvancedErrorReporting[i] = !!(rp_cfg->flags & PCIE_RP_AER);
 		s_cfg->PcieRpHotPlug[i] = !!(rp_cfg->flags & PCIE_RP_HOTPLUG)
 				|| CONFIG(SOC_INTEL_COMPLIANCE_TEST_MODE);
 		s_cfg->PcieRpClkReqDetect[i] = !!(rp_cfg->flags & PCIE_RP_CLK_REQ_DETECT);
-		if (rp_cfg->pcie_rp_aspm)
-			s_cfg->PcieRpAspm[i] = get_aspm_control(rp_cfg->pcie_rp_aspm);
 		/* PcieRpSlotImplemented default to 1 (slot implemented) in FSP; 0: built-in */
 		if (!!(rp_cfg->flags & PCIE_RP_BUILT_IN))
-			s_cfg->PcieRpSlotImplemented[i] = 0;
+			s_cfg->PcieRpSlotImplemented[i] = false;
 		s_cfg->PcieRpDetectTimeoutMs[i] = rp_cfg->pcie_rp_detect_timeout_ms;
+		configure_pch_rp_power_management(s_cfg, rp_cfg, i);
 	}
 	s_cfg->PcieComplianceTestMode = CONFIG(SOC_INTEL_COMPLIANCE_TEST_MODE);
 
-#if CONFIG(FSP_TYPE_IOT) && !CONFIG(SOC_INTEL_RAPTORLAKE)
+#if CONFIG(FSP_TYPE_IOT)
 	/*
 	 * Intel requires that all enabled PCH PCIe ports have a CLK_REQ signal connected.
 	 * The CLK_REQ is used to wake the silicon when link entered L1 link-state. L1
@@ -976,19 +1006,16 @@ static void fill_fsps_cpu_pcie_params(FSP_S_CONFIG *s_cfg,
 			continue;
 
 		const struct pcie_rp_config *rp_cfg = &config->cpu_pcie_rp[i];
-		s_cfg->CpuPcieRpL1Substates[i] =
-			get_l1_substate_control(rp_cfg->PcieRpL1Substates);
 		s_cfg->CpuPcieRpLtrEnable[i] = !!(rp_cfg->flags & PCIE_RP_LTR);
 		s_cfg->CpuPcieRpAdvancedErrorReporting[i] = !!(rp_cfg->flags & PCIE_RP_AER);
 		s_cfg->CpuPcieRpHotPlug[i] = !!(rp_cfg->flags & PCIE_RP_HOTPLUG)
 				|| CONFIG(SOC_INTEL_COMPLIANCE_TEST_MODE);
 		s_cfg->CpuPcieRpDetectTimeoutMs[i] = rp_cfg->pcie_rp_detect_timeout_ms;
 		s_cfg->PtmEnabled[i] = 0;
-		if (rp_cfg->pcie_rp_aspm)
-			s_cfg->CpuPcieRpAspm[i] = get_aspm_control(rp_cfg->pcie_rp_aspm);
 
 		if (!!(rp_cfg->flags & PCIE_RP_BUILT_IN))
 			s_cfg->CpuPcieRpSlotImplemented[i] = 0;
+		configure_cpu_rp_power_management(s_cfg, rp_cfg, i);
 	}
 	s_cfg->CpuPcieComplianceTestMode = CONFIG(SOC_INTEL_COMPLIANCE_TEST_MODE);
 }
@@ -1012,11 +1039,12 @@ static void fill_fsps_misc_power_params(FSP_S_CONFIG *s_cfg,
 	s_cfg->PsOnEnable = 1;
 	s_cfg->PkgCStateLimit = LIMIT_AUTO;
 
-	/* Disable Energy Efficient Turbo mode */
-	s_cfg->EnergyEfficientTurbo = 0;
+	/* Set Energy Efficient Turbo mode */
+	s_cfg->EnergyEfficientTurbo = config->energy_efficient_turbo;
 
 	/* VccIn Aux Imon IccMax. Values are in 1/4 Amp increments and range is 0-512. */
-	s_cfg->VccInAuxImonIccImax = get_vccin_aux_imon_iccmax() * 4 / MILLIAMPS_TO_AMPS;
+	s_cfg->VccInAuxImonIccImax =
+		get_vccin_aux_imon_iccmax(config) * 4 / MILLIAMPS_TO_AMPS;
 
 	/* VrConfig Settings for IA and GT domains */
 	for (size_t i = 0; i < ARRAY_SIZE(config->domain_vr_config); i++)
@@ -1109,6 +1137,15 @@ static void fill_fsps_irq_params(FSP_S_CONFIG *s_cfg,
 static void fill_fsps_fivr_params(FSP_S_CONFIG *s_cfg,
 		const struct soc_intel_alderlake_config *config)
 {
+#if CONFIG(SOC_INTEL_ALDERLAKE_PCH_N)
+	/* Enable the FIVR VCCST ICCMax Control for ADL-N.
+	 * TODO:Right now the UPD is update in partial headers for only ADL-N and when its
+	 * updated for ADL-P then we will remove the config since this needs to be enabled for
+	 * all the Alderlake platforms.
+	 */
+	s_cfg->PchFivrVccstIccMaxControl = 1;
+#endif
+
 	/* PCH FIVR settings override */
 	if (!config->ext_fivr_settings.configure_ext_fivr)
 		return;
@@ -1143,15 +1180,6 @@ static void fill_fsps_fivr_params(FSP_S_CONFIG *s_cfg,
 
 	s_cfg->PchFivrExtVnnRailIccMaximum =
 			config->ext_fivr_settings.vnn_icc_max_ma;
-
-#if CONFIG(SOC_INTEL_ALDERLAKE_PCH_N)
-	/* Enable the FIVR VCCST ICCMax Control for ADL-N.
-	 * TODO:Right now the UPD is update in partial headers for only ADL-N and when its
-	 * updated for ADL-P then we will remove the config since this needs to be enabled for
-	 * all the Alderlake platforms.
-	 */
-	s_cfg->PchFivrVccstIccMaxControl = 1;
-#endif
 }
 
 static void fill_fsps_fivr_rfi_params(FSP_S_CONFIG *s_cfg,
@@ -1245,6 +1273,9 @@ static void soc_silicon_init_params(FSP_S_CONFIG *s_cfg,
 {
 	/* Override settings per board if required. */
 	mainboard_update_soc_chip_config(config);
+
+	/* Runtime configuration of S0ix */
+	config->s0ix_enable = get_uint_option("s0ix_enable", config->s0ix_enable);
 
 	void (*const fill_fsps_params[])(FSP_S_CONFIG *s_cfg,
 			const struct soc_intel_alderlake_config *config) = {
@@ -1375,12 +1406,27 @@ __weak void mainboard_silicon_init_params(FSP_S_CONFIG *s_cfg)
 }
 
 /* Handle FSP logo params */
-void soc_load_logo(FSPS_UPD *supd)
+void soc_load_logo_by_fsp(FSPS_UPD *supd)
 {
-	fsp_convert_bmp_to_gop_blt(&supd->FspsConfig.LogoPtr,
+	struct soc_intel_common_config *config = chip_get_common_soc_structure();
+	FSP_S_CONFIG *s_cfg = &supd->FspsConfig;
+
+	/*
+	 * Adjusts panel orientation for external display when the lid is closed.
+	 *
+	 * When the lid is closed (LidStatus == 0), indicating the onboard display is inactive,
+	 * this function forces the panel orientation to normal. This ensures proper display
+	 * on an external monitor, as rotated orientations are typically not suitable in
+	 * such state.
+	 */
+	if (s_cfg->LidStatus == 0)
+		config->panel_orientation = LB_FB_ORIENTATION_NORMAL;
+
+	fsp_load_and_convert_bmp_to_gop_blt(&supd->FspsConfig.LogoPtr,
 			 &supd->FspsConfig.LogoSize,
 			 &supd->FspsConfig.BltBufferAddress,
 			 &supd->FspsConfig.BltBufferSize,
 			 &supd->FspsConfig.LogoPixelHeight,
-			 &supd->FspsConfig.LogoPixelWidth);
+			 &supd->FspsConfig.LogoPixelWidth,
+			 config->panel_orientation);
 }

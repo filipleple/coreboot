@@ -5,9 +5,9 @@
 #include <assert.h>
 #include <console/console.h>
 #include <cpu/x86/smm.h>
+#include <device/fw_cfg.h>
 #include <device/pci_ops.h>
 #include <mainboard/emulation/qemu-i440fx/memory.h>
-#include <mainboard/emulation/qemu-i440fx/fw_cfg.h>
 #include <cpu/intel/smm_reloc.h>
 
 #include "q35.h"
@@ -33,19 +33,6 @@ void mainboard_machine_check(void)
 	if (pci_read_config32(HOST_BRIDGE, D0F0_PCIEXBAR_LO) != make_pciexbar())
 		die("You must run qemu for machine Q35 (-M q35)");
 }
-
-/* QEMU-specific register */
-#define EXT_TSEG_MBYTES	0x50
-#define SMRAMC	0x9d
-#define C_BASE_SEG	((0 << 2) | (1 << 1) | (0 << 0))
-#define G_SMRAME	(1 << 3)
-#define D_LCK		(1 << 4)
-#define D_CLS		(1 << 5)
-#define D_OPEN		(1 << 6)
-#define ESMRAMC	0x9e
-#define T_EN		(1 << 0)
-#define TSEG_SZ_MASK	(3 << 1)
-#define H_SMRAME	(1 << 7)
 
 /* Decodes TSEG region size to bytes. */
 static size_t decode_tseg_size(u8 esmramc)

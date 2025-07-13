@@ -5,55 +5,52 @@
 #include <device/pnp.h>
 #include <ec/acpi/ec.h>
 #include <option.h>
-#include <pc80/keyboard.h>
+#include <pc80/mc146818rtc.h>
 #include <halt.h>
 
-#include "ec.h"
 #include "ecdefs.h"
+#include "option_table.h"
+#include "ec.h"
+
+#define ITE_IT5570	0x5570
+#define ITE_IT8987	0x8987
 
 uint16_t ec_get_version(void)
 {
 	return (ec_read(ECRAM_MAJOR_VERSION) << 8) | ec_read(ECRAM_MINOR_VERSION);
 }
 
-static uint8_t get_ec_value_from_option(const char *name,
-					unsigned int fallback,
-					const uint8_t *lut,
-					size_t lut_size)
+static uint8_t get_cmos_value(uint32_t bit, uint32_t length)
 {
-	unsigned int index = get_uint_option(name, fallback);
+	uint32_t byte, byte_bit;
+	uint8_t uchar;
+
+	byte = bit / 8; // find the byte where the data starts
+	byte_bit = bit % 8; // find the bit in the byte where the data starts
+
+	uchar = cmos_read(byte); // load the byte
+	uchar >>= byte_bit;     // shift the bits to byte align
+	// clear unspecified bits
+	return uchar & ((1U << length) - 1);
+}
+
+static uint8_t get_ec_value_from_option(const char *name,
+					uint32_t fallback,
+					const uint8_t *lut,
+					size_t lut_size,
+					uint32_t cmos_start_bit,
+					uint32_t cmos_length)
+{
+	unsigned int index;
+
+	if (cmos_start_bit != UINT_MAX)
+		index = get_cmos_value(cmos_start_bit, cmos_length);
+	else
+		index = get_uint_option(name, fallback);
+
 	if (index >= lut_size)
 		index = fallback;
 	return lut[index];
-}
-
-void ec_mirror_flag(void)
-{
-	/*
-	 * For the mirror flag to work, the status of the EC pin must be known
-	 * at all times, which means external power. This can be either a DC
-	 * charger, or PD with CCG6. PD with an ANX7447 requires configuration
-	 * from the EC, so the update will interrupt this.
-	 *
-	 * This means we can unconditionally apply the mirror flag to devices
-	 * that have CCG6, present on devices with TBT, but have a manual
-	 * flag for devices without it.
-	 */
-	uint16_t ec_version = ec_get_version();
-
-	/* Full mirror support was added in EC 1.18 (0x0112) */
-	if (ec_version < 0x0112)
-		return;
-
-	if (CONFIG(EC_STARLABS_MIRROR_SUPPORT) &&
-		(CONFIG(DRIVERS_INTEL_USB4_RETIMER) || get_uint_option("mirror_flag", 0)) &&
-		(ec_version != CONFIG_EC_STARLABS_MIRROR_VERSION)) {
-
-		printk(BIOS_ERR, "ITE: EC version 0x%x doesn't match coreboot version 0x%x.\n",
-			ec_version, CONFIG_EC_STARLABS_MIRROR_VERSION);
-
-		ec_write(ECRAM_MIRROR_FLAG, MIRROR_ENABLED);
-	}
 }
 
 static uint16_t ec_get_chip_id(unsigned int port)
@@ -81,13 +78,10 @@ static void merlin_init(struct device *dev)
 
 	const uint16_t chip_id = ec_get_chip_id(dev->path.pnp.port);
 
-	if (chip_id != ITE_CHIPID_VAL) {
-		printk(BIOS_ERR, "ITE: Expected chip ID 0x%04x, but got 0x%04x instead.\n",
-			ITE_CHIPID_VAL, chip_id);
+	if (chip_id != ITE_IT5570 && chip_id != ITE_IT8987) {
+		printk(BIOS_ERR, "ITE: Unsupported chip ID 0x%04x.\n", chip_id);
 		return;
 	}
-
-	ec_mirror_flag();
 
 	/*
 	 * Restore settings from CMOS into EC RAM:
@@ -100,6 +94,9 @@ static void merlin_init(struct device *dev)
 	 * trackpad_state
 	 * kbl_brightness
 	 * kbl_state
+	 * charging_speed
+	 * lid_switch
+	 * power_led
 	 */
 
 	/*
@@ -123,7 +120,9 @@ static void merlin_init(struct device *dev)
 		get_ec_value_from_option("kbl_timeout",
 					 0,
 					 kbl_timeout,
-					 ARRAY_SIZE(kbl_timeout)));
+					 ARRAY_SIZE(kbl_timeout),
+					 UINT_MAX,
+					 UINT_MAX));
 
 	/*
 	 * Fn Ctrl Reverse
@@ -143,7 +142,9 @@ static void merlin_init(struct device *dev)
 		get_ec_value_from_option("fn_ctrl_swap",
 					 0,
 					 fn_ctrl_swap,
-					 ARRAY_SIZE(fn_ctrl_swap)));
+					 ARRAY_SIZE(fn_ctrl_swap),
+					 UINT_MAX,
+					 UINT_MAX));
 
 	/*
 	 * Maximum Charge Level
@@ -165,21 +166,24 @@ static void merlin_init(struct device *dev)
 			get_ec_value_from_option("max_charge",
 						 0,
 						 max_charge,
-						 ARRAY_SIZE(max_charge)));
+						 ARRAY_SIZE(max_charge),
+						 UINT_MAX,
+						 UINT_MAX));
 
 	/*
 	 * Fan Mode
 	 *
 	 * Setting:	fan_mode
 	 *
-	 * Values:	Quiet, Normal, Aggressive
+	 * Values:	Disabled, Quiet, Normal, Aggressive
 	 * Default:	Normal
 	 *
 	 */
 	const uint8_t fan_mode[] = {
 		FAN_NORMAL,
 		FAN_AGGRESSIVE,
-		FAN_QUIET
+		FAN_QUIET,
+		FAN_DISABLED
 	};
 
 	if (CONFIG(EC_STARLABS_FAN))
@@ -187,7 +191,9 @@ static void merlin_init(struct device *dev)
 			get_ec_value_from_option("fan_mode",
 						 0,
 						 fan_mode,
-						 ARRAY_SIZE(fan_mode)));
+						 ARRAY_SIZE(fan_mode),
+						 UINT_MAX,
+						 UINT_MAX));
 
 	/*
 	 * Function Lock
@@ -198,6 +204,7 @@ static void merlin_init(struct device *dev)
 	 * Default:	Locked
 	 *
 	 */
+#ifdef CMOS_VLEN_fn_lock_state
 	const uint8_t fn_lock_state[] = {
 		UNLOCKED,
 		LOCKED
@@ -207,7 +214,10 @@ static void merlin_init(struct device *dev)
 		get_ec_value_from_option("fn_lock_state",
 					 1,
 					 fn_lock_state,
-					 ARRAY_SIZE(fn_lock_state)));
+					 ARRAY_SIZE(fn_lock_state),
+					 CMOS_VSTART_fn_lock_state,
+					 CMOS_VLEN_fn_lock_state));
+#endif
 
 	/*
 	 * Trackpad State
@@ -218,6 +228,7 @@ static void merlin_init(struct device *dev)
 	 * Default:	Enabled
 	 *
 	 */
+#ifdef CMOS_VSTART_trackpad_state
 	const uint8_t trackpad_state[] = {
 		TRACKPAD_ENABLED,
 		TRACKPAD_DISABLED
@@ -227,7 +238,10 @@ static void merlin_init(struct device *dev)
 		get_ec_value_from_option("trackpad_state",
 					 0,
 					 trackpad_state,
-					 ARRAY_SIZE(trackpad_state)));
+					 ARRAY_SIZE(trackpad_state),
+					 CMOS_VSTART_trackpad_state,
+					 CMOS_VLEN_trackpad_state));
+#endif
 
 	/*
 	 * Keyboard Backlight Brightness
@@ -238,6 +252,7 @@ static void merlin_init(struct device *dev)
 	 * Default:	Low
 	 *
 	 */
+#ifdef CMOS_VSTART_kbl_brightness
 	const uint8_t kbl_brightness[] = {
 		KBL_ON,
 		KBL_OFF,
@@ -245,18 +260,16 @@ static void merlin_init(struct device *dev)
 		KBL_HIGH
 	};
 
-	if (CONFIG(EC_STARLABS_KBL_LEVELS))
-		ec_write(ECRAM_KBL_BRIGHTNESS,
-			get_ec_value_from_option("kbl_brightness",
-						 2,
-						 kbl_brightness,
-						 ARRAY_SIZE(kbl_brightness)));
-	else
-		ec_write(ECRAM_KBL_BRIGHTNESS,
-			get_ec_value_from_option("kbl_brightness",
-						 0,
-						 kbl_brightness,
-						 ARRAY_SIZE(kbl_brightness)));
+	ec_write(ECRAM_KBL_BRIGHTNESS,
+		get_ec_value_from_option("kbl_brightness",
+			CONFIG(EC_STARLABS_KBL_LEVELS) ? 2 : 0,
+			kbl_brightness,
+			ARRAY_SIZE(kbl_brightness),
+			CMOS_VSTART_kbl_brightness,
+			CMOS_VLEN_kbl_brightness));
+
+#endif
+
 
 	/*
 	 * Keyboard Backlight State
@@ -271,6 +284,76 @@ static void merlin_init(struct device *dev)
 	 */
 
 	ec_write(ECRAM_KBL_STATE, KBL_ENABLED);
+
+	/*
+	 * Charging Speed
+	 *
+	 * Setting:	charging_speed
+	 *
+	 * Values:	1.0C, 0.5C, 0.2C
+	 * Default:	0.5C
+	 *
+	 */
+	const uint8_t charging_speed[] = {
+		SPEED_1_0C,
+		SPEED_0_5C,
+		SPEED_0_2C
+	};
+
+	if (CONFIG(EC_STARLABS_CHARGING_SPEED))
+		ec_write(ECRAM_CHARGING_SPEED,
+			get_ec_value_from_option("charging_speed",
+				SPEED_0_5C,
+				charging_speed,
+				ARRAY_SIZE(charging_speed),
+				UINT_MAX,
+				UINT_MAX));
+
+	/*
+	 * Lid Switch
+	 *
+	 * Setting:	lid_switch
+	 *
+	 * Values:	0, 1
+	 * Default:	0
+	 *
+	 */
+	const uint8_t lid_switch[] = {
+		SWITCH_ENABLED,
+		SWITCH_DISABLED
+	};
+
+	if (CONFIG(EC_STARLABS_LID_SWITCH))
+		ec_write(ECRAM_LID_SWITCH,
+			get_ec_value_from_option("lid_switch",
+				0,
+				lid_switch,
+				ARRAY_SIZE(lid_switch),
+				UINT_MAX,
+				UINT_MAX));
+
+	/*
+	 * Power LED Brightness
+	 *
+	 * Setting:	power_led
+	 *
+	 * Values:	0, 1
+	 * Default:	0
+	 *
+	 */
+	const uint8_t power_led[] = {
+		LED_NORMAL,
+		LED_REDUCED
+	};
+
+	if (CONFIG(EC_STARLABS_POWER_LED))
+		ec_write(ECRAM_POWER_LED,
+			get_ec_value_from_option("power_led",
+				0,
+				power_led,
+				ARRAY_SIZE(power_led),
+				UINT_MAX,
+				UINT_MAX));
 }
 
 static struct device_operations ops = {

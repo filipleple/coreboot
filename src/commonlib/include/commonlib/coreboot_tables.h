@@ -87,6 +87,9 @@ enum {
 	LB_TAG_TYPE_C_INFO		= 0x0042,
 	LB_TAG_ACPI_RSDP		= 0x0043,
 	LB_TAG_PCIE			= 0x0044,
+	LB_TAG_EFI_FW_INFO		= 0x0045,
+	LB_TAG_CAPSULE			= 0x0046,
+	LB_TAG_CFR_ROOT			= 0x0047,
 	/* The following options are CMOS-related */
 	LB_TAG_CMOS_OPTION_TABLE	= 0x00c8,
 	LB_TAG_OPTION			= 0x00c9,
@@ -356,7 +359,15 @@ struct lb_spi_flash {
 	uint32_t size;
 	uint32_t flash_size;
 	uint32_t sector_size;
-	uint32_t erase_cmd;
+	/*
+	 * Note: `erase_cmd` was previously a uint32_t. It's now uint8_t because only
+	 * the lowest byte was used, ensuring backward compatibility with older coreboot
+	 * tables and allowing reuse of the remaining bytes.
+	 */
+	uint8_t erase_cmd;
+#define LB_SPI_FLASH_FLAG_IN_4BYTE_ADDR_MODE    (1 << 0)
+	uint8_t flags;
+	uint16_t reserved;
 	/*
 	 * Number of mmap windows used by the platform to decode addresses between SPI flash
 	 * space and host address space. This determines the number of entries in mmap_table.
@@ -536,11 +547,17 @@ struct lb_smmstorev2 {
 	uint32_t size;
 	uint32_t num_blocks;		/* Number of writable blocks in SMM */
 	uint32_t block_size;		/* Size of a block in byte. Default: 64 KiB */
-	uint32_t mmap_addr;		/* MMIO address of the store for read only access */
+	uint32_t mmap_addr_deprecated;	/* 32-bit MMIO address of the store for read only access.
+					   Prefer 'mmap_addr' for new software.
+					   Zero when the address won't fit into 32-bits. */
 	uint32_t com_buffer;		/* Physical address of the communication buffer */
 	uint32_t com_buffer_size;	/* Size of the communication buffer in bytes */
 	uint8_t apm_cmd;		/* The command byte to write to the APM I/O port */
 	uint8_t unused[3];		/* Set to zero */
+	uint64_t mmap_addr;		/* 64-bit MMIO address of the store for read only access.
+					   Introduced after the initial implementation. Users of
+					   this table must check the 'size' field to detect if its
+					   written out by coreboot. */
 };
 
 enum lb_tpm_ppi_tpm_version {
@@ -576,6 +593,32 @@ struct lb_acpi_rsdp {
 	uint32_t tag;
 	uint32_t size;
 	lb_uint64_t rsdp_pointer; /* Address of the ACPI RSDP */
+};
+
+/*
+ * Machine-friendly version of a system firmware component.  A component is
+ * identified by a GUID.  coreboot is an obvious main component but there could
+ * be others (like EC) which should get their own instances of the tag.
+ *
+ * The main consumer of this information is UEFI firmware but something else
+ * could reuse it too.
+ *
+ * Larger number in a version field corresponds to a more recent version.
+ */
+struct lb_efi_fw_info {
+	uint32_t tag;
+	uint32_t size;
+	uint8_t guid[16];			/* Called "firmware class" in UEFI */
+	uint32_t version;			/* Current version */
+	uint32_t lowest_supported_version;	/* Lowest allowed version for downgrades */
+	uint32_t fw_size;			/* Size of firmware in bytes */
+} __packed;
+struct lb_cfr {
+	uint32_t tag;
+	uint32_t size;
+	uint32_t version;
+	uint32_t checksum;	/* Checksum of the variable payload. */
+	/* struct lb_cfr_option_form		forms[] */
 };
 
 #endif

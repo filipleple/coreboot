@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-#include <string.h>
 #include <types.h>
 #include <device/device.h>
 #include <console/console.h>
 #include <drivers/intel/gma/int15.h>
 #include <option.h>
+#include <stdio.h>
 #include <superio/hwm5_conf.h>
 #include <superio/nuvoton/common/hwm.h>
 
@@ -141,7 +141,7 @@ static void mainboard_init(void *chip_info)
 			continue;
 		printk(BIOS_DEBUG, "Disabling Ethernet NIC #%d\n", i);
 		dev = pcidev_on_root(28, i - 1);
-		if (dev == NULL) {
+		if (dev == nullptr) {
 			printk(BIOS_ERR,
 			       "Disabling Ethernet NIC: Cannot find 00:1c.%d!\n",
 			       i - 1);

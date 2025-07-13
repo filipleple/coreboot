@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-#include <assert.h>
 #include <console/console.h>
 #include <cpu/cpu.h>
 #include <cpu/intel/common/common.h>
@@ -21,6 +20,7 @@
 #include <soc/pci_devs.h>
 #include <soc/soc_chip.h>
 #include <soc/soc_info.h>
+#include <static.h>
 
 bool cpu_soc_is_in_untrusted_mode(void)
 {
@@ -41,6 +41,10 @@ void cpu_soc_bios_done(void)
 
 uint8_t get_supported_lpm_mask(void)
 {
+	const config_t *conf = config_of_soc();
+	if (!conf->s0ix_enable)
+		return 0;
+
 	return LPM_S0i2_0 | LPM_S0i2_1 | LPM_S0i2_2;
 }
 

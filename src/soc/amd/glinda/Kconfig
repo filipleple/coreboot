@@ -25,7 +25,6 @@ config SOC_AMD_GLINDA
 	select PROVIDES_ROM_SHARING
 	select PSP_SUPPORTS_EFS2_RELATIVE_ADDR if VBOOT_STARTS_BEFORE_BOOTBLOCK
 	select PSP_VERSTAGE_CCP_DMA if VBOOT_STARTS_BEFORE_BOOTBLOCK
-	select RESET_VECTOR_IN_RAM
 	select RTC
 	select SOC_AMD_COMMON
 	select SOC_AMD_COMMON_BLOCK_ACP_GEN2		# TODO: Check if this is still correct
@@ -47,11 +46,13 @@ config SOC_AMD_GLINDA
 	select SOC_AMD_COMMON_BLOCK_DATA_FABRIC_MULTI_PCI_SEGMENT
 	select SOC_AMD_COMMON_BLOCK_ESPI_EXTENDED_DECODE_RANGES # TODO: Check if this is still correct
 	select SOC_AMD_COMMON_BLOCK_GPP_CLK
-	select SOC_AMD_COMMON_BLOCK_GRAPHICS		# TODO: Check if this is still correct
+	select SOC_AMD_COMMON_BLOCK_GRAPHICS
+	select SOC_AMD_COMMON_BLOCK_GRAPHICS_NO_VGA
 	select SOC_AMD_COMMON_BLOCK_HAS_ESPI		# TODO: Check if this is still correct
 	select SOC_AMD_COMMON_BLOCK_HAS_ESPI_ALERT_ENABLE # TODO: Check if this is still correct
 	select SOC_AMD_COMMON_BLOCK_I2C			# TODO: Check if this is still correct
 	select SOC_AMD_COMMON_BLOCK_I23C_PAD_CTRL	# TODO: Check if this is still correct
+	select SOC_AMD_COMMON_BLOCK_I3C
 	select SOC_AMD_COMMON_BLOCK_IOMMU		# TODO: Check if this is still correct
 	select SOC_AMD_COMMON_BLOCK_LPC			# TODO: Check if this is still correct
 	select SOC_AMD_COMMON_BLOCK_MCAX		# TODO: Check if this is still correct
@@ -80,6 +81,7 @@ config SOC_AMD_GLINDA
 	select SOC_AMD_COMMON_FSP_PCI			# TODO: Check if this is still correct
 	select SOC_AMD_COMMON_FSP_PRELOAD_FSPS
 	select SOC_AMD_COMMON_ROMSTAGE_LEGACY_DMA_FIXUP
+	select SOC_FILL_CPU_CACHE_INFO
 	select SSE2
 	select UDK_2017_BINDING
 	select USE_DDR5
@@ -89,6 +91,7 @@ config SOC_AMD_GLINDA
 	select VBOOT_DEFINE_WIDEVINE_COUNTERS if VBOOT_STARTS_BEFORE_BOOTBLOCK
 	select X86_AMD_FIXED_MTRRS
 	select X86_INIT_NEED_1_SIPI
+	select HAVE_X86_64_SUPPORT
 	help
 	  AMD Glinda support
 
@@ -97,6 +100,9 @@ if SOC_AMD_GLINDA
 config CHIPSET_DEVICETREE
 	string
 	default "soc/amd/glinda/chipset.cb"
+
+config CPU_PT_ROM_MAP_GB
+	default 1024
 
 config EARLY_RESERVED_DRAM_BASE
 	hex
@@ -121,11 +127,11 @@ config PSP_APOB_DRAM_ADDRESS
 
 config PSP_APOB_DRAM_SIZE
 	hex
-	default 0x1E000
+	default 0x40000
 
 config PSP_SHAREDMEM_BASE
 	hex
-	default 0x201F000 if VBOOT
+	default 0x2041000 if VBOOT
 	default 0x0
 	help
 	  This variable defines the base address in DRAM memory where PSP copies
@@ -162,7 +168,7 @@ config CBFS_MCACHE_SIZE
 
 config C_ENV_BOOTBLOCK_SIZE
 	hex
-	default 0x10000
+	default 0x20000
 	help
 	  Sets the size of the bootblock stage that should be loaded in DRAM.
 	  This variable controls the DRAM allocation size in linker script
@@ -170,19 +176,19 @@ config C_ENV_BOOTBLOCK_SIZE
 
 config ROMSTAGE_ADDR
 	hex
-	default 0x2040000
+	default 0x2070000
 	help
 	  Sets the address in DRAM where romstage should be loaded.
 
 config ROMSTAGE_SIZE
 	hex
-	default 0x80000
+	default 0x70000
 	help
 	  Sets the size of DRAM allocation for romstage in linker script.
 
 config FSP_M_ADDR
 	hex
-	default 0x20C0000
+	default 0x20E0000
 	help
 	  Sets the address in DRAM where FSP-M should be loaded. cbfstool
 	  performs relocation of FSP-M to this address.
@@ -202,7 +208,7 @@ config FSP_TEMP_RAM_SIZE
 config VERSTAGE_ADDR
 	hex
 	depends on VBOOT_SEPARATE_VERSTAGE
-	default 0x2180000
+	default 0x21A0000
 	help
 	  Sets the address in DRAM where verstage should be loaded if running
 	  as a separate stage on x86.
@@ -354,7 +360,7 @@ config PSP_WHITELIST_FILE
 
 config PSP_SOFTFUSE_BITS
 	string "PSP Soft Fuse bits to enable"
-	default "34 28 6"
+	default "6"
 	help
 	  Space separated list of Soft Fuse bits to enable.
 	  Bit 0:  Enable secure debug (Set by PSP_UNLOCK_SECURE_DEBUG)
@@ -379,6 +385,10 @@ config PSP_VERSTAGE_SIGNING_TOKEN
 	default ""
 	help
 	  Add psp_verstage signature token to the build & PSP Directory Table
+
+config PSPV2_MBOX_CMD_OFFSET
+	hex
+	default 0x10970
 
 endmenu
 

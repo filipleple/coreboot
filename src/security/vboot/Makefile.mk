@@ -118,6 +118,14 @@ else
 verstage-y += secdata_tpm.c
 romstage-y += secdata_tpm.c
 ramstage-y += secdata_tpm.c
+
+verstage-$(CONFIG_TPM1) += secdata_tpm1.c
+romstage-$(CONFIG_TPM1) += secdata_tpm1.c
+ramstage-$(CONFIG_TPM1) += secdata_tpm1.c
+
+verstage-$(CONFIG_TPM2) += secdata_tpm2.c
+romstage-$(CONFIG_TPM2) += secdata_tpm2.c
+ramstage-$(CONFIG_TPM2) += secdata_tpm2.c
 endif
 
 verstage-$(CONFIG_TPM) += tpm_common.c
@@ -257,6 +265,7 @@ GBB_FLAGS := $(call int-add, \
 	$(call bool-to-mask,$(CONFIG_GBB_FLAG_FORCE_MANUAL_RECOVERY),0x4000) \
 	$(call bool-to-mask,$(CONFIG_GBB_FLAG_DISABLE_FWMP),0x8000) \
 	$(call bool-to-mask,$(CONFIG_GBB_FLAG_ENABLE_UDC),0x10000) \
+	$(call bool-to-mask,$(CONFIG_GBB_FLAG_FORCE_CSE_SYNC),0x20000) \
 	)
 
 ifneq ($(CONFIG_GBB_BMPFV_FILE),)

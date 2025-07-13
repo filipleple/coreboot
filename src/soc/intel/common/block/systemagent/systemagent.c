@@ -15,6 +15,7 @@
 #include <soc/nvs.h>
 #include <soc/pci_devs.h>
 #include <soc/systemagent.h>
+#include <static.h>
 #include <types.h>
 #include "systemagent_def.h"
 
@@ -78,6 +79,9 @@ static void sa_soc_systemagent_init(struct device *dev)
 	if (m == NULL)
 		return;
 
+	if (!CONFIG(HAVE_CAPID_A_REGISTER))
+		return;
+
 	const uint32_t capid0_a = pci_read_config32(dev, CAPID0_A);
 
 	m->ecc_type = sa_get_ecc_type(capid0_a);
@@ -126,7 +130,9 @@ void sa_add_fixed_mmio_resources(struct device *dev, int *resource_cnt,
 static const struct sa_mem_map_descriptor sa_memory_map[MAX_MAP_ENTRIES] = {
 	{ TOUUD, true, "TOUUD" },
 	{ TOLUD, false, "TOLUD" },
+#if CONFIG(HAVE_BDSM_BGSM_REGISTER)
 	{ BGSM, false, "BGSM" },
+#endif
 	{ TSEG, false, "TSEG" },
 };
 
@@ -188,10 +194,9 @@ static void sa_get_mem_map(struct device *dev, uint64_t *values)
 static void sa_add_dram_resources(struct device *dev, int *resource_count)
 {
 	uint64_t sa_map_values[MAX_MAP_ENTRIES];
-	uintptr_t top_of_ram;
 	int index = *resource_count;
 
-	top_of_ram = (uintptr_t)cbmem_top();
+	const uintptr_t top_of_ram = cbmem_top();
 
 	/* 0 - > 0xa0000 */
 	ram_from_to(dev, index++, 0, 0xa0000);
@@ -268,6 +273,12 @@ static void sa_add_imr_resources(struct device *dev, int *resource_cnt)
 static void systemagent_read_resources(struct device *dev)
 {
 	int index = 0;
+
+	/**
+	 * If SoC has multiple PCIe domains, only read resources from the first one.
+	 */
+	if (!is_dev_on_domain0(dev))
+		return;
 
 	/* Read standard PCI resources. */
 	pci_dev_read_resources(dev);
@@ -414,13 +425,30 @@ struct device_operations systemagent_ops = {
 };
 
 static const unsigned short systemagent_ids[] = {
+	PCI_DID_INTEL_WCL_ID_1,
+	PCI_DID_INTEL_WCL_ID_2,
+	PCI_DID_INTEL_WCL_ID_3,
+	PCI_DID_INTEL_PTL_U_ID_1,
+	PCI_DID_INTEL_PTL_U_ID_2,
+	PCI_DID_INTEL_PTL_U_ID_3,
+	PCI_DID_INTEL_PTL_H_ID_1,
+	PCI_DID_INTEL_PTL_H_ID_2,
+	PCI_DID_INTEL_PTL_H_ID_3,
+	PCI_DID_INTEL_PTL_H_ID_4,
+	PCI_DID_INTEL_PTL_H_ID_5,
+	PCI_DID_INTEL_PTL_H_ID_6,
+	PCI_DID_INTEL_PTL_H_ID_7,
+	PCI_DID_INTEL_PTL_H_ID_8,
 	PCI_DID_INTEL_LNL_M_ID,
+	PCI_DID_INTEL_LNL_M_ID_1,
 	PCI_DID_INTEL_MTL_M_ID,
 	PCI_DID_INTEL_MTL_P_ID_1,
 	PCI_DID_INTEL_MTL_P_ID_2,
 	PCI_DID_INTEL_MTL_P_ID_3,
 	PCI_DID_INTEL_MTL_P_ID_4,
 	PCI_DID_INTEL_MTL_P_ID_5,
+	PCI_DID_INTEL_ARL_H_ID_1,
+	PCI_DID_INTEL_ARL_H_ID_2,
 	PCI_DID_INTEL_GLK_NB,
 	PCI_DID_INTEL_APL_NB,
 	PCI_DID_INTEL_CNL_ID_U,
@@ -517,6 +545,13 @@ static const unsigned short systemagent_ids[] = {
 	PCI_DID_INTEL_ADL_N_ID_3,
 	PCI_DID_INTEL_ADL_N_ID_4,
 	PCI_DID_INTEL_ADL_N_ID_5,
+	PCI_DID_INTEL_ADL_N_ID_6,
+	PCI_DID_INTEL_ADL_N_ID_7,
+	PCI_DID_INTEL_ADL_N_ID_8,
+	PCI_DID_INTEL_ADL_N_ID_9,
+	PCI_DID_INTEL_ASL_ID_1,
+	PCI_DID_INTEL_ASL_ID_2,
+	PCI_DID_INTEL_ASL_ID_3,
 	PCI_DID_INTEL_RPL_HX_ID_1,
 	PCI_DID_INTEL_RPL_HX_ID_2,
 	PCI_DID_INTEL_RPL_HX_ID_3,
@@ -538,6 +573,7 @@ static const unsigned short systemagent_ids[] = {
 	PCI_DID_INTEL_RPL_P_ID_6,
 	PCI_DID_INTEL_RPL_P_ID_7,
 	PCI_DID_INTEL_RPL_P_ID_8,
+	PCI_DID_INTEL_SNR_ID,
 	0
 };
 

@@ -46,9 +46,8 @@ chip northbridge/intel/sandybridge
 
 			register "xhci_switchable_ports" = "0xf"
 			register "superspeed_capable_ports" = "0xf"
-			register "xhci_overcurrent_mapping" = "0x04000201"
 
-			register "docking_supported" = "1"
+			register "docking_supported" = "true"
 
 			register "spi_uvscc" = "0x2005"
 			register "spi_lvscc" = "0x2005"
@@ -127,14 +126,14 @@ chip northbridge/intel/sandybridge
 
 					register "detect_gpio" = "21"
 
-					register "has_panel_hybrid_gpio" = "1"
+					register "has_panel_hybrid_gpio" = "true"
 					register "panel_hybrid_gpio" = "52"
-					register "panel_integrated_lvl" = "1"
+					register "panel_integrated_lvl" = "true"
 
-					register "has_backlight_gpio" = "0"
-					register "has_dgpu_power_gpio" = "0"
+					register "has_backlight_gpio" = "false"
+					register "has_dgpu_power_gpio" = "false"
 
-					register "has_thinker1" = "1"
+					register "has_thinker1" = "true"
 				end
 			end
 			device ref sata1 on end

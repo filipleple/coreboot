@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <console/console.h>
 #include <device/pci.h>
-#include <device/pci_def.h>
 #include <device/pci_ids.h>
 #include <hob_iiouds.h>
 #include <intelblocks/cpulib.h>
@@ -84,118 +83,6 @@ bool is_ubox_stack_res(const STACK_RES *res)
 	return false;
 }
 
-/* Returns the UBOX(stack) bus number when called from socket0 */
-uint8_t socket0_get_ubox_busno(const uint8_t stack)
-{
-	if (stack >= MAX_IIO_STACK) {
-		printk(BIOS_ERR, "%s: Stack %u does not exist!\n", __func__, stack);
-		return 0;
-	}
-	const pci_devfn_t dev = PCI_DEV(UBOX_DECS_BUS, UBOX_DECS_DEV, UBOX_DECS_FUNC);
-	const uint16_t offset = stack / 4 ? UBOX_DECS_CPUBUSNO1_CSR : UBOX_DECS_CPUBUSNO_CSR;
-	return pci_io_read_config32(dev, offset) >> (8 * (stack % 4)) & 0xff;
-}
-
-#if ENV_RAMSTAGE
-void config_reset_cpl3_csrs(void)
-{
-	uint32_t data, plat_info, max_min_turbo_limit_ratio;
-	struct device *dev;
-
-	dev = NULL;
-	while ((dev = dev_find_device(PCI_VID_INTEL, PCU_CR0_DEVID, dev))) {
-		data = pci_read_config32(dev, PCU_CR0_P_STATE_LIMITS);
-		data |= P_STATE_LIMITS_LOCK;
-		pci_write_config32(dev, PCU_CR0_P_STATE_LIMITS, data);
-
-		plat_info = pci_read_config32(dev, PCU_CR0_PLATFORM_INFO);
-		dump_csr64(dev, PCU_CR0_PLATFORM_INFO);
-		max_min_turbo_limit_ratio =
-			(plat_info & MAX_NON_TURBO_LIM_RATIO_MASK) >>
-				MAX_NON_TURBO_LIM_RATIO_SHIFT;
-		printk(BIOS_SPEW, "plat_info: 0x%x, max_min_turbo_limit_ratio: 0x%x\n",
-			plat_info, max_min_turbo_limit_ratio);
-	}
-
-	dev = NULL;
-	while ((dev = dev_find_device(PCI_VID_INTEL, PCU_CR1_DEVID, dev))) {
-		data = pci_read_config32(dev, PCU_CR1_SAPMCTL);
-		/* clear bits 27:31 - FSP sets this with 0x7 which needs to be cleared */
-		data &= 0x0fffffff;
-		data |= SAPMCTL_LOCK_MASK;
-		pci_write_config32(dev, PCU_CR1_SAPMCTL, data);
-	}
-
-	dev = NULL;
-	while ((dev = dev_find_device(PCI_VID_INTEL, PCU_CR2_DEVID, dev))) {
-		data = PCIE_IN_PKGCSTATE_L1_MASK;
-		pci_write_config32(dev, PCU_CR2_PKG_CST_ENTRY_CRITERIA_MASK, data);
-
-		data = KTI_IN_PKGCSTATE_L1_MASK;
-		pci_write_config32(dev, PCU_CR2_PKG_CST_ENTRY_CRITERIA_MASK2, data);
-
-		data = PROCHOT_RATIO;
-		printk(BIOS_SPEW, "PCU_CR2_PROCHOT_RESPONSE_RATIO_REG data: 0x%x\n", data);
-		pci_write_config32(dev, PCU_CR2_PROCHOT_RESPONSE_RATIO_REG, data);
-		dump_csr(dev, PCU_CR2_PROCHOT_RESPONSE_RATIO_REG);
-
-		data = pci_read_config32(dev, PCU_CR2_DYNAMIC_PERF_POWER_CTL);
-		data |= UNOCRE_PLIMIT_OVERRIDE_SHIFT;
-		pci_write_config32(dev, PCU_CR2_DYNAMIC_PERF_POWER_CTL, data);
-	}
-}
-#endif
-
-/*
- * EX: SKX-SP
- * Ports    Stack   Stack(HOB)  IioConfigIou
- * ==========================================
- * 0        CSTACK      stack 0     IOU0
- * 1A..1D   PSTACKZ     stack 1     IOU1
- * 2A..2D   PSTACK1     stack 2     IOU2
- * 3A..3D   PSTACK2     stack 3     IOU3
- * 5A..4D   PSTACK3     stack 4     IOU4
- * 5A..5D   PSTACK4     stack 5     IOU5
- */
-int soc_get_stack_for_port(int port)
-{
-	if (port == PORT_0)
-		return CSTACK;
-	else if (port >= PORT_1A && port <= PORT_1D)
-		return PSTACK0;
-	else if (port >= PORT_2A && port <= PORT_2D)
-		return PSTACK1;
-	else if (port >= PORT_3A && port <= PORT_3D)
-		return PSTACK2;
-	else if (port >= PORT_4A && port <= PORT_4D)
-		return PSTACK3; // MCP0
-	else if (port >= PORT_5A && port <= PORT_5D)
-		return PSTACK4; // MCP1
-	else
-		return -1;
-}
-
-uint8_t soc_get_iio_ioapicid(int socket, int stack)
-{
-	uint8_t ioapic_id = socket ? 0xf : 0x9;
-	switch (stack) {
-	case CSTACK:
-		break;
-	case PSTACK0:
-		ioapic_id += 1;
-		break;
-	case PSTACK1:
-		ioapic_id += 2;
-		break;
-	case PSTACK2:
-		ioapic_id += 3;
-		break;
-	default:
-		return 0xff;
-	}
-	return ioapic_id;
-}
-
 bool is_memtype_reserved(uint16_t mem_type)
 {
 	return !!(mem_type & MEM_TYPE_RESERVED);
@@ -209,4 +96,14 @@ bool is_memtype_non_volatile(uint16_t mem_type)
 bool is_memtype_processor_attached(uint16_t mem_type)
 {
 	return true;
+}
+
+uint8_t get_cxl_node_count(void)
+{
+	return 0;
+}
+
+bool get_mmio_high_base_size(resource_t *base, resource_t *size)
+{
+	return false;
 }

@@ -9,14 +9,17 @@
 #include <cpu/cpu.h>
 #include <device/device.h>
 #include <soc/soc_chip.h>
+#include <static.h>
+#include <stdio.h>
 #include <xSIM-api.h>
+
 #include "opensil_console.h"
-#include "opensil.h"
+#include "../opensil.h"
 
 void SIL_STATUS_report(const char *function, const int status)
 {
 	const int log_level = status == SilPass ? BIOS_DEBUG : BIOS_ERR;
-	const char *error_string = "Unkown error";
+	const char *error_string = "Unknown error";
 
 	const struct error_string_entry {
 		SIL_STATUS status;
@@ -126,7 +129,6 @@ void setup_opensil(void)
 	setup_rc_manager_default();
 	configure_usb();
 	configure_sata();
-	configure_mpio();
 }
 
 static void opensil_entry(SIL_TIMEPOINT timepoint)
@@ -149,7 +151,7 @@ static void opensil_entry(SIL_TIMEPOINT timepoint)
 		return;
 	}
 	char opensil_function[16];
-	snprintf(opensil_function, sizeof(opensil_function), "InitializeSiTp%d", tp);
+	snprintf(opensil_function, sizeof(opensil_function), "InitializeSiTp%d", tp + 1);
 	SIL_STATUS_report(opensil_function, ret);
 	if (ret == SilResetRequestColdImm || ret == SilResetRequestColdDef) {
 		printk(BIOS_INFO, "openSIL requested a cold reset");

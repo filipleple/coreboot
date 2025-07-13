@@ -67,8 +67,14 @@ void save_vbnv_cmos(const uint8_t *vbnv_copy)
 		cmos_write(vbnv_copy[i], CONFIG_VBOOT_VBNV_OFFSET + 14 + i);
 }
 
+void __weak vbnv_platform_init_cmos(void)
+{
+}
+
 void vbnv_init_cmos(uint8_t *vbnv_copy)
 {
+	vbnv_platform_init_cmos();
+
 	/* If no CMOS failure just defer to the normal read path for checking
 	   vbnv contents' integrity. */
 	if (!vbnv_cmos_failed())
@@ -109,5 +115,10 @@ static void back_up_vbnv_cmos(void *unused)
 	/* Save to flash, will only be saved if different. */
 	save_vbnv_flash(vbnv_cmos);
 }
+
+#if CONFIG(POSTPONE_SPI_ACCESS)
+BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_LOAD, BS_ON_EXIT, back_up_vbnv_cmos, NULL);
+#else
 BOOT_STATE_INIT_ENTRY(BS_POST_DEVICE, BS_ON_EXIT, back_up_vbnv_cmos, NULL);
+#endif
 #endif

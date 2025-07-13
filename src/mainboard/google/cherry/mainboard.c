@@ -3,14 +3,13 @@
 #include <boardid.h>
 #include <bootmode.h>
 #include <console/console.h>
-#include <delay.h>
 #include <device/device.h>
 #include <device/mmio.h>
 #include <ec/google/chromeec/ec.h>
 #include <gpio.h>
 #include <soc/bl31.h>
 #include <soc/display.h>
-#include <soc/dpm.h>
+#include <soc/dpm_v1.h>
 #include <soc/i2c.h>
 #include <soc/msdc.h>
 #include <soc/mtcmos.h>

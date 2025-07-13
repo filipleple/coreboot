@@ -5,6 +5,7 @@
 #include <console/console.h>
 #include <device/device.h>
 #include <intelblocks/pmc_ipc.h>
+#include <stdio.h>
 #include <soc/dptf.h>
 #include <soc/pci_devs.h>
 #include "chip.h"
@@ -158,6 +159,12 @@ static void write_imok(void)
 	acpigen_emit_byte(ARG0_OP);
 	acpigen_write_method_end();
 }
+
+static void write_dcfg_variable(const struct drivers_intel_dptf_config *config)
+{
+	acpigen_write_name_integer("DCFG", config->dcfg);
+}
+
 /* \_SB.DPTF */
 static void write_oem_variables(const struct drivers_intel_dptf_config *config)
 {
@@ -489,15 +496,10 @@ static const struct dptf_platform_info generic_dptf_platform_info = {
 #endif
 };
 
-static const struct dptf_platform_info *get_dptf_platform_info(void)
-{
-	return &generic_dptf_platform_info;
-}
-
 /* Add minimal definitions of DPTF devices into the SSDT */
 static void write_device_definitions(const struct device *dev)
 {
-	const struct dptf_platform_info *platform_info = get_dptf_platform_info();
+	const struct dptf_platform_info *platform_info = &generic_dptf_platform_info;
 	const struct drivers_intel_dptf_config *config;
 	struct device *parent;
 	enum dptf_participant p;
@@ -520,6 +522,7 @@ static void write_device_definitions(const struct device *dev)
 	} else
 		write_fan(config, platform_info, DPTF_FAN);
 
+	write_dcfg_variable(config);
 	write_oem_variables(config);
 	write_imok();
 	write_generic_devices(config, platform_info);

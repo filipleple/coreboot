@@ -22,32 +22,18 @@
 #include <soc/intel/common/vbt.h>
 #include <soc/interrupt.h>
 #include <soc/iomap.h>
-#include <soc/irq.h>
 #include <soc/itss.h>
+#include <soc/irq.h>
 #include <soc/pci_devs.h>
+#include <soc/pcie.h>
 #include <soc/ramstage.h>
 #include <soc/systemagent.h>
 #include <soc/usb.h>
+#include <static.h>
 #include <string.h>
 #include <types.h>
 
 #include "chip.h"
-
-static const struct pcie_rp_group pch_lp_rp_groups[] = {
-	{ .slot = PCH_DEV_SLOT_PCIE,	.count = 8, .lcap_port_base = 1 },
-	{ .slot = PCH_DEV_SLOT_PCIE_1,	.count = 4, .lcap_port_base = 1 },
-	{ 0 }
-};
-
-static const struct pcie_rp_group pch_h_rp_groups[] = {
-	{ .slot = PCH_DEV_SLOT_PCIE,	.count = 8, .lcap_port_base = 1 },
-	{ .slot = PCH_DEV_SLOT_PCIE_1,	.count = 8, .lcap_port_base = 1 },
-	/* Sunrise Point PCH-H actually only has 4 ports in the
-	   third group. But that would require a runtime check
-	   and probing 4 non-existent ports shouldn't hurt. */
-	{ .slot = PCH_DEV_SLOT_PCIE_2,	.count = 8, .lcap_port_base = 1 },
-	{ 0 }
-};
 
 #if CONFIG(HAVE_ACPI_TABLES)
 const char *soc_acpi_name(const struct device *dev)
@@ -115,7 +101,7 @@ const char *soc_acpi_name(const struct device *dev)
 	case PCH_DEVFN_I2C1:	return "I2C1";
 	case PCH_DEVFN_I2C2:	return "I2C2";
 	case PCH_DEVFN_I2C3:	return "I2C3";
-	case PCH_DEVFN_CSE:	return "CSE1";
+	case PCH_DEVFN_CSE:	return "HECI";
 	case PCH_DEVFN_CSE_2:	return "CSE2";
 	case PCH_DEVFN_CSE_IDER:	return "CSED";
 	case PCH_DEVFN_CSE_KT:	return "CSKT";
@@ -180,10 +166,7 @@ void soc_init_pre_device(void *chip_info)
 	itss_restore_irq_polarities(GPIO_IRQ_START, GPIO_IRQ_END);
 
 	/* swap enabled PCI ports in device tree if needed */
-	if (CONFIG(SKYLAKE_SOC_PCH_H))
-		pcie_rp_update_devicetree(pch_h_rp_groups);
-	else
-		pcie_rp_update_devicetree(pch_lp_rp_groups);
+	pcie_rp_update_devicetree(get_pch_pcie_rp_table());
 }
 
 struct device_operations pci_domain_ops = {
@@ -434,6 +417,7 @@ void platform_fsp_silicon_init_params_cb(FSPS_UPD *supd)
 	params->PchPmWolEnableOverride = config->WakeConfigWolEnableOverride;
 	params->PchPmPcieWakeFromDeepSx = config->WakeConfigPcieWakeFromDeepSx;
 	params->PchPmDeepSxPol = config->PmConfigDeepSxPol;
+	config->s0ix_enable = get_uint_option("s0ix_enable", config->s0ix_enable);
 	params->PchPmSlpS0Enable = config->s0ix_enable;
 	params->PchPmSlpS3MinAssert = config->PmConfigSlpS3MinAssert;
 	params->PchPmSlpS4MinAssert = config->PmConfigSlpS4MinAssert;
@@ -527,7 +511,9 @@ __weak void mainboard_silicon_init_params(FSP_S_CONFIG *params)
 }
 
 /* Handle FSP logo params */
-void soc_load_logo(FSPS_UPD *supd)
+void soc_load_logo_by_fsp(FSPS_UPD *supd)
 {
-	bmp_load_logo(&supd->FspsConfig.LogoPtr, &supd->FspsConfig.LogoSize);
+	size_t logo_size;
+	supd->FspsConfig.LogoPtr = (uint32_t)(uintptr_t)bmp_load_logo(&logo_size);
+	supd->FspsConfig.LogoSize = (uint32_t)logo_size;
 }

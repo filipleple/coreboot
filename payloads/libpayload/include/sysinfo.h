@@ -114,6 +114,8 @@ struct sysinfo_t {
 	uintptr_t acpi_cnvs;
 	uintptr_t acpi_rsdp;
 	uintptr_t smbios;
+	uintptr_t cse_bp_info;
+	uintptr_t cse_info;
 
 #define UNDEFINED_STRAPPING_ID	(~0)
 #define UNDEFINED_FW_CONFIG	~((uint64_t)0)
@@ -133,7 +135,14 @@ struct sysinfo_t {
 	struct {
 		uint32_t size;
 		uint32_t sector_size;
-		uint32_t erase_cmd;
+		/*
+		 * Note: `erase_cmd` was previously a uint32_t. It's now uint8_t because only
+		 * the lowest byte was used, ensuring backward compatibility with older coreboot
+		 * tables and allowing reuse of the remaining bytes.
+		 */
+		uint8_t erase_cmd;
+		uint8_t flags;
+		uint16_t reserved;
 		uint32_t mmap_window_count;
 		struct flash_mmap_window mmap_table[SYSINFO_MAX_MMAP_WINDOWS];
 	} spi_flash;
@@ -160,6 +169,10 @@ struct sysinfo_t {
 	uint32_t cbfs_ro_mcache_size;
 	uintptr_t cbfs_rw_mcache_offset;
 	uint32_t cbfs_rw_mcache_size;
+
+	/* pvmfw buffer location */
+	uintptr_t pvmfw;
+	uint32_t pvmfw_size;
 };
 
 extern struct sysinfo_t lib_sysinfo;

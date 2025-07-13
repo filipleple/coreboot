@@ -158,6 +158,15 @@ static const struct spi_flash_part_id flash_table[] = {
 		.bp_bits			= 3,
 	},
 	{
+		/* W25Q64JV */
+		.id[0]				= 0x7017,
+		.nr_sectors_shift		= 11,
+		.fast_read_dual_output_support	= 1,
+		.fast_read_dual_io_support	= 1,
+		.protection_granularity_shift	= 17,
+		.bp_bits			= 3,
+	},
+	{
 		/* W25Q64JW */
 		.id[0]				= 0x8017,
 		.nr_sectors_shift		= 11,
@@ -267,8 +276,7 @@ static void winbond_bpbits_to_region(const size_t granularity,
 		tb = !tb;
 	}
 
-	out->offset = tb ? 0 : flash_size - protected_size;
-	out->size = protected_size;
+	*out = region_create(tb ? 0 : flash_size - protected_size, protected_size);
 }
 
 /*
@@ -375,7 +383,7 @@ static int winbond_get_write_protection(const struct spi_flash *flash,
 	}
 
 	printk(BIOS_DEBUG, "WINBOND: flash protected range 0x%08zx-0x%08zx\n",
-	       region_offset(&wp_region), region_end(&wp_region));
+	       region_offset(&wp_region), region_last(&wp_region));
 
 	return region_is_subregion(&wp_region, region);
 }
@@ -503,7 +511,7 @@ winbond_set_write_protection(const struct spi_flash *flash,
 	int ret;
 
 	/* Need to touch TOP or BOTTOM */
-	if (region_offset(region) != 0 && region_end(region) != flash->size)
+	if (region_offset(region) != 0 && region_last(region) != flash->size - 1)
 		return -1;
 
 	params = flash->part;
@@ -525,8 +533,8 @@ winbond_set_write_protection(const struct spi_flash *flash,
 
 	if (region_sz(&wp_region) > flash->size / 2) {
 		cmp = 1;
-		wp_region.offset = tb ? 0 : region_sz(&wp_region);
-		wp_region.size = flash->size - region_sz(&wp_region);
+		wp_region = region_create(tb ? 0 : region_sz(&wp_region),
+					  flash->size - region_sz(&wp_region));
 		tb = !tb;
 	} else {
 		cmp = 0;
@@ -601,7 +609,7 @@ winbond_set_write_protection(const struct spi_flash *flash,
 		return ret;
 
 	printk(BIOS_DEBUG, "WINBOND: write-protection set to range "
-	       "0x%08zx-0x%08zx\n", region_offset(region), region_end(region));
+	       "0x%08zx-0x%08zx\n", region_offset(region), region_last(region));
 
 	return ret;
 }

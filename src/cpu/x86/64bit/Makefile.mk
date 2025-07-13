@@ -3,19 +3,21 @@
 all_x86-y += mode_switch.S
 all_x86-y += mode_switch2.S
 
-ifeq ($(CONFIG_USE_1G_PAGETABLES),y)
-PAGETABLE_SRC := pt1G.S
-else
+ifeq ($(CONFIG_NEED_SMALL_2MB_PAGE_TABLES),y)
 PAGETABLE_SRC := pt.S
+else
+PAGETABLE_SRC := pt1G.S
 endif
+
+all_x86-y += $(PAGETABLE_SRC)
 
 # Add --defsym=_start=0 to suppress a linker warning.
 $(objcbfs)/pt: $(dir)/$(PAGETABLE_SRC) $(obj)/config.h
-	$(CC_bootblock) $(CFLAGS_bootblock) $(CPPFLAGS_bootblock) -o $@.tmp $< -Wl,--section-start=.rodata=$(CONFIG_ARCH_X86_64_PGTBL_LOC),--defsym=_start=0
+	$(CC_bootblock) $(CFLAGS_bootblock) $(CPPFLAGS_bootblock) -o $@.tmp $< -Wl,--section-start=.rodata=$(CONFIG_ARCH_X86_64_PGTBL_LOC),--defsym=_start=0 -fuse-ld=bfd
 	$(OBJCOPY_ramstage) -Obinary -j .rodata $@.tmp $@
 	rm $@.tmp
 
-cbfs-files-y += pagetables
+cbfs-files-$(CONFIG_PAGE_TABLES_IN_CBFS) += pagetables
 pagetables-file := $(objcbfs)/pt
 pagetables-type := raw
 pagetables-compression := none

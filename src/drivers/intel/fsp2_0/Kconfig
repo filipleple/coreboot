@@ -55,10 +55,12 @@ if PLATFORM_USES_FSP2_0
 
 config PLATFORM_USES_FSP2_X86_32
 	bool
+	default n if PLATFORM_USES_FSP2_4
 	default y
 	help
-	  The FSP 2.0 runs in x86_32 protected mode.
-	  Once there's a x86_64 FSP this needs to default to n.
+	  Specify if the FSP binaries are 32-bits (yes) or 64-bits
+	  (no). By default, 64-bit should be used starting with FSP
+	  specification 2.4
 
 config HAVE_INTEL_FSP_REPO
 	bool
@@ -263,53 +265,6 @@ config FSP_PLATFORM_MEMORY_SETTINGS_VERSIONS
 	  This allows deployed systems to bump their version number
 	  with the same FSP which will trigger a retrain of the memory.
 
-config HAVE_FSP_LOGO_SUPPORT
-	bool
-	default n
-
-config BMP_LOGO
-	bool "Enable logo"
-	default n
-	depends on HAVE_FSP_LOGO_SUPPORT
-	help
-	  Uses the FSP to display the boot logo. This method supports a
-	  BMP file only. The uncompressed size can be up to 1 MB. The logo can
-	  be compressed based on either `BMP_LOGO_COMPRESS_*` configs (default LZMA).
-
-config HAVE_BMP_LOGO_COMPRESS_LZMA
-	bool
-	depends on BMP_LOGO
-	default y
-
-choice
-	prompt "BMP Logo compression"
-	depends on BMP_LOGO
-	default BMP_LOGO_COMPRESS_LZMA if HAVE_BMP_LOGO_COMPRESS_LZMA
-	default BMP_LOGO_COMPRESS_LZ4
-
-config BMP_LOGO_COMPRESS_LZMA
-	bool "Use LZMA compression for BMP logo"
-	help
-	  This option enables the use of LZMA compression for the BMP logo.
-	  LZMA is a lossless compression algorithm that can significantly reduce
-	  the size of the logo, without sacrificing quality.
-
-	  If this option is not enabled, the BMP logo will be uncompressed.
-
-config BMP_LOGO_COMPRESS_LZ4
-	bool "Compress BMP logo using LZ4"
-	help
-	  This option enables compression of the BMP logo using the LZ4 algorithm.
-	  Although the size reduction is not as efficient as LZMA compression, however,
-	  it can also make the boot process slightly faster compared to the LZMA.
-
-endchoice
-
-config FSP2_0_LOGO_FILE_NAME
-	string "Logo file"
-	depends on BMP_LOGO
-	default "3rdparty/blobs/mainboard/\$(MAINBOARDDIR)/logo.bmp"
-
 config FSP_COMPRESS_FSP_S_LZMA
 	bool
 
@@ -339,50 +294,32 @@ config FSP_M_ADDR
 	help
 	  The address FSP-M will be relocated to during build time
 
-config FSP_STATUS_GLOBAL_RESET_REQUIRED_3
-	bool
-	help
-	  FSP Reset Status code used for global reset as per FSP EAS v2.0 section 11.2.2
-
-config FSP_STATUS_GLOBAL_RESET_REQUIRED_4
-	bool
-	help
-	  FSP Reset Status code used for global reset as per FSP EAS v2.0 section 11.2.2
-
-config FSP_STATUS_GLOBAL_RESET_REQUIRED_5
-	bool
-	help
-	  FSP Reset Status code used for global reset as per FSP EAS v2.0 section 11.2.2
-
-config FSP_STATUS_GLOBAL_RESET_REQUIRED_6
-	bool
-	help
-	  FSP Reset Status code used for global reset as per FSP EAS v2.0 section 11.2.2
-
-config FSP_STATUS_GLOBAL_RESET_REQUIRED_7
-	bool
-	help
-	  FSP Reset Status code used for global reset as per FSP EAS v2.0 section 11.2.2
-
-config FSP_STATUS_GLOBAL_RESET_REQUIRED_8
-	bool
-	help
-	  FSP Reset Status code used for global reset as per FSP EAS v2.0 section 11.2.2
-
 config FSP_STATUS_GLOBAL_RESET
 	hex
 	depends on SOC_INTEL_COMMON_FSP_RESET
-	default 0x40000003 if FSP_STATUS_GLOBAL_RESET_REQUIRED_3
-	default 0x40000004 if FSP_STATUS_GLOBAL_RESET_REQUIRED_4
-	default 0x40000005 if FSP_STATUS_GLOBAL_RESET_REQUIRED_5
-	default 0x40000006 if FSP_STATUS_GLOBAL_RESET_REQUIRED_6
-	default 0x40000007 if FSP_STATUS_GLOBAL_RESET_REQUIRED_7
-	default 0x40000008 if FSP_STATUS_GLOBAL_RESET_REQUIRED_8
-	default 0xffffffff
+	range 0x4000000000000003 0x4000000000000008 if !PLATFORM_USES_FSP2_X86_32
+	range 0x40000003 0x40000008
+	default 0x4000000000000003 if !PLATFORM_USES_FSP2_X86_32
+	default 0x40000003
 	help
 	  If global reset is supported by SoC then select the correct status value for global
-	  reset type from SoC Kconfig based on available Kconfig options
-	  FSP_STATUS_GLOBAL_RESET_REQUIRED_X. Default is unsupported.
+	  reset type.
+
+	  This option specifies the global reset status code used by the
+	  platform, as defined in the FSP specification.
+
+	  The FSP specification allows for a range of values to indicate a
+	  global reset request, typically between
+	  FSP_STATUS_GLOBAL_RESET_REQUIRED_3 and
+	  FSP_STATUS_GLOBAL_RESET_REQUIRED_8.
+
+	  This option defaults to the most commonly used global reset
+	  status code in FSP implementations:
+	  - 0x40000003 for 32-bit FSP interfaces
+	  - 0x4000000000000003 for 64-bit FSP interfaces
+
+	  If your FSP implementation uses a different global reset status
+	  code, override this default value accordingly.
 
 config SOC_INTEL_COMMON_FSP_RESET
 	bool
@@ -465,6 +402,15 @@ config DISPLAY_FSP_TIMESTAMPS
 	  To be able to use this, FSP has to be compiled with `PcdFspPerformanceEnable` set to
 	  `TRUE`.
 
+config FSP_UGOP_EARLY_SIGN_OF_LIFE
+	bool
+	default n
+	select VBT_CBFS_COMPRESSION_DEFAULT_LZ4
+	help
+	  Enable the FSP-M Sign-of-Life feature to display a text message
+	  on screen during memory training and CSME update. This utilizes Intel's underlying uGOP
+	  technology to enable early sign of life (eSOL) as part of FSP-M.
+
 config FSP_ENABLE_SERIAL_DEBUG
 	bool "Output FSP debug messages on serial console"
 	default y
@@ -510,5 +456,41 @@ config FSP_MULTIPHASE_SI_INIT_RETURN_BROKEN
 	  problem existed inside the FSP MultiPhaseSiInit. At present the problem has only
 	  reported with Alder Lake and Raptor Lake FSP where MultiPhaseSiInit API is unable
 	  to return any ERROR status.
+
+config FSP_PUBLISH_MBP_HOB
+	bool
+	default n if CHROMEOS
+	default y
+	help
+	  This is to control creation of ME_BIOS_PAYLOAD_HOB (MBP HOB) by FSP.
+	  Disabling it for the platforms, which do not use MBP HOB, can improve the boot time.
+
+	  ChromeOS devices typically do not require the MBP information, hence it is disabled
+	  by default on ChromeOS.
+
+config BUILDING_WITH_DEBUG_FSP
+	bool "Use Debug FSP for Build"
+	default n
+	help
+	  Enable this option if you are using a debug build of the FSP (Firmware Support Package)
+	  in your project.
+
+config USE_COREBOOT_FOR_BMP_RENDERING
+	bool
+	default n
+	help
+	  This option forces coreboot to use its native bitmap (BMP) image rendering
+	  and skip using the FSP for this purpose during the boot process.
+
+	  If this option is selected (y), the platform will rely on the
+	  coreboot native implementation for rendering BMP images. This might be
+	  chosen if there are issues with FSP rendering or if native rendering
+	  is preferred for specific reasons.
+
+	  If this option is not selected (n), the FSP's capabilities for BMP rendering
+	  will be utilized.
+
+	  Platforms can choose to override this Kconfig option based on their
+	  specific graphics requirements and FSP capabilities.
 
 endif

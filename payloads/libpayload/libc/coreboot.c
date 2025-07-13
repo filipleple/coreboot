@@ -177,6 +177,7 @@ static void cb_parse_spi_flash(void *ptr, struct sysinfo_t *info)
 	info->spi_flash.size = flash->flash_size;
 	info->spi_flash.sector_size = flash->sector_size;
 	info->spi_flash.erase_cmd = flash->erase_cmd;
+	info->spi_flash.flags = flash->flags;
 
 	if (flash->mmap_count == 0)
 		return;
@@ -261,6 +262,16 @@ static void cb_parse_cbmem_entry(void *ptr, struct sysinfo_t *info)
 		break;
 	case CBMEM_ID_MEM_CHIP_INFO:
 		info->mem_chip_base = cbmem_entry->address;
+		break;
+	case CBMEM_ID_CSE_BP_INFO:
+		info->cse_bp_info = cbmem_entry->address;
+		break;
+	case CBMEM_ID_CSE_INFO:
+		info->cse_info = cbmem_entry->address;
+		break;
+	case CBMEM_ID_PVMFW:
+		info->pvmfw = cbmem_entry->address;
+		info->pvmfw_size = cbmem_entry->entry_size;
 		break;
 	default:
 		break;

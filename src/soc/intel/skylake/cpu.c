@@ -21,6 +21,7 @@
 #include <soc/pci_devs.h>
 #include <soc/ramstage.h>
 #include <soc/systemagent.h>
+#include <static.h>
 #include <types.h>
 
 #include "chip.h"
@@ -164,14 +165,14 @@ static void per_cpu_smm_trigger(void)
 
 void smm_lock(void)
 {
-	struct device *sa_dev = pcidev_path_on_root(SA_DEVFN_ROOT);
 	/*
 	 * LOCK the SMM memory window and enable normal SMM.
 	 * After running this function, only a full reset can
-	 * make the SMM registers writable again.
+	 * make the SMM registers writable again. D_LCK bit
+	 * requires the PCI 0xcf8/0xcfc I/O access.
 	 */
 	printk(BIOS_DEBUG, "Locking SMM.\n");
-	pci_write_config8(sa_dev, SMRAM, D_LCK | G_SMRAME | C_BASE_SEG);
+	pci_io_write_config8(SA_DEVFN_ROOT, SMRAM, D_LCK | G_SMRAME | C_BASE_SEG);
 }
 
 static void vmx_configure(void *unused)
@@ -198,8 +199,7 @@ static void post_mp_init(void)
 	global_smi_enable_no_pwrbtn();
 
 	/* Lock down the SMRAM space. */
-	if (CONFIG(HAVE_SMI_HANDLER))
-		smm_lock();
+	smm_lock();
 
 	if (mp_run_on_all_cpus(vmx_configure, NULL) != CB_SUCCESS)
 		failure = true;

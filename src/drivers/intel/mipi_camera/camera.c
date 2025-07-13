@@ -8,9 +8,14 @@
 #include <console/console.h>
 #include <device/i2c_simple.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <device/pci_def.h>
+#include <stdio.h>
+
 #include "chip.h"
+
+#define CSI2_DATA_STREAM_INTERFACE_GUID \
+	GUID_INIT(0x8A395669, 0x11F7, 0x4EA9, \
+	0x9C, 0x7D, 0x20, 0xEE, 0x0A, 0xB5, 0xCA, 0x40)
 
 #define SENSOR_NAME_UUID	"822ace8f-2814-4174-a56b-5f029fe079ee"
 #define SENSOR_TYPE_UUID	"26257549-9271-4ca4-bb43-c4899d5a4881"
@@ -285,6 +290,8 @@ static void camera_fill_ssdb_defaults(struct drivers_intel_mipi_camera_config *c
 
 	if (config->disable_ssdb_defaults)
 		return;
+
+	guidcpy(&config->ssdb.csi2_data_stream_interface, &CSI2_DATA_STREAM_INTERFACE_GUID);
 
 	if (!config->ssdb.bdf_value)
 		config->ssdb.bdf_value = PCI_DEVFN(CIO2_PCI_DEV, CIO2_PCI_FN);
@@ -837,14 +844,13 @@ static void write_i2c_camera_device(const struct device *dev, const char *scope)
 		acpigen_pop_len(); /* Power Resource */
 	}
 
-	if (config->device_type == INTEL_ACPI_CAMERA_SENSOR)
-		acpigen_write_name_integer("_ADR", 0);
-
 	if (config->acpi_hid)
 		acpigen_write_name_string("_HID", config->acpi_hid);
 	else if (config->device_type == INTEL_ACPI_CAMERA_VCM ||
 		 config->device_type == INTEL_ACPI_CAMERA_NVM)
 		acpigen_write_name_string("_HID", ACPI_DT_NAMESPACE_HID);
+	else if (config->device_type == INTEL_ACPI_CAMERA_SENSOR)
+		acpigen_write_name_integer("_ADR", 0);
 
 	acpigen_write_name_integer("_UID", config->acpi_uid);
 	acpigen_write_name_string("_DDN", config->chip_name);
@@ -924,10 +930,9 @@ static void camera_fill_ssdt(const struct device *dev)
 {
 	struct drivers_intel_mipi_camera_config *config = dev->chip_info;
 	const char *scope = NULL;
-	const struct device *pdev;
+	const struct device *pdev = dev->upstream->dev;
 
 	if (config->has_power_resource) {
-		pdev = dev->upstream->dev;
 		if (!pdev || !pdev->enabled)
 			return;
 
@@ -951,7 +956,6 @@ static void camera_fill_ssdt(const struct device *dev)
 		write_i2c_camera_device(dev, scope);
 		break;
 	case DEVICE_PATH_GENERIC:
-		pdev = dev->upstream->dev;
 		scope = acpi_device_scope(pdev);
 		if (!scope)
 			return;
@@ -970,11 +974,12 @@ static void camera_fill_ssdt(const struct device *dev)
 	acpigen_pop_len(); /* Device */
 	acpigen_pop_len(); /* Scope */
 
-	if (dev->path.type == DEVICE_PATH_PCI) {
-		printk(BIOS_INFO, "%s: %s PCI address 0%x\n", acpi_device_path(dev),
-		       dev->chip_ops->name, dev->path.pci.devfn);
+	if (dev->path.type == DEVICE_PATH_GENERIC) {
+		printk(BIOS_INFO, "%s: %s at PCI %02x.%01x\n", acpi_device_path(pdev),
+		       dev->chip_ops->name, PCI_SLOT(pdev->path.pci.devfn),
+		       PCI_FUNC(pdev->path.pci.devfn));
 	} else {
-		printk(BIOS_INFO, "%s: %s I2C address 0%xh\n", acpi_device_path(dev),
+		printk(BIOS_INFO, "%s: %s at I2C 0x%02x\n", acpi_device_path(dev),
 		       dev->chip_ops->name, dev->path.i2c.device);
 	}
 }

@@ -37,7 +37,8 @@ enum timestamp_id {
 	TS_ULZMA_END = 16,
 	TS_ULZ4F_START = 17,
 	TS_ULZ4F_END = 18,
-	TS_DEVICE_ENUMERATE = 30,
+	TS_DEVICE_INIT_CHIPS = 30,
+	TS_DEVICE_ENUMERATE = 31,
 	TS_DEVICE_CONFIGURE = 40,
 	TS_DEVICE_ENABLE = 50,
 	TS_DEVICE_INITIALIZE = 60,
@@ -84,6 +85,9 @@ enum timestamp_id {
 	TS_COPYVPD_RW_END = 552,
 	TS_TPM_ENABLE_UPDATE_START = 553,
 	TS_TPM_ENABLE_UPDATE_END = 554,
+	TS_ESOL_START = 555,
+	TS_ESOL_END = 556,
+	TS_FIRMWARE_SPLASH_RENDERED = 557,
 
 	/* 900-940 reserved for vendorcode extensions (900-940: AMD) */
 	TS_AGESA_INIT_RESET_START = 900,
@@ -146,6 +150,7 @@ enum timestamp_id {
 	/* 990+ reserved for vendorcode extensions (990-999: Intel ME continued) */
 	TS_ME_ROM_START = 990,
 	TS_ISSE_DMU_LOAD_END = 991,
+	TS_ESE_LOAD_AUNIT_END = 992,
 
 	/* 1000+ reserved for payloads */
 
@@ -163,10 +168,15 @@ enum timestamp_id {
 	TS_VB_EC_VBOOT_DONE = 1030,
 	TS_VB_STORAGE_INIT_DONE = 1040,
 	TS_VB_READ_KERNEL_DONE = 1050,
+	TS_VB_AUXFW_SYNC_DONE = 1060,
 	TS_VB_VBOOT_DONE = 1100,
 
 	TS_KERNEL_START = 1101,
 	TS_KERNEL_DECOMPRESSION = 1102,
+
+	TS_PVMFW_SETUP_START = 1110,
+	TS_PVMFW_GSC_NVRAM_DONE = 1111,
+	TS_PVMFW_SETUP_DONE = 1112,
 
 	/* 1200-1300: ChromeOS Hypervisor */
 	TS_CRHV_BOOT = 1200,
@@ -214,6 +224,7 @@ static const struct timestamp_id_to_name {
 	TS_NAME_DEF(TS_ULZMA_END, 0, "finished LZMA decompress (ignore for x86)"),
 	TS_NAME_DEF(TS_ULZ4F_START, TS_ULZ4F_END, "starting LZ4 decompress (ignore for x86)"),
 	TS_NAME_DEF(TS_ULZ4F_END, 0, "finished LZ4 decompress (ignore for x86)"),
+	TS_NAME_DEF(TS_DEVICE_INIT_CHIPS, TS_DEVICE_ENUMERATE, "early chipset initialization"),
 	TS_NAME_DEF(TS_DEVICE_ENUMERATE, TS_DEVICE_CONFIGURE, "device enumeration"),
 	TS_NAME_DEF(TS_DEVICE_CONFIGURE, TS_DEVICE_ENABLE,  "device configuration"),
 	TS_NAME_DEF(TS_DEVICE_ENABLE, TS_DEVICE_INITIALIZE, "device enable"),
@@ -265,6 +276,9 @@ static const struct timestamp_id_to_name {
 	TS_NAME_DEF(TS_TPM_ENABLE_UPDATE_START, TS_TPM_ENABLE_UPDATE_END,
 		    "started TPM enable update"),
 	TS_NAME_DEF(TS_TPM_ENABLE_UPDATE_END, 0, "finished TPM enable update"),
+	TS_NAME_DEF(TS_ESOL_START, 0, "started early sign-off life (eSOL) notification"),
+	TS_NAME_DEF(TS_ESOL_END, 0, "finished early sign-off life (eSOL) notification"),
+	TS_NAME_DEF(TS_FIRMWARE_SPLASH_RENDERED, 0, "finished rendering splash screen"),
 
 	/* AMD related timestamps */
 	TS_NAME_DEF(TS_AGESA_INIT_RESET_START, TS_AGESA_INIT_RESET_END, "calling AmdInitReset"),
@@ -339,6 +353,7 @@ static const struct timestamp_id_to_name {
 	/* Intel ME continued */
 	TS_NAME_DEF(TS_ME_ROM_START, 0, "CSME ROM started execution"),
 	TS_NAME_DEF(TS_ISSE_DMU_LOAD_END, 0, "Die Management Unit (DMU) load completed"),
+	TS_NAME_DEF(TS_ESE_LOAD_AUNIT_END, 0, "ESE completed AUnit loading"),
 
 	/* Depthcharge entry timestamp */
 	TS_NAME_DEF(TS_DC_START, 0, "depthcharge start"),
@@ -354,10 +369,15 @@ static const struct timestamp_id_to_name {
 	TS_NAME_DEF(TS_VB_EC_VBOOT_DONE, 0, "finished EC verification"),
 	TS_NAME_DEF(TS_VB_STORAGE_INIT_DONE, 0, "finished storage device initialization"),
 	TS_NAME_DEF(TS_VB_READ_KERNEL_DONE, 0, "finished reading kernel from disk"),
+	TS_NAME_DEF(TS_VB_AUXFW_SYNC_DONE, 0, "finished AuxFW Sync"),
 	TS_NAME_DEF(TS_VB_VBOOT_DONE, 0, "finished vboot kernel verification"),
 
 	TS_NAME_DEF(TS_KERNEL_START, 0, "jumping to kernel"),
 	TS_NAME_DEF(TS_KERNEL_DECOMPRESSION, 0, "starting kernel decompression/relocation"),
+
+	TS_NAME_DEF(TS_PVMFW_SETUP_START, 0, "started pvmfw setup"),
+	TS_NAME_DEF(TS_PVMFW_GSC_NVRAM_DONE, 0, "finished fetching boot params from GSC"),
+	TS_NAME_DEF(TS_PVMFW_SETUP_DONE, 0, "finished pvmfw setup"),
 
 	/* ChromeOS hypervisor */
 	TS_NAME_DEF(TS_CRHV_BOOT, 0, "hypervisor boot finished"),

@@ -5,6 +5,7 @@
 #include <pc80/mc146818rtc.h>
 #include <bootmode.h>
 #include <superio/ite/common/ite.h>
+#include <superio/ite/common/ite_gpio.h>
 #include <superio/ite/it8772f/it8772f.h>
 #include <northbridge/intel/sandybridge/sandybridge.h>
 #include <northbridge/intel/sandybridge/raminit.h>
@@ -12,9 +13,9 @@
 #include <southbridge/intel/common/gpio.h>
 #include <superio/smsc/lpc47n207/lpc47n207.h>
 
-#define SUPERIO_DEV PNP_DEV(0x2e, 0)
 #define SERIAL_DEV PNP_DEV(0x2e, IT8772F_SP1)
-#define GPIO_DEV PNP_DEV(0x2e, IT8772F_GPIO)
+#define GPIO_DEV   PNP_DEV(0x2e, IT8772F_GPIO)
+#define EC_DEV     PNP_DEV(0x2e, IT8772F_EC)
 
 void mainboard_late_rcba_config(void)
 {
@@ -58,56 +59,46 @@ static void setup_sio_gpios(void)
 	 * GPIO10 as USBPWRON12#
 	 * GPIO12 as USBPWRON13#
 	 */
-	it8772f_gpio_setup(SUPERIO_DEV, 1, 0x05, 0x05, 0x00, 0x05, 0x05);
-
+	ite_reg_write(GPIO_DEV, ITE_GPIO_REG_SELECT(0), 0x05);
+	ite_gpio_setup(GPIO_DEV, 10, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT);
+	ite_gpio_setup(GPIO_DEV, 12, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT);
 	/*
 	 * GPIO22 as wake SCI#
 	 */
-	it8772f_gpio_setup(SUPERIO_DEV, 2, 0x04, 0x04, 0x00, 0x04, 0x04);
-
+	ite_reg_write(GPIO_DEV, ITE_GPIO_REG_SELECT(1), 0x04);
+	ite_gpio_setup(GPIO_DEV, 22, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT);
 	/*
 	 * GPIO32 as EXTSMI#
 	 */
-	it8772f_gpio_setup(SUPERIO_DEV, 3, 0x04, 0x04, 0x00, 0x04, 0x04);
-
+	ite_reg_write(GPIO_DEV, ITE_GPIO_REG_SELECT(2), 0x04);
+	ite_gpio_setup(GPIO_DEV, 32, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT);
 	/*
 	 * GPIO45 as LED_POWER#
 	 */
-	it8772f_gpio_led(GPIO_DEV, 4 /* set */, (0x1 << 5) /* select */,
-		(0x1 << 5) /* polarity */, (0x1 << 5) /* 1 = pullup */,
-		(0x1 << 5) /* output */, (0x1 << 5) /* 1 = Simple IO function */,
-		SIO_GPIO_BLINK_GPIO45, IT8772F_GPIO_BLINK_FREQUENCY_1_HZ);
-
+	ite_reg_write(GPIO_DEV, ITE_GPIO_REG_SELECT(3), 0x20);
+	ite_gpio_setup(GPIO_DEV, 45, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT | ITE_GPIO_PULLUP_ENABLE);
+	ite_gpio_setup_led(GPIO_DEV, 45, ITE_GPIO_LED_1, ITE_LED_FREQ_1HZ,
+			   ITE_LED_CONTROL_DEFAULT);
 	/*
 	 * GPIO51 as USBPWRON8#
 	 * GPIO52 as USBPWRON1#
 	 */
-	it8772f_gpio_setup(SUPERIO_DEV, 5, 0x06, 0x06, 0x00, 0x06, 0x06);
-	it8772f_gpio_setup(SUPERIO_DEV, 6, 0x00, 0x00, 0x00, 0x00, 0x00);
+	ite_reg_write(GPIO_DEV, ITE_GPIO_REG_SELECT(4), 0x06);
+	ite_gpio_setup(GPIO_DEV, 51, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT);
+	ite_gpio_setup(GPIO_DEV, 52, ITE_GPIO_OUTPUT, ITE_GPIO_SIMPLE_IO_MODE,
+		       ITE_GPIO_POL_INVERT);
 }
 
 void mainboard_fill_pei_data(struct pei_data *pei_data)
 {
 	/* TODO: Confirm if nortbridge_fill_pei_data() gets .system_type right (should be 0) */
 }
-
-const struct southbridge_usb_port mainboard_usb_ports[] = {
-	/* enabled power  USB oc pin  */
-	{ 1, 1, 0 }, /* P0: Front port  (OC0) */
-	{ 1, 0, 1 }, /* P1: Back port   (OC1) */
-	{ 1, 0, -1 }, /* P2: MINIPCIE1   (no OC) */
-	{ 1, 0, -1 }, /* P3: MMC         (no OC) */
-	{ 1, 1, 2 }, /* P4: Front port  (OC2) */
-	{ 0, 0, -1 }, /* P5: Empty */
-	{ 0, 0, -1 }, /* P6: Empty */
-	{ 0, 0, -1 }, /* P7: Empty */
-	{ 1, 0, 4 }, /* P8: Back port   (OC4) */
-	{ 1, 0, -1 }, /* P9: MINIPCIE3   (no OC) */
-	{ 1, 0, -1 }, /* P10: BLUETOOTH  (no OC) */
-	{ 0, 0, -1 }, /* P11: Empty */
-	{ 1, 0, 6 }, /* P12: Back port  (OC6) */
-	{ 1, 0, 5 }, /* P13: Back port  (OC5) */
-};
 
 void bootblock_mainboard_early_init(void)
 {
@@ -117,7 +108,7 @@ void bootblock_mainboard_early_init(void)
 	setup_sio_gpios();
 
 	/* Early SuperIO setup */
-	it8772f_ac_resume_southbridge(SUPERIO_DEV);
+	ite_ac_resume_southbridge(EC_DEV);
 	ite_kill_watchdog(GPIO_DEV);
 	ite_enable_serial(SERIAL_DEV, CONFIG_TTYS0_BASE);
 }

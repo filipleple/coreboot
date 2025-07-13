@@ -10,6 +10,11 @@
  * SoC's entry points due to artificial alignment restrictions, see
  * https://sourceware.org/binutils/docs/ld/Output-Section-Address.html
  */
+
+/* Starting with version 18 LLVM the combination -ffunction-section -mcmodel=large
+ * puts code and data in '.ltext, '.lrodata', '.ldata' and '.lbss'
+ */
+
 .text . : {
 	_program = .;
 	_text = .;
@@ -23,6 +28,8 @@
 	KEEP(*(.metadata_hash_anchor));
 	*(.text);
 	*(.text.*);
+	*(.ltext);
+	*(.ltext.*);
 
 #if ENV_HAS_CBMEM
 	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);
@@ -50,11 +57,18 @@
 	KEEP(*(.rodata.cpu_driver));
 	_ecpu_drivers = .;
 	RECORD_SIZE(cpu_drivers)
+	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);
+	_cfr_forms = .;
+	KEEP(*(.rodata.cfr_forms));
+	_ecfr_forms = .;
+	RECORD_SIZE(cfr_forms)
 #endif
 
 	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);
 	*(.rodata);
 	*(.rodata.*);
+	*(.lrodata);
+	*(.lrodata.*);
 	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);
 	_etext = .;
 	RECORD_SIZE(text)
@@ -93,6 +107,8 @@
 
 	*(.data);
 	*(.data.*);
+	*(.ldata);
+	*(.ldata.*);
 	*(.sdata);
 	*(.sdata.*);
 
@@ -122,6 +138,8 @@
 	_bss = .;
 	*(.bss)
 	*(.bss.*)
+	*(.lbss)
+	*(.lbss.*)
 	*(.sbss)
 	*(.sbss.*)
 	. = ALIGN(ARCH_POINTER_ALIGN_SIZE);

@@ -102,5 +102,41 @@ config CHROMEBOOK_PLUS_LOGO_PATH
 	depends on CHROMEOS_FW_SPLASH_SCREEN
 	default "3rdparty/blobs/mainboard/\$(MAINBOARDDIR)/logo.bmp"
 
+config CHROMEOS_ENABLE_ESOL
+	def_bool FSP_UGOP_EARLY_SIGN_OF_LIFE || MAINBOARD_HAS_EARLY_LIBGFXINIT
+	help
+	  Early sign-of-life (eSOL) provides an early boot notification during
+	  critical firmware updates on Chrome OS devices, particularly for
+	  updates requiring a restart (e.g., CSE and FSP).
+
+	  eSOL Implementation Options:
+
+	  - FSP uGOP: Closed-source solution from Intel's Firmware Support
+	  Package.
+	  - libgfxinit: Open-source graphics initialization library.
+
+	  Platforms before Intel Meteor Lake are expected to use the libgfxinit.
+
+	  Devices from Intel Meteor Lake onwards will utilize the Intel FSP
+	  uGOP driver for eSOL.
+
+	  If your platform supports eSOL, enable it by selecting the
+	  appropriate option.
+
+config CHROMEOS_PVMFW_CBMEM
+	bool "Enable reserving memory for pvmfw using cbmem"
+	default y
+	help
+	  Select this config to enable allocating a region for Android protected
+	  virtual machine firmware within cbmem. The region shall be filled by
+	  the payload and the purpose is to just reserve the memory.
+	  cbmem is used to make sure that the region won't overlap with other
+	  reserved regions or device regions.
+
+config CHROMEOS_PVMFW_CBMEM_SIZE
+	hex "Size of the pvmfw buffer to be reserved using cbmem"
+	depends on CHROMEOS_PVMFW_CBMEM
+	default 0x400000
+
 endif # CHROMEOS
 endmenu

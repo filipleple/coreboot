@@ -31,7 +31,7 @@ else
 MARCH_SUFFIX=
 endif
 
-ifeq ($(CCC_ANALYZER_OUTPUT_FORMAT),)
+ifeq ($(CLANG_TIDY),)
 riscv_flags += -march=$(CONFIG_RISCV_ARCH)$(MARCH_SUFFIX) -mabi=$(CONFIG_RISCV_ABI) -mcmodel=$(CONFIG_RISCV_CODEMODEL)
 simple_riscv_flags += -march=$(CONFIG_RISCV_ARCH) -mabi=$(CONFIG_RISCV_ABI) -mcmodel=$(CONFIG_RISCV_CODEMODEL)
 else
@@ -52,7 +52,6 @@ COMPILER_RT_ramstage  = $(shell  $(GCC_ramstage) $(simple_riscv_flags) -print-li
 all-y += trap_util.S
 all-y += trap_handler.c
 all-y += fp_asm.S
-all-y += misaligned.c
 all-y += sbi.c
 all-y += mcall.c
 all-y += virtual_memory.c
@@ -68,6 +67,29 @@ all-y += \
 	$(top)/src/lib/memset.c
 all-$(CONFIG_RISCV_USE_ARCH_TIMER) += arch_timer.c
 
+## FDT (Flattened Devicetree) inclusion
+
+ifeq ($(CONFIG_RISCV_DTS),y)
+
+# at some point dtc may be compiled by our toolchain
+DTC ?= dtc
+CPPFLAGS_dts += -nostdinc -P -x assembler-with-cpp -I src/arch/riscv/include
+
+$(obj)/preprocessed.dts: $(call strip_quotes, $(CONFIG_RISCV_DTS_FILE))
+	$(CPP_riscv) $(CPPFLAGS_dts) -o $@ $<
+
+$(obj)/dtb: $(obj)/preprocessed.dts
+	$(DTC) -I dts -O dtb -o $@ $<
+
+# This may be optimized in the future by letting cbfstool parse our FDT into a unflattened
+# devicetree blob in build time, so that we only need to flatten it in runtime instead of
+# unflatten and flatten it in runtime.
+cbfs-files-y += DTB
+DTB-file := $(obj)/dtb
+DTB-type := raw
+DTB-align := 8 # according to spec device trees needs to be 8 byte aligned
+
+endif # CONFIG_RISCV_DTS
 
 ################################################################################
 ## bootblock
@@ -76,11 +98,7 @@ ifeq ($(CONFIG_ARCH_BOOTBLOCK_RISCV),y)
 
 bootblock-y = bootblock.S
 
-$(objcbfs)/bootblock.debug: $$(bootblock-objs)
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_bootblock) $(LDFLAGS_bootblock) -o $@ -L$(obj) \
-		-T $(call src-to-obj,bootblock,$(CONFIG_MEMLAYOUT_LD_FILE)) --whole-archive --start-group $(filter-out %.ld,$(bootblock-objs)) \
-		$(LIBGCC_FILE_NAME_bootblock) --end-group $(COMPILER_RT_bootblock)
+$(eval $(call link_stage,bootblock))
 
 bootblock-c-ccopts += $(riscv_flags)
 bootblock-S-ccopts += $(riscv_asm_flags)
@@ -97,13 +115,10 @@ endif #CONFIG_ARCH_BOOTBLOCK_RISCV
 ifeq ($(CONFIG_ARCH_ROMSTAGE_RISCV),y)
 
 romstage-$(CONFIG_SEPARATE_ROMSTAGE) += romstage.S
-romstage-y += ramdetect.c
 
 # Build the romstage
 
-$(objcbfs)/romstage.debug: $$(romstage-objs)
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_romstage) $(LDFLAGS_romstage) -o $@ -L$(obj) -T $(call src-to-obj,romstage,$(CONFIG_MEMLAYOUT_LD_FILE)) --whole-archive --start-group $(filter-out %.ld,$(romstage-objs)) --end-group $(COMPILER_RT_romstage)
+$(eval $(call link_stage,romstage))
 
 romstage-c-ccopts += $(riscv_flags)
 romstage-S-ccopts += $(riscv_asm_flags)
@@ -121,7 +136,6 @@ ifeq ($(CONFIG_ARCH_RAMSTAGE_RISCV),y)
 
 ramstage-y =
 ramstage-y += ramstage.S
-ramstage-y += ramdetect.c
 ramstage-y += tables.c
 ramstage-y += payload.c
 ramstage-y += fit_payload.c
@@ -132,9 +146,7 @@ ramstage-srcs += src/mainboard/$(MAINBOARDDIR)/mainboard.c
 
 # Build the ramstage
 
-$(objcbfs)/ramstage.debug: $$(ramstage-objs)
-	@printf "    CC         $(subst $(obj)/,,$(@))\n"
-	$(LD_ramstage) $(LDFLAGS_ramstage) -o $@ -L$(obj) -T $(call src-to-obj,ramstage,$(CONFIG_MEMLAYOUT_LD_FILE)) --whole-archive --start-group $(filter-out %.ld,$(ramstage-objs)) --end-group $(COMPILER_RT_ramstage)
+$(eval $(call link_stage,ramstage))
 
 ramstage-c-ccopts += $(riscv_flags)
 ramstage-S-ccopts += $(riscv_asm_flags)
@@ -170,7 +182,12 @@ $(OPENSBI_TARGET): $(obj)/config.h | $(OPENSBI_SOURCE)
 		FW_PAYLOAD=n \
 		FW_TEXT_START=$(CONFIG_OPENSBI_TEXT_START)
 
-$(OPENSBI): $(OPENSBI_TARGET)
+# build upstream OpenSBI source tree
+opensbi-source-y = $(OPENSBI_TARGET)
+# get OpenSBI from specified binary
+opensbi-source-$(CONFIG_OPENSBI_BLOB) = $(call strip_quotes,$(CONFIG_OPENSBI_BLOB_PATH))
+
+$(OPENSBI): $(opensbi-source-y)
 	cp $< $@
 
 OPENSBI_CBFS := $(CONFIG_CBFS_PREFIX)/opensbi
@@ -181,7 +198,6 @@ cbfs-files-y += $(OPENSBI_CBFS)
 
 check-ramstage-overlap-files += $(OPENSBI_CBFS)
 
-CPPFLAGS_common += -I$(OPENSBI_SOURCE)/include
 ramstage-y += opensbi.c
 
 endif #CONFIG_RISCV_OPENSBI

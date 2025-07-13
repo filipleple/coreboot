@@ -18,6 +18,12 @@
 #define GOOGLE_CHROMEEC_USBC_DEVICE_HID		"GOOG0014"
 #define GOOGLE_CHROMEEC_USBC_DEVICE_NAME	"USBC"
 
+/*
+ * Boards using UCSI need the USB-C ports to match with cros_ec_ucsi, not
+ * cros-ec-typec.
+ */
+#define GOOGLE_CHROMEEC_USBC_UCSI_DEVICE_HID	"GOOG0021"
+
 const char *google_chromeec_acpi_name(const struct device *dev)
 {
 	/*
@@ -168,9 +174,19 @@ static void fill_ssdt_typec_device(const struct device *dev)
 
 	acpigen_write_scope(acpi_device_path(dev));
 	acpigen_write_device(GOOGLE_CHROMEEC_USBC_DEVICE_NAME);
-	acpigen_write_name_string("_HID", GOOGLE_CHROMEEC_USBC_DEVICE_HID);
-	acpigen_write_name_string("_DDN", "ChromeOS EC Embedded Controller "
-				"USB Type-C Control");
+
+	bool ucsi_platform = google_chromeec_get_ucsi_enabled();
+	if (ucsi_platform) {
+		acpigen_write_name_string("_HID",
+					  GOOGLE_CHROMEEC_USBC_UCSI_DEVICE_HID);
+		acpigen_write_name_string("_DDN", "ChromeOS EC UCSI USB Type-C "
+					  "Control");
+	} else {
+		acpigen_write_name_string("_HID",
+					  GOOGLE_CHROMEEC_USBC_DEVICE_HID);
+		acpigen_write_name_string("_DDN", "ChromeOS EC Embedded "
+					  "Controller USB Type-C Control");
+	}
 
 	for (i = 0; i < num_ports; ++i) {
 		rv = google_chromeec_get_pd_port_caps(i, &port_caps);
@@ -228,6 +244,9 @@ static const enum ps2_action_key ps2_enum_val[] = {
 	[TK_KBD_BKLIGHT_TOGGLE] = PS2_KEY_KBD_BKLIGHT_TOGGLE,
 	[TK_MICMUTE] = PS2_KEY_MICMUTE,
 	[TK_MENU] = PS2_KEY_MENU,
+	[TK_DICTATE] = PS2_KEY_DICTATE,
+	[TK_ACCESSIBILITY] = PS2_KEY_ACCESSIBILITY,
+	[TK_DONOTDISTURB] = PS2_KEY_DO_NOT_DISTURB,
 };
 
 static void fill_ssdt_ps2_keyboard(const struct device *dev)
@@ -252,6 +271,7 @@ static void fill_ssdt_ps2_keyboard(const struct device *dev)
 				 !!(keybd.capabilities & KEYBD_CAP_FUNCTION_KEYS),
 				 !!(keybd.capabilities & KEYBD_CAP_NUMERIC_KEYPAD),
 				 !!(keybd.capabilities & KEYBD_CAP_SCRNLOCK_KEY),
+				 !!(keybd.capabilities & KEYBD_CAP_ASSISTANT_KEY),
 				 true);
 }
 

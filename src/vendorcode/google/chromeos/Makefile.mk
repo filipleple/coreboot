@@ -19,16 +19,31 @@ verstage-y += watchdog.c
 romstage-y += watchdog.c
 ramstage-y += watchdog.c
 
+romstage-$(CONFIG_PLATFORM_HAS_EARLY_LOW_BATTERY_INDICATOR) += battery.c
 romstage-$(CONFIG_CHROMEOS_DRAM_PART_NUMBER_IN_CBI) += dram_part_num_override.c
+
+ramstage-$(CONFIG_PLATFORM_HAS_LOW_BATTERY_INDICATOR) += battery.c
 ramstage-$(CONFIG_CHROMEOS_FW_SPLASH_SCREEN) += splash.c
+ramstage-$(CONFIG_CHROMEOS_PVMFW_CBMEM) += pvmfw_cbmem.c
 
 # Add logo to the cbfs image
-cbfs-files-$(CONFIG_CHROMEOS_FW_SPLASH_SCREEN) += cb_logo.bmp
-cb_logo.bmp-file := $(call strip_quotes,$(CONFIG_CHROMEOS_LOGO_PATH))
-cb_logo.bmp-type := raw
-cb_logo.bmp-compression := $(CBFS_COMPRESS_FLAG)
+BMP_LOGO_COMPRESS_FLAG := $(CBFS_COMPRESS_FLAG)
+ifeq ($(CONFIG_BMP_LOGO_COMPRESS_LZMA),y)
+	BMP_LOGO_COMPRESS_FLAG := LZMA
+else ifeq ($(CONFIG_BMP_LOGO_COMPRESS_LZ4),y)
+	BMP_LOGO_COMPRESS_FLAG := LZ4
+endif
 
-cbfs-files-$(CONFIG_CHROMEOS_FW_SPLASH_SCREEN) += cb_plus_logo.bmp
-cb_plus_logo.bmp-file := $(call strip_quotes,$(CONFIG_CHROMEBOOK_PLUS_LOGO_PATH))
-cb_plus_logo.bmp-type := raw
-cb_plus_logo.bmp-compression := $(CBFS_COMPRESS_FLAG)
+define add_bmp_logo_file_to_cbfs
+cbfs-files-$$($(1)) += $(2)
+$(2)-file := $$(call strip_quotes,$$($(3)))
+$(2)-type := raw
+$(2)-compression := $$(BMP_LOGO_COMPRESS_FLAG)
+endef
+
+$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_CHROMEOS_FW_SPLASH_SCREEN, \
+	      cb_logo.bmp,CONFIG_CHROMEOS_LOGO_PATH))
+ifneq ($(CONFIG_SPLASH_SCREEN_FOOTER),y)
+$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_CHROMEOS_FW_SPLASH_SCREEN, \
+	      cb_plus_logo.bmp,CONFIG_CHROMEBOOK_PLUS_LOGO_PATH))
+endif

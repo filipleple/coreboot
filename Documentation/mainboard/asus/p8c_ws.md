@@ -4,7 +4,7 @@ This page describes how to run coreboot on the [ASUS P8H77-V].
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+----------------+
 | Type                | Value          |
 +=====================+================+
@@ -69,7 +69,7 @@ flash externally.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | Northbridge      | :doc:`../../northbridge/intel/sandybridge/index` |
 +------------------+--------------------------------------------------+
@@ -91,4 +91,4 @@ flash externally.
 
 [ASUS P8C WS]: https://www.asus.com/supportonly/p8c_ws/helpdesk_knowledge/
 [W25Q64FVA1Q]: https://www.winbond.com/resource-files/w25q64fv%20revs%2007182017.pdf
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/

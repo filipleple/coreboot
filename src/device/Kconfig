@@ -519,6 +519,39 @@ config LINEAR_FRAMEBUFFER_MAX_HEIGHT
 	  Set the maximum height of the framebuffer. This may help with
 	  default fonts too tiny for high-resolution displays.
 
+choice DEFAULT_SCREEN_ROTATION
+	prompt "Default screen orientation"
+	depends on LINEAR_FRAMEBUFFER && MAINBOARD_USE_LIBGFXINIT
+	depends on GFX_GMA_GENERATION = "Broxton" || GFX_GMA_GENERATION = "Skylake"
+	default DEFAULT_SCREEN_ROTATION_NONE
+	help
+	  This allows to configure how the physical screen is mounted in
+	  90 degree steps (counter-clockwise). The framebuffer contents
+	  will then be displayed rotated by the same amount in the other
+	  direction; i.e. if you turn the screen to the left, the picture
+	  has to be rotated to the right to accommodate.
+
+config DEFAULT_SCREEN_ROTATION_NONE
+	bool "Non-rotated"
+
+config DEFAULT_SCREEN_ROTATION_90
+	bool "Rotated 90 degrees (rotate framebuffer to the right)"
+
+config DEFAULT_SCREEN_ROTATION_180
+	bool "Rotated 180 degrees"
+
+config DEFAULT_SCREEN_ROTATION_270
+	bool "Rotated 270 degrees (rotate framebuffer to the left)"
+
+endchoice
+
+config DEFAULT_SCREEN_ROTATION_INT
+	int
+	default  90 if DEFAULT_SCREEN_ROTATION_90
+	default 180 if DEFAULT_SCREEN_ROTATION_180
+	default 270 if DEFAULT_SCREEN_ROTATION_270
+	default 0
+
 endmenu # "Display"
 
 config PCI
@@ -568,15 +601,6 @@ config AZALIA_HDA_CODEC_SUPPORT
 	  codec chips. This will also add the hda_verb.c file from the
 	  mainboard directory to the build which contain the board-specific HD
 	  audio codec configuration.
-
-config AZALIA_LOCK_DOWN_R_WO_GCAP
-	def_bool n
-	depends on AZALIA_HDA_CODEC_SUPPORT
-	help
-	  The GCAP register is implemented as R/WO (Read / Write Once) on some
-	  HD Audio controllers, such as Intel 6-series PCHs. Select this option
-	  to lock down the GCAP register after deasserting the controller reset
-	  bit. Locking is done by reading GCAP and writing back the read value.
 
 config PCIEXP_PLUGIN_SUPPORT
 	bool
@@ -846,18 +870,18 @@ config VGA_BIOS_ID
 	depends on VGA_BIOS
 	default "1106,3230"
 	help
-	  The comma-separated PCI vendor and device ID with optional revision if that
-	  feature is enabled that would associate your vBIOS to your video card.
+	  The comma-separated PCI vendor and device ID that would associate
+	  your vBIOS to your video card.
 
-	  Example: 1106,3230 or 1106,3230,a3
+	  Example: 1106,3230
 
 	  In the above example 1106 is the PCI vendor ID (in hex, but without
 	  the "0x" prefix) and 3230 specifies the PCI device ID of the
-	  video card (also in hex, without "0x" prefix). a3 specifies the revision.
+	  video card (also in hex, without "0x" prefix).
 
 	  This ID needs to match the PCI VID and DID in the VGA BIOS file's
 	  header and also needs to match the value returned by map_oprom_vendev
-	  or map_oprom_vendev_rev if the remapping feature is used.
+	  if the remapping feature is used.
 
 	  Under GNU/Linux you can run `lspci -nn` to list the IDs of your PCI devices.
 
@@ -879,22 +903,16 @@ config VGA_BIOS_SECOND_ID
 	string "Graphics device PCI IDs"
 	depends on VGA_BIOS_SECOND
 	help
-	  The comma-separated PCI vendor and device ID with optional revision if that
-	  feature is enabled that would associate your vBIOS to your video card.
+	  The comma-separated PCI vendor and device ID that would associate
+	  your vBIOS to your video card.
 
-	  Example: 1106,3230 or 1106,3230,a3
+	  Example: 1106,3230
 
 	  In the above example 1106 is the PCI vendor ID (in hex, but without
 	  the "0x" prefix) and 3230 specifies the PCI device ID of the
-	  video card (also in hex, without "0x" prefix). a3 specifies the revision.
+	  video card (also in hex, without "0x" prefix).
 
 	  Under GNU/Linux you can run `lspci -nn` to list the IDs of your PCI devices.
-
-config CHECK_REV_IN_OPROM_NAME
-	def_bool n
-	help
-	  Select this in the platform BIOS or chipset if the option rom has a revision
-	  that needs to be checked when searching CBFS.
 
 config VGA_BIOS_DGPU
 	bool "Add a discrete VGA BIOS image"
@@ -976,21 +994,28 @@ config I2C_TRANSFER_TIMEOUT_US
 
 config RESOURCE_ALLOCATION_TOP_DOWN
 	bool "Allocate resources from top down"
-	default n if PAYLOAD_EDK2
+	default n if PAYLOAD_EDK2 && EDK2_REPO_OFFICIAL
 	default y
 	help
 	  Top-down allocation is required to place resources above 4G by
 	  default (i.e. even when there is still space below). On some
 	  platforms, it might make a difference because of conflicts with
-	  undeclared resources. EDK2 is currently reported to also have
-	  problems on some platforms, at least with Intel's IGD.
+	  undeclared resources.
+
+	  Upstream EDK2 is currently reported to also have problems on some
+	  platforms at least with Intel's IGD; MrChromebox's fork works fine.
 
 config ALWAYS_ALLOW_ABOVE_4G_ALLOCATION
 	bool
+	prompt "Extend resource window for PCIe devices above 4G" if ARCH_X86
 	default n if ARCH_X86
 	default y
 	help
-	  Don't limit mem resources to 4G, but to their actual limit.
+	  This option extends PCIe resource allocation beyond the 4G limit.
+	  Required for modern graphics cards that support resizable BAR, such as
+	  Intel Arc or AMD RX series.
+	  Please keep in mind that not all payloads support it
+	  (i.e: LinuxBoot and EDK2 do, GRUB doesn't).
 
 config XHCI_UTILS
 	def_bool n

@@ -14,7 +14,8 @@
 #include <smbios.h>
 #include <soc/pci_devs.h>
 #include <soc/nhlt.h>
-#include <string.h>
+#include <static.h>
+#include <stdio.h>
 #include <timer.h>
 
 #include <variant/gpio.h>

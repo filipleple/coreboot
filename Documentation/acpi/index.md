@@ -5,15 +5,27 @@ backwards support for ACPI 1.0 and is only compatible to ACPI version 2.0 and
 upwards.
 
 
-- [SSDT UID generation](uid.md)
+```{toctree}
+:maxdepth: 1
+
+SSDT UID generation <uid.md>
+```
 
 ## GPIO
 
-- [GPIO toggling in ACPI AML](gpio.md)
+```{toctree}
+:maxdepth: 1
+
+GPIO toggling in ACPI AML <gpio.md>
+```
 
 ## Windows-specific ACPI documentation
 
-- [Windows-specific documentation](windows.md)
+```{toctree}
+:maxdepth: 1
+
+Windows-specific documentation <windows.md>
+```
 
 ##  ACPI specification - Useful links
 

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-#include <assert.h>
+
 #include <console/console.h>
 #include <fsp/api.h>
 #include <soc/romstage.h>
@@ -48,5 +48,4 @@ void mainboard_memory_init_params(FSPM_UPD *mupd)
 	bool half_populated = false;
 
 	memcfg_init(mupd, mem_config, &spd_info, half_populated);
-
 }

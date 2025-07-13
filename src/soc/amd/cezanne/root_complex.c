@@ -9,6 +9,7 @@
 #include <device/device.h>
 #include <device/pci.h>
 #include <soc/iomap.h>
+#include <static.h>
 #include <stdint.h>
 #include "chip.h"
 
@@ -58,6 +59,52 @@ static void root_complex_fill_ssdt(const struct device *device)
 {
 	if (CONFIG(SOC_AMD_COMMON_BLOCK_ACPI_DPTC))
 		acipgen_dptci();
+
+	/* Add ACPI device, opregion to host bridge needed for ACP driver.
+	 *
+	 * This is used by an ACPI method in the ACP's ACPI code to access different mailbox
+	 * interfaces in th hardware. Some ACP drivers will use that to both notify the PSP
+	 * that the DSP firmware has been loaded, so that the PSP can validate the firmware
+	 * and set the qualifier bit to enable running it, and to configure the ACP's clock
+	 * source.
+	 *
+	 * As this SMN access is not arbitrated and there may be other drivers or parts of
+	 * the firmware attempting to use the SMN access register pair, there is a risk of
+	 * conflict / incorrect data, but given the frequency and duration of accesses, the
+	 * risk is deemed to be quite low.
+	 *
+	 *	Scope (\_SB.PCI0)
+	 *	{
+	 *		Device (GNB)
+	 *		{
+	 *			Name (_ADR, 0x0000000000000000)
+	 *			Method (_STA, 0, NotSerialized)
+	 *			{
+	 *				Return (0x0F)
+	 *			}
+	 *		}
+	 *	}
+	 *	Scope (\_SB.PCI0.GNB)
+	 *	{
+	 *		OperationRegion(SMN, SystemMemory , 0xF80000B8, 0x8)
+	 *		Field(SMN, AnyAcc, NoLock, Preserve) {
+	 *			SMNA,   32,
+	 *			SMND,   32,
+	 *		}
+	 *	}
+	 */
+	acpi_device_write_pci_dev(device);
+	acpigen_write_scope(acpi_device_path(device));
+	struct opregion opreg = OPREGION("SMN", SYSTEMMEMORY,
+					 CONFIG_ECAM_MMCONF_BASE_ADDRESS + 0xb8, 0x8);
+	acpigen_write_opregion(&opreg);
+	static const struct fieldlist list[] = {
+		FIELDLIST_NAMESTR("SMNA", 32),
+		FIELDLIST_NAMESTR("SMND", 32),
+	};
+	acpigen_write_field(opreg.name, list, ARRAY_SIZE(list),
+			FIELD_ANYACC | FIELD_NOLOCK | FIELD_PRESERVE);
+	acpigen_write_scope_end();
 }
 
 static const char *gnb_acpi_name(const struct device *dev)
@@ -75,9 +122,17 @@ struct device_operations cezanne_root_complex_operations = {
 	.acpi_fill_ssdt		= root_complex_fill_ssdt,
 };
 
-uint32_t get_iohc_misc_smn_base(struct device *domain)
+static const struct domain_iohc_info iohc_info[] = {
+	[0] = {
+		.fabric_id = IOMS0_FABRIC_ID,
+		.misc_smn_base = SMN_IOHC_MISC_BASE_13B1,
+	},
+};
+
+const struct domain_iohc_info *get_iohc_info(size_t *count)
 {
-	return SMN_IOHC_MISC_BASE_13B1;
+	*count = ARRAY_SIZE(iohc_info);
+	return iohc_info;
 }
 
 static const struct non_pci_mmio_reg non_pci_mmio[] = {
@@ -98,14 +153,4 @@ const struct non_pci_mmio_reg *get_iohc_non_pci_mmio_regs(size_t *count)
 {
 	*count = ARRAY_SIZE(non_pci_mmio);
 	return non_pci_mmio;
-}
-
-signed int get_iohc_fabric_id(struct device *domain)
-{
-	switch (domain->path.domain.domain) {
-	case 0:
-		return IOMS0_FABRIC_ID;
-	default:
-		return -1;
-	}
 }

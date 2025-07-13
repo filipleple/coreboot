@@ -56,7 +56,6 @@ classes-$(CONFIG_LP_REMOTEGDB) += libgdb
 classes-$(CONFIG_LP_VBOOT_LIB) += vboot_fw
 classes-$(CONFIG_LP_VBOOT_LIB) += tlcl
 libraries := $(classes-y)
-classes-y += head.o
 
 subdirs-y := arch/$(ARCHDIR-y)
 subdirs-y += crypto libc drivers libpci gdb
@@ -79,8 +78,8 @@ CFLAGS += $(INCLUDES) -Os -pipe -nostdinc -ggdb3
 CFLAGS += -nostdlib -fno-builtin -ffreestanding -fomit-frame-pointer
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -Wall -Wundef -Wstrict-prototypes -Wmissing-prototypes -Wvla
-CFLAGS += -Wwrite-strings -Wredundant-decls -Wno-trigraphs -Wimplicit-fallthrough
-CFLAGS += -Wstrict-aliasing -Wshadow -Werror
+CFLAGS += -Wwrite-strings -Wredundant-decls -Wimplicit-fallthrough
+CFLAGS += -Wstrict-aliasing -Wshadow -Wno-address-of-packed-member -Werror
 
 ifeq ($(CONFIG_LP_LTO),y)
 CFLAGS += -flto
@@ -97,7 +96,7 @@ $(obj)/libpayload-config.h: $(KCONFIG_AUTOHEADER) $(obj)/libpayload.config
 	cmp $@ $< 2>/dev/null || cp $< $@
 
 library-targets = $(addsuffix .a,$(addprefix $(obj)/,$(libraries))) $(obj)/libpayload.a
-lib: $$(library-targets) $(obj)/head.o
+lib: $$(library-targets) $(obj)/libpayload.ldscript
 
 extract_nth=$(word $(1), $(subst |, ,$(2)))
 
@@ -111,28 +110,39 @@ includes-handler= \
 $(obj)/libpayload.a: $(foreach class,$(libraries),$$($(class)-objs))
 	printf "    AR         $(subst $(CURDIR)/,,$(@))\n"
 	printf "create $@\n$(foreach objc,$(filter-out %.a,$^),addmod $(objc)\n)$(foreach lib,$(filter %.a,$^),addlib $(lib)\n)save\nend\n" | $(AR) -M
+	for func in $$($(NM) $@ | awk '/ (w|W) / { print $$NF }'); do \
+		if $(NM) --no-weak --defined-only $@ | grep -Eq " $$func$$"; then \
+			printf "\nERROR: Function '$$func' appears as both weak and strong symbol in libpayload.\n"; \
+			printf "       Weak symbol overrides don't work reliably from within the same library.\n\n"; \
+			rm $@; \
+			exit 1; \
+		fi \
+	done
 
 $(obj)/%.a: $$(%-objs)
 	printf "    AR         $(subst $(CURDIR)/,,$(@))\n"
 	printf "create $@\n$(foreach objc,$(filter-out %.a,$^),addmod $(objc)\n)$(foreach lib,$(filter %.a,$^),addlib $(lib)\n)save\nend\n" | $(AR) -M
 
-$(obj)/head.o: $(obj)/arch/$(ARCHDIR-y)/head.head.o.o
-	printf "    CP         $(subst $(CURDIR)/,,$(@))\n"
-	cp $^ $@
+$(obj)/libpayload.ldscript: arch/$(ARCHDIR-y)/libpayload.ldscript $(obj)/libpayload-config.h
+	@printf "  LDSCRIPT  $@\n"
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -E -P -x assembler-with-cpp -undef -o $@ $<
 
 install: real-target
 	printf "    INSTALL    $(DESTDIR)/libpayload/lib\n"
 	install -m 755 -d $(DESTDIR)/libpayload/lib
 	install -m 644 $(library-targets) $(DESTDIR)/libpayload/lib/
-	install -m 644 arch/$(ARCHDIR-y)/libpayload.ldscript $(DESTDIR)/libpayload/lib/
+	install -m 644 $(obj)/libpayload.ldscript $(DESTDIR)/libpayload/lib/
 	install -m 755 -d $(DESTDIR)/libpayload/lib/$(ARCHDIR-y)
-	install -m 644 $(obj)/head.o $(DESTDIR)/libpayload/lib/$(ARCHDIR-y)
 	printf "    INSTALL    $(DESTDIR)/libpayload/include\n"
 	install -m 755 -d $(DESTDIR)/libpayload/include
 	find include -type d -exec install -m755 -d $(DESTDIR)/libpayload/{} \;
 	find include -type f -exec install -m644 {} $(DESTDIR)/libpayload/{} \;
 	cd $(coreboottop)/src/commonlib/bsd && find include -type d -exec install -m755 -d $(abspath $(DESTDIR))/libpayload/{} \;
 	cd $(coreboottop)/src/commonlib/bsd && find include -type f -exec install -m644 {} $(abspath $(DESTDIR))/libpayload/{} \;
+ifeq ($(CONFIG_LP_GPL),y)
+	cd $(coreboottop)/src/commonlib && find include -type d -exec install -m755 -d $(abspath $(DESTDIR))/libpayload/{} \;
+	cd $(coreboottop)/src/commonlib && find include -type f -exec install -m644 {} $(abspath $(DESTDIR))/libpayload/{} \;
+endif
 	install -m 644 $(obj)/libpayload-config.h $(DESTDIR)/libpayload/include
 	$(foreach item,$(includes), \
 		install -m 755 -d $(DESTDIR)/libpayload/include/$(call extract_nth,2,$(item)); \

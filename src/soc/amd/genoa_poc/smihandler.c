@@ -11,7 +11,6 @@
 #include <console/console.h>
 #include <cpu/x86/cache.h>
 #include <cpu/x86/smm.h>
-#include <elog.h>
 #include <soc/smi.h>
 #include <soc/smu.h>
 #include <soc/southbridge.h>
@@ -82,6 +81,7 @@ static void fch_slp_typ_handler(void)
 static const struct smi_sources_t smi_sources[] = {
 	{ .type = SMITYPE_SMI_CMD_PORT, .handler = fch_apmc_smi_handler },
 	{ .type = SMITYPE_SLP_TYP, .handler = fch_slp_typ_handler},
+	{ .type = SMITYPE_PSP, .handler = psp_smi_handler },
 };
 
 void *get_smi_source_handler(int source)

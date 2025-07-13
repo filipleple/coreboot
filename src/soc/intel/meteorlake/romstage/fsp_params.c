@@ -1,11 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+#include <acpi/acpi.h>
 #include <assert.h>
 #include <bootmode.h>
 #include <console/console.h>
 #include <cpu/intel/common/common.h>
 #include <cpu/intel/cpu_ids.h>
 #include <cpu/x86/msr.h>
+#include <cpu/x86/mtrr.h>
 #include <device/device.h>
 #include <device/pci.h>
 #include <drivers/wifi/generic/wifi.h>
@@ -26,6 +28,7 @@
 #include <soc/romstage.h>
 #include <soc/soc_chip.h>
 #include <soc/soc_info.h>
+#include <static.h>
 #include <string.h>
 #include <ux_locales.h>
 
@@ -52,10 +55,12 @@ static void pcie_rp_init(FSP_M_CONFIG *m_cfg, uint32_t en_mask,
 			printk(BIOS_WARNING, "Missing root port clock structure definition\n");
 			continue;
 		}
-		if (clk_req_mapping & (1 << cfg[i].clk_req))
-			printk(BIOS_WARNING, "Found overlapped clkreq assignment on clk req %d\n"
-				, cfg[i].clk_req);
+
 		if (!(cfg[i].flags & PCIE_RP_CLK_REQ_UNUSED)) {
+			if (clk_req_mapping & (1 << cfg[i].clk_req))
+				printk(BIOS_WARNING,
+				       "Found overlapped clkreq assignment on clk req %d\n",
+				       cfg[i].clk_req);
 			m_cfg->PcieClkSrcClkReq[cfg[i].clk_src] = cfg[i].clk_req;
 			clk_req_mapping |= 1 << cfg[i].clk_req;
 		}
@@ -114,7 +119,7 @@ static void fill_fspm_igd_params(FSP_M_CONFIG *m_cfg,
 	m_cfg->InternalGfx = !CONFIG(SOC_INTEL_DISABLE_IGD) && is_devfn_enabled(PCI_DEVFN_IGD);
 	if (m_cfg->InternalGfx) {
 		/* IGD is enabled, set IGD stolen size to 128MB. */
-		m_cfg->IgdDvmt50PreAlloc = IGD_SM_128MB;
+		m_cfg->IgdDvmt50PreAlloc = get_uint_option("igd_dvmt_prealloc", IGD_SM_128MB);
 		/* DP port config */
 		m_cfg->DdiPortAConfig = config->ddi_port_A_config;
 		m_cfg->DdiPortBConfig = config->ddi_port_B_config;
@@ -187,7 +192,7 @@ static void fill_fspm_cpu_params(FSP_M_CONFIG *m_cfg,
 static void fill_tme_params(FSP_M_CONFIG *m_cfg)
 {
 	m_cfg->TmeEnable = CONFIG(INTEL_TME) && is_tme_supported();
-	if (!m_cfg->TmeEnable)
+	if (!m_cfg->TmeEnable || acpi_is_wakeup_s3())
 		return;
 	m_cfg->GenerateNewTmeKey = CONFIG(TME_KEY_REGENERATION_ON_WARM_BOOT) &&
 			 CONFIG(SOC_INTEL_COMMON_BASECODE_RAMTOP);
@@ -198,8 +203,8 @@ static void fill_tme_params(FSP_M_CONFIG *m_cfg)
 						"Full memory encryption is enabled.\n");
 			return;
 		}
-		m_cfg->TmeExcludeBase = (ram_top - 16*MiB);
-		m_cfg->TmeExcludeSize = 16*MiB;
+		m_cfg->TmeExcludeBase = (ram_top - CACHE_TMP_RAMTOP);
+		m_cfg->TmeExcludeSize = CACHE_TMP_RAMTOP;
 	}
 }
 
@@ -288,17 +293,11 @@ static void fill_fspm_audio_params(FSP_M_CONFIG *m_cfg,
 	m_cfg->PchHdaIDispLinkTmode = config->pch_hda_idisp_link_tmode;
 	m_cfg->PchHdaIDispLinkFrequency = config->pch_hda_idisp_link_frequency;
 	m_cfg->PchHdaIDispCodecDisconnect = !config->pch_hda_idisp_codec_enable;
+	m_cfg->PchHdaAudioLinkHdaEnable = config->pch_hda_audio_link_hda_enable;
 
 	for (int i = 0; i < MAX_HD_AUDIO_SDI_LINKS; i++)
 		m_cfg->PchHdaSdiEnable[i] = config->pch_hda_sdi_enable[i];
 
-	/*
-	 * All the PchHdaAudioLink{Hda|Dmic|Ssp|Sndw}Enable UPDs are used by FSP only to
-	 * configure GPIO pads for audio. Mainboard is expected to perform all GPIO
-	 * configuration in coreboot and hence these UPDs are set to 0 to skip FSP GPIO
-	 * configuration for audio pads.
-	 */
-	m_cfg->PchHdaAudioLinkHdaEnable = 0;
 	memset(m_cfg->PchHdaAudioLinkDmicEnable, 0, sizeof(m_cfg->PchHdaAudioLinkDmicEnable));
 	memset(m_cfg->PchHdaAudioLinkSspEnable, 0, sizeof(m_cfg->PchHdaAudioLinkSspEnable));
 	memset(m_cfg->PchHdaAudioLinkSndwEnable, 0, sizeof(m_cfg->PchHdaAudioLinkSndwEnable));
@@ -356,7 +355,7 @@ static void fill_fspm_usb4_params(FSP_M_CONFIG *m_cfg,
 static void fill_fspm_vtd_params(FSP_M_CONFIG *m_cfg,
 		const struct soc_intel_meteorlake_config *config)
 {
-	m_cfg->VtdDisable = 0;
+	m_cfg->VtdDisable = !get_uint_option("vtd", 1);
 	m_cfg->VtdBaseAddress[0] = GFXVT_BASE_ADDRESS;
 	m_cfg->VtdBaseAddress[1] = VTVC0_BASE_ADDRESS;
 
@@ -368,7 +367,7 @@ static void fill_fspm_trace_params(FSP_M_CONFIG *m_cfg,
 		const struct soc_intel_meteorlake_config *config)
 {
 	/* Set debug probe type */
-	m_cfg->PlatformDebugOption = CONFIG_SOC_INTEL_METEORLAKE_DEBUG_CONSENT;
+	m_cfg->PlatformDebugOption = CONFIG_SOC_INTEL_COMMON_DEBUG_CONSENT;
 
 	/* CrashLog config */
 	if (CONFIG(SOC_INTEL_CRASHLOG)) {
@@ -439,41 +438,34 @@ static void soc_memory_init_params(FSP_M_CONFIG *m_cfg,
 		fill_fspm_params[i](m_cfg, config);
 }
 
-#define UX_MEMORY_TRAINING_DESC	"memory_training_desc"
-
 #define VGA_INIT_CONTROL_ENABLE		BIT(0)
 /* Tear down legacy VGA mode before exiting FSP-M. */
 #define VGA_INIT_CONTROL_TEAR_DOWN	BIT(1)
 
 static void fill_fspm_sign_of_life(FSP_M_CONFIG *m_cfg,
-				   FSPM_ARCH_UPD *arch_upd)
+				   FSPM_ARCHx_UPD *arch_upd)
 {
 	void *vbt;
 	size_t vbt_size;
 	uint32_t vga_init_control = 0;
-	uint8_t sol_type;
 
 	/* Memory training.  */
 	if (!arch_upd->NvsBufferPtr) {
 		vga_init_control = VGA_INIT_CONTROL_ENABLE |
 			VGA_INIT_CONTROL_TEAR_DOWN;
-		sol_type = ELOG_FW_EARLY_SOL_MRC;
+		elog_add_event_byte(ELOG_TYPE_FW_EARLY_SOL, ELOG_FW_EARLY_SOL_MRC);
 	}
 
-	if (is_cse_fw_update_required()) {
+	if (CONFIG(SOC_INTEL_CSE_LITE_SYNC_IN_RAMSTAGE) && is_cse_fw_update_required()
+		&& !is_cse_boot_to_rw()) {
 		vga_init_control = VGA_INIT_CONTROL_ENABLE;
-		sol_type = ELOG_FW_EARLY_SOL_CSE_SYNC;
+		elog_add_event_byte(ELOG_TYPE_FW_EARLY_SOL, ELOG_FW_EARLY_SOL_CSE_SYNC);
 	}
 
 	if (!vga_init_control)
 		return;
 
-	const char *text = ux_locales_get_text(UX_MEMORY_TRAINING_DESC);
-	/* No localized text found; fallback to built-in English. */
-	if (!text)
-		text = "Your device is finishing an update. "
-		       "This may take 1-2 minutes.\n"
-		       "Please do not turn off your device.";
+	const char *text = ux_locales_get_text(UX_LOCALE_MSG_MEMORY_TRAINING);
 
 	vbt = cbfs_map("vbt.bin", &vbt_size);
 	if (!vbt) {
@@ -482,25 +474,24 @@ static void fill_fspm_sign_of_life(FSP_M_CONFIG *m_cfg,
 	}
 
 	printk(BIOS_INFO, "Enabling FSP-M Sign-of-Life\n");
-	elog_add_event_byte(ELOG_TYPE_FW_EARLY_SOL, sol_type);
 
 	m_cfg->VgaInitControl = vga_init_control;
-	m_cfg->VbtPtr = (UINT32)vbt;
+	m_cfg->VbtPtr = (efi_uintn_t)vbt;
 	m_cfg->VbtSize = vbt_size;
 	m_cfg->LidStatus = CONFIG(VBOOT_LID_SWITCH) ? get_lid_switch() : CONFIG(RUN_FSP_GOP);
-	m_cfg->VgaMessage = (UINT32)text;
+	m_cfg->VgaMessage = (efi_uintn_t)text;
 }
 
 void platform_fsp_memory_init_params_cb(FSPM_UPD *mupd, uint32_t version)
 {
 	const struct soc_intel_meteorlake_config *config;
 	FSP_M_CONFIG *m_cfg = &mupd->FspmConfig;
-	FSPM_ARCH_UPD *arch_upd = &mupd->FspmArchUpd;
+	FSPM_ARCHx_UPD *arch_upd = &mupd->FspmArchUpd;
 
 	if (CONFIG(FSP_USES_CB_DEBUG_EVENT_HANDLER)) {
 		if (CONFIG(CONSOLE_SERIAL) && CONFIG(FSP_ENABLE_SERIAL_DEBUG)) {
 			enum fsp_log_level log_level = fsp_map_console_log_level();
-			arch_upd->FspEventHandler = (UINT32)((FSP_EVENT_HANDLER *)
+			arch_upd->FspEventHandler = (efi_uintn_t)((FSP_EVENT_HANDLER *)
 					fsp_debug_event_handler);
 			/* Set Serial debug message level */
 			m_cfg->PcdSerialDebugLevel = log_level;
@@ -517,7 +508,7 @@ void platform_fsp_memory_init_params_cb(FSPM_UPD *mupd, uint32_t version)
 
 	soc_memory_init_params(m_cfg, config);
 
-	if (CONFIG(SOC_INTEL_METEORLAKE_SIGN_OF_LIFE))
+	if (CONFIG(CHROMEOS_ENABLE_ESOL))
 		fill_fspm_sign_of_life(m_cfg, arch_upd);
 
 	mainboard_memory_init_params(mupd);

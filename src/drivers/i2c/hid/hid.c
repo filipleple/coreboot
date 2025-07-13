@@ -4,7 +4,8 @@
 #include <acpi/acpi_device.h>
 #include <assert.h>
 #include <device/device.h>
-#include <string.h>
+#include <stdio.h>
+
 #include "chip.h"
 #include <gpio.h>
 #include <console/console.h>

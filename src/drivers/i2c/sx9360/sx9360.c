@@ -5,8 +5,8 @@
 #include <console/console.h>
 #include <device/i2c_simple.h>
 #include <device/device.h>
-#include <device/path.h>
-#include <string.h>
+#include <stdio.h>
+
 #include "chip.h"
 
 #define I2C_SX9360_ACPI_ID	"STH9360"

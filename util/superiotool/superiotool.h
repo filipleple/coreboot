@@ -9,6 +9,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <commonlib/bsd/helpers.h>
+#include <sys/types.h>
 #if defined(__linux__)
 #include <sys/io.h>
 #endif
@@ -25,11 +26,7 @@
 # endif
 #endif
 
-#include <sys/types.h>
-#include <stdint.h>
-
 #if defined(__FreeBSD__)
-#include <sys/types.h>
 #include <machine/cpufunc.h>
 #define OUTB(x, y) do { u_int tmp = (y); outb(tmp, (x)); } while (0)
 #define OUTW(x, y) do { u_int tmp = (y); outw(tmp, (x)); } while (0)
@@ -47,7 +44,6 @@
 #endif
 
 #if defined(__NetBSD__) && (defined(__i386__) || defined(__x86_64__))
-#include <sys/types.h>
 #include <machine/sysarch.h>
 #if defined(__i386__)
 #define iopl i386_iopl
@@ -136,6 +132,14 @@ extern int dump, verbose, extra_dump;
 
 extern int chip_found;
 
+/* Extra selector structure (see fintek.c) */
+struct extra_selector {
+	const char *name;
+	uint8_t idx;
+	uint8_t mask;
+	uint8_t val;
+};
+
 struct superio_registers {
 	int32_t superio_id;		/* Signed, as we need EOT. */
 	const char *name;		/* Super I/O name */
@@ -144,6 +148,7 @@ struct superio_registers {
 		const char *name;	/* LDN name */
 		int16_t idx[IDXSIZE];
 		int16_t def[IDXSIZE];
+		struct extra_selector esel;
 	} ldn[LDNSIZE];
 };
 

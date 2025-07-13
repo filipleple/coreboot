@@ -34,6 +34,7 @@ TEST_CFLAGS := -include include/kconfig.h
 TEST_CFLAGS += -include $(coreboottop)/src/commonlib/bsd/include/commonlib/bsd/compiler.h
 TEST_CFLAGS += -Iinclude -Iinclude/mock
 TEST_CFLAGS += -I$(coreboottop)/src/commonlib/bsd/include
+TEST_CFLAGS += -I$(coreboottop)/src/commonlib/include
 TEST_CFLAGS += -I$(dir $(TEST_KCONFIG_AUTOHEADER))
 TEST_CFLAGS += -I$(VBOOT_SOURCE)/firmware/include
 
@@ -43,7 +44,7 @@ TEST_CFLAGS += -I$(cmockasrc)/include
 
 # Minimal subset of warnings and errors. Tests can be less strict than actual build.
 TEST_CFLAGS += -Wall -Wundef -Wstrict-prototypes -Wvla
-TEST_CFLAGS += -Wwrite-strings -Wno-trigraphs -Wimplicit-fallthrough
+TEST_CFLAGS += -Wwrite-strings -Wno-address-of-packed-member -Wimplicit-fallthrough
 TEST_CFLAGS += -Wstrict-aliasing -Wshadow -Werror
 TEST_CFLAGS += -Wno-unknown-warning-option -Wno-source-mgr -Wno-main-return-type
 

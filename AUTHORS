@@ -15,12 +15,14 @@ Aaron Durbin
 Abe Levkoy
 Abel Briggs
 Abhinav Hardikar
+Abhishek Pandit-Subedi
 AdaCore
 Adam Liu
 Adam Mills
 Advanced Computing Lab, LANL
 Advanced Micro Devices, Inc.
 AG Electronics Ltd.
+Agogo
 Ahamed Husni
 Akshu Agrawal
 Al Hirani
@@ -39,32 +41,42 @@ Alexandru Gagniuc
 Alexey Buyanov
 Alexey Vazhnov
 Alice Sell
+Alicja Michalska
 Allen-KH Cheng
+Alok Agarwal
+Alper Nebi Yasak
 Amanda Hwang
 American Megatrends International, LLC
 Amersel
 Amit Caleechurn
+Ana Carolina Cabral
 Analog Devices Inc.
 Analogix Semiconductor
 Anand Mistry
 Anand Vaikar
+Anastasios Koutian
+Andre
 Andre Heider
 Andrew McRae
 Andrew SH Cheng
 Andrey Pronin
 Andriy Gapon
+Andy
 Andy Fleming
 Andy Pont
 Andy-ld Lu
 Angel Pons
+Angela Czubak
 Anil Kumar K
 Anna Karaś
 Annie Chen
 Anton Kochkov
 Ao Zhong
+Appukuttan V K
 Arashk Mahshidfar
 Arec Kao
 Ariel Fang
+Ariel Otilibili
 ARM Limited and Contributors
 Arthur Heymans
 Asami Doi
@@ -74,9 +86,12 @@ Ashqti
 ASPEED Technology Inc.
 Atheros Corporation
 Atmel Corporation
+Avi Uday
+Avinash Munduru
 Balaji Manigandan
 Balázs Vinarz
 BAP - Bruhnspace Advanced Projects
+Bartłomiej Grzesik
 Baruch Siach
 Ben Chuang
 Ben Kao
@@ -87,20 +102,26 @@ Bernardo Perez Priego
 Bhanu Prakash Maiya
 Bill Xie
 Bin Meng
+Bincai Liu
 Bitland Tech Inc.
 Bob Moragues
 Bora Guvendik
 Boris Barbulovski
 Boris Mittelberg
 Brandon Breitenstein
+Brandon Weeks
+Brian Hsu
 Brian Norris
 Bryant Ou
 Carl-Daniel Hailfinger
+Carlos López
 Casper Chang
+Cathy Xu
 Caveh Jalali
 Cavium Inc.
 Chao Gui
 Chen-Tsung Hsieh
+Chen. Gang C
 Chia-Ling Hou
 Chien-Chih Tseng
 Chris Wang
@@ -120,6 +141,7 @@ Cong Yang
 CoolStar
 coresystems GmbH
 Corey Osgood
+Crystal Guo
 Curt Brune
 Curtis Chen
 Custom Ideas
@@ -128,6 +150,7 @@ Da Lao
 Daisuke Nojiri
 Damien Zammit
 Dan Callaghan
+Dan Campbell
 Daniel Campello
 Daniel Gröber
 Daniel Kang
@@ -138,6 +161,7 @@ Dave Airlie
 David Brownell
 David Greenman
 David Hendricks
+David Li
 David Lin
 David Milosevic
 David Mosberger-Tang
@@ -147,6 +171,7 @@ David Wu
 Dawei Chien
 Deepika Punyamurtula
 Deepti Deshatty
+Dehui Sun
 Denis 'GNUtoo' Carikli
 Denis Dowling
 DENX Software Engineering
@@ -160,6 +185,7 @@ Divya S Sasidharan
 Dmitry Ponamorev
 Dmitry Torokhov
 DMP Electronics Inc.
+Dolan Liu
 Dominik Behr
 Donghwa Lee
 Drew Eckhardt
@@ -180,7 +206,9 @@ ELSOFT AG
 Eltan B.V
 Eltan B.V.
 Elyes Haouas
+Emilie Roberts
 Eran Mitrani
+Eren Peng
 Eric Biederman
 Eric Lai
 Eric Peers
@@ -194,13 +222,18 @@ Evan Green
 Evgeny Zinoviev
 Fabian Groffen
 Fabian Kunkel
+Fabian Meyer
 Fabio Aiuto
 Fabrice Bellard
 Facebook, Inc.
+Federico Amedeo Izzo
+Fei Yan
 Felix Friedlander
 Felix Held
 Felix Singer
 Fengquan Chen
+Filip Brozovic
+Filip Lewiński
 Flora Fu
 Florian Laufenböck
 Francois Toguo Fotso
@@ -214,9 +247,13 @@ Free Software Foundation, Inc.
 Freescale Semiconductor, Inc.
 Furquan Shaikh
 Gaggery Tsai
-Gang C Chen 
+Gang C Chen
+Garen Wu
+Gareth Yu
 Garmin Chang
 Gary Jennejohn
+Gavin Liu
+George Burgess
 George Trudeau
 Gerald Van Baren
 Gerd Hoffmann
@@ -224,6 +261,7 @@ Gergely Kiss
 Google LLC
 Greg Watson
 Grzegorz Bernacki
+Guangjie Song
 Guennadi Liakhovetski
 Guodong Liu
 Gwendal Grignou
@@ -231,17 +269,21 @@ Hal Martin
 Hao Chou
 Hao Wang
 HardenedLinux
+Harrie Paijmans
 Harsha B R
 Harshit Sharma
 Henry C Chen
+Herbert Wu
 Hewlett Packard Enterprise Development LP
 Hewlett-Packard Development Company, L.P.
 Himanshu Sahdev
+Hope Wang
 Housong Zhang
 Hsiao Chien Sung
 Hsin-hsiung wang
 Hsin-Te Yuan
 Hsuan Ting Chen
+Hualin Wei
 Huaqin Technology Co., Ltd
 Huaqin Telecom Inc.
 Hui Liu
@@ -256,6 +298,7 @@ Igor Pavlov
 Ikjoon Jang
 Imagination Technologies
 Infineon Technologies
+Ingo Reitz
 InKi Dae
 INSPUR Co., Ltd
 Intel Corporation
@@ -273,11 +316,14 @@ Jakub Czapiga
 James Chao
 James Lo
 James Ye
+Jameson Thies
 Jamie Chen
 Jamie Ryu
 Jan Dabros
+Jan Philipp Groß
 Jan Samek
 Jan Tatje
+Jarried Lin
 Jason Glenesk
 Jason Nein
 Jason V Le
@@ -286,6 +332,9 @@ Jason Zhao
 jason-ch chen
 Jason-jh Lin
 Jay Patel
+Jayvik Desai
+Jean Lucas
+Jędrzej Ciupis
 Jeff Chase
 Jeff Daly
 Jeff Li
@@ -306,9 +355,12 @@ Jingle Hsu
 Jitao Shi
 Joe Pillow
 Joe Tessler
+Joel Bueno
 Joel Kitching
+Joel Linn
 Joey Peng
 Johanna Schander
+Johannes Hahn
 John Su
 John Zhao
 Johnny Li
@@ -325,7 +377,10 @@ Jordan Crouse
 Jörg Mische
 Joseph Smith
 Josie Nordrum
+Juan José García-Castro Crespo
+Julia Kittlinger
 Julia Tsai
+Julian Intronati
 Julian Schroeder
 Julian Stecklina
 Julien Viard de Galbert
@@ -337,6 +392,8 @@ Kangheui Won
 Kapil Porwal
 Karol Zmyslowski
 Karthik Ramasubramanian
+Ke Zheng
+Kei Hiroyoshi
 Keith Hui
 Keith Packard
 Kenneth Chan
@@ -347,10 +404,12 @@ Kevin Chowski
 Kevin Cody-Little
 Kevin Keijzer
 Kevin O'Connor
+Kevin Yang
 Kevin3 Yang
 kewei xu
 Kilari Raasi
 Kirk Wang
+Kiwi Liu
 Konrad Adamczyk
 Kontron Europe GmbH
 Kornel Dulęba
@@ -360,6 +419,7 @@ Kshitij
 Kshitiz Godara
 Kulkarni. Srinivas
 Kun Liu
+KunYi Chen
 Kyle Lin
 Kyösti Mälkki
 Lance Zhao
@@ -367,9 +427,11 @@ Lawrence Chang
 Leah Rowe
 Lean Sheng Tan
 Lei Wen
+Lennart Eichhorn
 Lenovo Group Ltd
 Leo Chou
 Li-Ta Lo
+Li1 Feng
 Liam Flaherty
 Libra Li
 Libretrend LDA
@@ -380,9 +442,13 @@ linear
 Linus Torvalds
 Linux Networx, Inc.
 LiPPERT ADLINK Technology GmbH
+Liu Liu
 Liya Li
+Lu Tang
+Lu. Pen-ChunX
 Lubomir Rintel
 Luc Verhaegen
+Luca Lai
 Lucas Chen
 Mac Chiang
 Maciej Matuszczyk
@@ -397,11 +463,13 @@ Marc Bertens
 Marc Jones
 Marco Chen
 Marek Kasiewicz
+Marek Maślanka
 Marek Vasut
 Mario Scheithauer
 Marius Gröger
 Mariusz Szafranski
 Mariusz Szafrański
+Mark Chang
 Mark Hasemeyer
 Mark Hsieh
 Mars Chen
@@ -412,6 +480,7 @@ Martin Roth
 Marvell International Ltd.
 Marvell Semiconductor Inc.
 Marx Wang
+Masa Nakura
 Masanori Ogino
 Máté Kukri
 Matei Dibu
@@ -420,6 +489,7 @@ Matt Chen
 Matt Delco
 Matt DeVillier
 Matt Papageorge
+Matt Turner
 Matthew Blecker
 Matthew Ziegelbaum
 Mattias Nissler
@@ -432,6 +502,7 @@ Maximilian Brune
 Mediatek Inc.
 MediaTek Inc.
 Meera Ravindranath
+Melongmelong
 Meng-Huan Yu
 Meta Platforms, Inc
 mgabryelski1
@@ -444,15 +515,20 @@ Michael Strosche
 Michael Walle
 Michał Kopeć
 Michal Suchanek
+Michał Zieliński
 Michał Żygowski
 Micro-Star INT'L CO., LTD.
 Mika Westerberg
 Mike Banon
+Mike Lin
 Mike Shih
+Mingjin Ge
 Miriam Polzer
 mkurumel
 Moises Garcia
+Momoko Hattori
 Mondrian Nuessle
+Monika A
 Monikaanan
 MontaVista Software, Inc.
 Morgan Jang
@@ -462,21 +538,25 @@ mtk15698
 mturney mturney
 Musse Abdullahi
 Myles Watson
-Nancy.Lin
+Nancy Lin
 Naresh Solanki
 Nathan Lu
+Naveen R. Iyer
 Neill Corlett
 Network Appliance Inc.
 Nicholas Chin
 Nicholas Sielicki
+Nicholas Sudsgaard
 Nick Barker
 Nick Chen
+Nick Kochlowski
 Nick Vaccaro
 Nico Huber
 Nico Rikken
 Nicola Corna
 Nicolas Boichat
 Nicole Faerber
+Nigel Tao
 Nikolai Vyssotski
 Nils Jacobs
 Nina Wu
@@ -490,6 +570,10 @@ Omar Pakker
 Online SAS
 Opal Voravootivat
 Orion Technologies, LLC
+Ot_chhao.chang
+Ot_hao.han
+Ot_song Fan
+Pablo
 Pablo Ceballos
 Pablo Stebler
 Pan Gao
@@ -502,6 +586,7 @@ Paul Fagerburg
 Paul Menzel
 Paul2 Huang
 Paulo Alcantara
+Pavan Holla
 Pavel Sayekat
 Paz Zcharya
 PC Engines GmbH
@@ -520,15 +605,18 @@ Philipp Deppenwiese
 Philipp Hug
 Piotr Kleinschmidt
 Po Xu
+Poornima Tom
+Pranava Y N
 Prasad Malisetty
 Prashant Malani
 Pratik Vishwakarma
 Pratikkumar Prajapati
 Pratikkumar V Prajapati
 Protectli
-Purism SPC
+PugzAreCute
 Purism, SPC
 Qii Wang
+Qinghong Zeng
 Qualcomm Technologies, Inc.
 Quanta Computer INC
 Raihow Shi
@@ -543,6 +631,7 @@ Ravindra
 Ravishankar Sarawadi
 Ray Han Lim Ng
 Raymond Chung
+Reagan
 Red Hat, Inc
 ReddestDream
 Rehan Ghori
@@ -560,6 +649,7 @@ Richard Woodruff
 Rick Lee
 Ricky Chang
 Riku Viitanen
+Rishika Raj
 Ritul Guru
 Rizwan Qureshi
 Rnhmjoj
@@ -572,12 +662,14 @@ Robinson P. Tryon
 Rockchip, Inc.
 Rocky Phagura
 Roger Lu
+Roger Wang
 Roja Rani Yarubandi
 Romain Lievin
 Roman Zippel
 Ron Lee
 Ron Minnich
 Ronak Kanabar
+Ronald Claveau
 Ronald G. Minnich
 Rory Liu
 Rudolf Marek
@@ -599,6 +691,7 @@ Samuel Holland
 Sandeep Maheswaram
 Sathya Prakash M R
 Satya Priya Kakitapalli
+Satya SreenivasL
 Saurabh Mishra
 SciTech Software, Inc.
 Scott Chao
@@ -626,6 +719,7 @@ Shiyu Sun
 Shon Wang
 Shou-Chieh Hsu
 Shreesh Chhabbi
+Shunxi Zhang
 Shuo Liu
 Siemens AG
 SiFive, Inc
@@ -638,10 +732,12 @@ Simon Zhou
 Sindhoor Tilak
 Solomon Alan-Dei
 Song Fan
+Sowmya Aralguppe
 Sridhar Siricilla
 Srinidhi N Kaushik
 Srinivasa Rao Mandadapu
 ST Microelectronics
+Stanisław Kardach
 Stanley Wu
 Star Labs Online Ltd
 Stefan Binding
@@ -669,6 +765,7 @@ Tao Xia
 Tarun Tuli
 Teddy Shih
 Terry Chen
+Terry Cheong
 Texas Instruments
 The Android Open Source Project
 The ChromiumOS Authors
@@ -688,6 +785,7 @@ tinghan shen
 Tobias Diedrich
 Tom Hiller
 Tommie Lin
+Tongtong Pan
 Tony Huang
 Tracy Wu
 Trevor Wu
@@ -706,8 +804,10 @@ Uwe Poeche
 V Sowmya
 Václav Straka
 Vadim Bendebury
+Valentyn Sudomyr
 Van Chen
 Varshit B Pandya
+Varun Upadhyay
 Veerabhadrarao Badiganti
 Venkat Thogaru
 Venkata Krishna Nimmagadda
@@ -716,6 +816,7 @@ Victor Ding
 Vidya Gopalakrishnan
 Vikram Narayanan
 Vikrant L Jadeja
+Vince Liu
 Vinod Polimera
 Vipin Kumar
 Vitaly Rodionov
@@ -728,8 +829,10 @@ Ward Vandewege
 Wayne Wang
 Weimin Wu
 Weiyi Lu
+Wen Zhang
 Wenbin Mei
 Wentao Qin
+Wenzhen Yu
 Werner Zeh
 Wilbert Duijvenvoorde
 William Wei
@@ -745,12 +848,17 @@ Wojciech Macek
 Wolfgang Denk
 Won Chung
 Wonkyu Kim
-Wuxy 
+Wuxy
+Xiang W
 Xin Ji
+Xiwen Shao
 Xixi Chen
+Xue Yao
+Xueqi Zhang
 Xuxin Xiong
 YADRO
 Yan Liu
+Yang Wu
 Yann Collet
 Yaroslav Kurlaev
 YH Lin
@@ -766,20 +874,26 @@ Yu-Ping Wu
 Yuanliding
 Yuchen He
 Yuchen Huang
+Yuchiche
 Yunlong Jia
+Yuval Peress
 Zachary Yedidia
 Zanxi Chen
+Zebreus
 Zhanyong Wang
+Zhaoqing Jiu
 Zheng Bao
 Zhenguo Li
 Zhi7 Li
+Zhigang Qin
 Zhiqiang Ma
 Zhixing Ma
 Zhiyong Tao
-zhongtian wu
+Zhongtian Wu
 Zhuohao Lee
 Ziang Wang
 Zoey Wu
 Zoltan Baldaszti
 小田喜陽彦
+忧郁沙茶
 陳建宏

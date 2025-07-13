@@ -9,7 +9,7 @@ This page describes how to run coreboot on the [Protectli FW2B] and
 To build a minimal working coreboot image some blobs are required (assuming
 only the BIOS region is being modified).
 
-```eval_rst
+```{eval-rst}
 +-----------------+---------------------------------+---------------------+
 | Binary file     | Apply                           | Required / Optional |
 +=================+=================================+=====================+
@@ -91,7 +91,7 @@ connected via [FE1.1 USB 2.0 hub].
 
 - FW2B:
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | CPU              | Intel Celeron J3060                              |
 +------------------+--------------------------------------------------+
@@ -107,7 +107,7 @@ connected via [FE1.1 USB 2.0 hub].
 
 - FW4B:
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | CPU              | Intel Celeron J3160                              |
 +------------------+--------------------------------------------------+
@@ -125,4 +125,4 @@ connected via [FE1.1 USB 2.0 hub].
 [Protectli FW4B]: https://protectli.com/product/fw4b/
 [MX25U6435F]: https://www.macronix.com/Lists/Datasheet/Attachments/7411/MX25U6435F,%201.8V,%2064Mb,%20v1.5.pdf
 [FE1.1 USB 2.0 hub]: https://cdn-shop.adafruit.com/product-files/2991/FE1.1s+Data+Sheet+(Rev.+1.0).pdf
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/

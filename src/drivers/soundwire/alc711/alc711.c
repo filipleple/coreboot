@@ -4,18 +4,13 @@
 #include <acpi/acpi_device.h>
 #include <acpi/acpi_soundwire.h>
 #include <device/device.h>
-#include <device/path.h>
 #include <device/soundwire.h>
 #include <mipi/ids.h>
 #include <stdio.h>
 
 #include "chip.h"
 
-static struct soundwire_address alc711_address = {
-	.version = SOUNDWIRE_VERSION_1_1,
-	.manufacturer_id = MIPI_MFG_ID_REALTEK,
-	.part_id = MIPI_DEV_ID_REALTEK_ALC711,
-	.class = MIPI_CLASS_NONE
+static struct soundwire_multilane alc711_multilane = {
 };
 
 static struct soundwire_slave alc711_slave = {
@@ -95,7 +90,8 @@ static const struct soundwire_codec alc711_codec = {
 			.port = 2,
 			.source = &alc711_dp
 		}
-	}
+	},
+	.multilane = &alc711_multilane
 
 };
 
@@ -104,6 +100,7 @@ static void soundwire_alc711_fill_ssdt(const struct device *dev)
 	struct drivers_soundwire_alc711_config *config = dev->chip_info;
 	const char *scope = acpi_device_scope(dev);
 	struct acpi_dp *dsd;
+	size_t lane_mapping_count, audio_mode_count;
 
 	if (!scope)
 		return;
@@ -112,12 +109,27 @@ static void soundwire_alc711_fill_ssdt(const struct device *dev)
 	acpigen_write_device(acpi_device_name(dev));
 
 	/* Set codec address IDs. */
-	alc711_address.link_id = dev->path.generic.id;
-	alc711_address.unique_id = dev->path.generic.subid;
+	config->alc711_address.link_id = dev->path.generic.id;
+	config->alc711_address.unique_id = dev->path.generic.subid;
+	config->alc711_address.manufacturer_id = MIPI_MFG_ID_REALTEK;
 
-	acpigen_write_ADR_soundwire_device(&alc711_address);
+	acpigen_write_ADR_soundwire_device(&config->alc711_address);
 	acpigen_write_name_string("_DDN", config->desc ? : dev->chip_ops->name);
 	acpigen_write_STA(acpi_device_status(dev));
+
+	/* Overlay multilane config, if provided. */
+	lane_mapping_count = MIN(ARRAY_SIZE(config->multilane.lane_mapping), SOUNDWIRE_MAX_LANE);
+	if (lane_mapping_count > 0) {
+		alc711_multilane.lane_mapping_count = lane_mapping_count;
+		memcpy(&alc711_multilane.lane_mapping, &config->multilane.lane_mapping,
+			sizeof(struct soundwire_multilane_map) * lane_mapping_count);
+	}
+
+	/* Overlay Audio Mode config, if provided. */
+	audio_mode_count = MIN(ARRAY_SIZE(config->audio_mode), SOUNDWIRE_MAX_MODE);
+	if (audio_mode_count > 0)
+		/* Currently only 1 audio mode is supported. */
+		memcpy(&alc711_audio_mode, &config->audio_mode, sizeof(struct soundwire_audio_mode));
 
 	dsd = acpi_dp_new_table("_DSD");
 	soundwire_gen_codec(dsd, &alc711_codec, NULL);
@@ -151,6 +163,10 @@ static void soundwire_alc711_enable(struct device *dev)
 }
 
 struct chip_operations drivers_soundwire_alc711_ops = {
-	.name = "Realtek ALC711 SoundWire Codec",
+#if CONFIG(DRIVERS_SOUNDWIRE_ALC_BASE_7XX)
+	.name = "Realtek ALC 7 Series SoundWire Codec",
+#else
+	.name = "Unknown",
+#endif
 	.enable_dev = soundwire_alc711_enable
 };

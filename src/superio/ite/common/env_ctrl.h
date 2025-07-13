@@ -199,6 +199,17 @@ static const u8 ITE_EC_TEMP_ADJUST[] = { 0x56, 0x57, 0x59 };
 #define ITE_EC_FAN_CTL_TARGET_ZONE(x)		(0x66 + ((x)-1) * 8)
 #define   ITE_EC_FAN_CTL_TARGET_ZONE_MASK	0x0f
 
+#define ITE_EC_FAN_VEC_CTL_LIMIT_START(x)	(0x90 + (x) * 4)
+#define ITE_EC_FAN_VEC_CTL_SLOPE(x)		(0x91 + (x) * 4)
+#define ITE_EC_FAN_VEC_CTL_DELTA(x)		(0x92 + (x) * 4)
+#define ITE_EC_FAN_VEC_CTL_RANGE(x)		(0x93 + (x) * 4)
+
+#define ITE_EC_FAN_VEC_CTL_SLOPE_TMPIN0(x)	(((x) & 0x1) << 7)
+#define ITE_EC_FAN_VEC_CTL_DELTA_TMPIN1(x)	(((x) & 0x2) << 6)
+#define ITE_EC_FAN_VEC_CTL_DELTA_TEMP_INTRVL(c)	ITE_EC_FAN_CTL_DELTA_TEMP_INTRVL(c)
+#define ITE_EC_FAN_VEC_CTL_DELTA_FANOUT(x)	(((x) & 0x3) << 5)
+#define ITE_EC_FAN_VEC_CTL_RANGE_SLOPESIGN(x)	(((x) & 0x1) << 7)
+
 #define ITE_EC_EXTEMP_STATUS			0x88
 #define   ITE_EC_EXTEMP_STATUS_HOST_BUSY	(1 << 0)
 #define ITE_EC_EXTEMP_ADDRESS			0x89
@@ -223,6 +234,17 @@ static const u8 ITE_EC_TEMP_ADJUST[] = { 0x56, 0x57, 0x59 };
 #define PECI_GETTEMP_COMMAND			0x01
 #define PECI_GETTEMP_WRITE_LENGTH		0x01
 #define PECI_GETTEMP_READ_LENGTH		0x02
+
+/* Registers in EC LDN */
+#define ITE_EC_REG_PCR1				0xf2
+#define ITE_EC_REG_PCR2				0xf4
+
+/* These must match the values in src/mainboard/Kconfig */
+#define MAINBOARD_POWER_OFF			0
+#define MAINBOARD_POWER_ON			1
+#define MAINBOARD_POWER_KEEP			2
+
+void ite_ec_set_power_state(struct device *dev);
 
 void ite_ec_init(u16 base, const struct ite_ec_config *conf);
 

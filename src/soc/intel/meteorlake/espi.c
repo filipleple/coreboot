@@ -7,12 +7,13 @@
 #include <intelblocks/itss.h>
 #include <intelblocks/lpc_lib.h>
 #include <intelblocks/pcr.h>
-#include <soc/espi.h>
+#include <intelpch/espi.h>
 #include <soc/iomap.h>
 #include <soc/irq.h>
 #include <soc/pci_devs.h>
 #include <soc/pcr_ids.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 
 void soc_get_gen_io_dec_range(uint32_t gen_io_dec[LPC_NUM_GENERIC_IO_RANGES])
 {
@@ -24,7 +25,6 @@ void soc_get_gen_io_dec_range(uint32_t gen_io_dec[LPC_NUM_GENERIC_IO_RANGES])
 	gen_io_dec[3] = config->gen4_dec;
 }
 
-#if ENV_RAMSTAGE
 void lpc_soc_init(struct device *dev)
 {
 	/* Legacy initialization */
@@ -46,4 +46,3 @@ void lpc_soc_init(struct device *dev)
 	setup_i8259();
 	i8259_configure_irq_trigger(9, 1);
 }
-#endif

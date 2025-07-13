@@ -88,7 +88,7 @@ uintptr_t dw_i2c_base_address(unsigned int bus)
 	/* Find device+function for this controller */
 	devfn = dw_i2c_soc_bus_to_devfn(bus);
 	if (devfn < 0)
-		return (uintptr_t)NULL;
+		return 0;
 
 	/* Form a PCI address for this device */
 	dev = PCI_DEV(0, PCI_SLOT(devfn), PCI_FUNC(devfn));
@@ -114,12 +114,12 @@ uintptr_t dw_i2c_base_address(unsigned int bus)
 	devfn = dw_i2c_soc_bus_to_devfn(bus);
 
 	if (devfn < 0)
-		return (uintptr_t)NULL;
+		return 0;
 
 	/* devfn -> dev */
 	dev = pcidev_path_on_root(devfn);
 	if (!dev || !dev->enabled)
-		return (uintptr_t)NULL;
+		return 0;
 
 	/* dev -> bar0 */
 	res = probe_resource(dev, PCI_BASE_ADDRESS_0);
@@ -174,6 +174,24 @@ struct device_operations i2c_dev_ops = {
 };
 
 static const unsigned short pci_device_ids[] = {
+	PCI_DID_INTEL_WCL_I2C0,
+	PCI_DID_INTEL_WCL_I2C1,
+	PCI_DID_INTEL_WCL_I2C2,
+	PCI_DID_INTEL_WCL_I2C3,
+	PCI_DID_INTEL_WCL_I2C4,
+	PCI_DID_INTEL_WCL_I2C5,
+	PCI_DID_INTEL_PTL_H_I2C0,
+	PCI_DID_INTEL_PTL_H_I2C1,
+	PCI_DID_INTEL_PTL_H_I2C2,
+	PCI_DID_INTEL_PTL_H_I2C3,
+	PCI_DID_INTEL_PTL_H_I2C4,
+	PCI_DID_INTEL_PTL_H_I2C5,
+	PCI_DID_INTEL_PTL_U_H_I2C0,
+	PCI_DID_INTEL_PTL_U_H_I2C1,
+	PCI_DID_INTEL_PTL_U_H_I2C2,
+	PCI_DID_INTEL_PTL_U_H_I2C3,
+	PCI_DID_INTEL_PTL_U_H_I2C4,
+	PCI_DID_INTEL_PTL_U_H_I2C5,
 	PCI_DID_INTEL_LNL_I2C0,
 	PCI_DID_INTEL_LNL_I2C1,
 	PCI_DID_INTEL_LNL_I2C2,
@@ -186,6 +204,18 @@ static const unsigned short pci_device_ids[] = {
 	PCI_DID_INTEL_MTL_I2C3,
 	PCI_DID_INTEL_MTL_I2C4,
 	PCI_DID_INTEL_MTL_I2C5,
+	PCI_DID_INTEL_ARL_I2C0,
+	PCI_DID_INTEL_ARL_I2C1,
+	PCI_DID_INTEL_ARL_I2C2,
+	PCI_DID_INTEL_ARL_I2C3,
+	PCI_DID_INTEL_ARL_I2C4,
+	PCI_DID_INTEL_ARL_I2C5,
+	PCI_DID_INTEL_ARP_S_I2C0,
+	PCI_DID_INTEL_ARP_S_I2C1,
+	PCI_DID_INTEL_ARP_S_I2C2,
+	PCI_DID_INTEL_ARP_S_I2C3,
+	PCI_DID_INTEL_ARP_S_I2C4,
+	PCI_DID_INTEL_ARP_S_I2C5,
 	PCI_DID_INTEL_APL_I2C0,
 	PCI_DID_INTEL_APL_I2C1,
 	PCI_DID_INTEL_APL_I2C2,

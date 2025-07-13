@@ -49,7 +49,7 @@ chip soc/intel/apollolake
 	register "emmc_tx_cmd_cntl" = "0x1305"
 
 	# Enable DPTF
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	# PL1 override: 7.5W setting gives a run-time 6W actual
 	# Set RAPL PL2 to 15W.
@@ -64,7 +64,7 @@ chip soc/intel/apollolake
 	register "hdaudio_bios_config_lockdown" = "1"
 
 	# Enable lpss s0ix
-	register "lpss_s0ix_enable" = "1"
+	register "lpss_s0ix_enable" = "true"
 
 	# GPE configuration
 	# Note that GPE events called out in ASL code rely on this

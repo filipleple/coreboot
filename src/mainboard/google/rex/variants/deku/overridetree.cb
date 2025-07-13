@@ -27,6 +27,15 @@ chip soc/intel/meteorlake
 		[DDI_PORT_4] = DDI_ENABLE_HPD,
 	}"
 
+	# Temporary setting TCC of 98C = Tj max (110) - TCC_Offset (12)
+	register "tcc_offset" = "12"
+
+	register "power_limits_config[MTL_P_682_482_CORE]" = "{
+		.tdp_pl1_override = 33,
+		.tdp_pl2_override = 64,
+		.tdp_pl4 = 120,
+	}"
+
 	register "serial_io_i2c_mode" = "{
 		[PchSerialIoIndexI2C0] = PchSerialIoDisabled,
 		[PchSerialIoIndexI2C1] = PchSerialIoDisabled,
@@ -54,9 +63,57 @@ chip soc/intel/meteorlake
 		},
 	}"
 
+	register "psys_pmax_watts" = "180"
+	register "psys_pl2_watts"  = "178"
+
+	# As per doc 640982, Intel MTL-U 28W CPU supports FVM on GT and SA
+	# The ICC Limit is represented in 1/4 A increments, i.e., a value of 400 = 100A
+	# For GT VR configuration
+	register "enable_fast_vmode[VR_DOMAIN_GT]" = "1"
+	register "cep_enable[VR_DOMAIN_GT]" = "1"
+	register "fast_vmode_i_trip[VR_DOMAIN_GT]" = "216" # 54A
+	# For SA VR configuration
+	register "enable_fast_vmode[VR_DOMAIN_SA]" = "1"
+	register "cep_enable[VR_DOMAIN_SA]" = "1"
+	register "fast_vmode_i_trip[VR_DOMAIN_SA]" = "108" # 27A
+
 	device domain 0 on
 		device ref dtt on
 			chip drivers/intel/dptf
+				## sensor information
+				register "options.tsr[0].desc" = ""DDR_SOC""
+				register "options.tsr[1].desc" = ""Ambient""
+				register "options.tsr[2].desc" = ""IMVP_SOC""
+				register "options.tsr[3].desc" = ""NVME""
+
+				## Passive Policy
+				register "policies.passive" = "{
+						[0] = DPTF_PASSIVE(CPU, CPU, 65, 1000),
+				}"
+
+				## Critical Policy
+				register "policies.critical" = "{
+						[0] = DPTF_CRITICAL(CPU, 105, SHUTDOWN),
+				}"
+
+				## Power Limits Control
+				register "controls.power_limits" = "{
+						.pl1 = {
+							.min_power = 28000,
+							.max_power = 28000,
+							.time_window_min = 28 * MSECS_PER_SEC,
+							.time_window_max = 32 * MSECS_PER_SEC,
+							.granularity = 200,
+						},
+						.pl2 = {
+							.min_power = 64000,
+							.max_power = 64000,
+							.time_window_min = 28 * MSECS_PER_SEC,
+							.time_window_max = 32 * MSECS_PER_SEC,
+							.granularity = 1000,
+						}
+				}"
+
 				device generic 0 alias dptf_policy on end
 			end
 		end
@@ -83,7 +140,7 @@ chip soc/intel/meteorlake
 			chip drivers/net
 				register "customized_leds" = "0x05af"
 				register "wake" = "GPE0_DW0_01" # GPP_D01
-				register "device_index" = "0"
+				register "device_index" = "1"
 				register "add_acpi_dma_property" = "true"
 				device pci 00.0 on end
 			end
@@ -98,7 +155,7 @@ chip soc/intel/meteorlake
 			chip drivers/net
 				register "customized_leds" = "0x05af"
 				register "wake" = "GPE0_DW1_04" # GPP_E04
-				register "device_index" = "1"
+				register "device_index" = "0"
 				register "add_acpi_dma_property" = "true"
 				device pci 00.0 on end
 			end
@@ -110,6 +167,13 @@ chip soc/intel/meteorlake
 				.clk_req = 7,
 				.flags = PCIE_RP_LTR | PCIE_RP_AER,
 			}"
+			chip soc/intel/common/block/pcie/rtd3
+				register "is_storage" = "true"
+				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_A19)"
+				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_A20)"
+				register "srcclk_pin" = "7"
+				device generic 0 on end
+			end
 		end	# PCIE11 SSD card
 		device ref tbt_pcie_rp0 on end
 		device ref tbt_pcie_rp1 on end
@@ -143,7 +207,7 @@ chip soc/intel/meteorlake
 						register "desc" = ""USB3 Type-C Port C3""
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
 						register "use_custom_pld" = "true"
-						register "custom_pld" = "ACPI_PLD_TYPE_C(FRONT, LEFT, ACPI_PLD_GROUP(4, 1))"
+						register "custom_pld" = "ACPI_PLD_TYPE_C(BACK, LEFT, ACPI_PLD_GROUP(4, 1))"
 						device ref tcss_usb3_port3 on end
 					end
 				end
@@ -152,11 +216,13 @@ chip soc/intel/meteorlake
 		device ref tcss_dma0 on
 			chip drivers/intel/usb4/retimer
 				register "dfp[0].power_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B22)"
+				register "dfp[0].ec_port" = "EC_TYPEC_PORT_0"
 				use tcss_usb3_port0 as dfp[0].typec_port
 				device generic 0 on end
 			end
 			chip drivers/intel/usb4/retimer
 				register "dfp[1].power_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B22)"
+				register "dfp[1].ec_port" = "EC_TYPEC_PORT_2"
 				use tcss_usb3_port1 as dfp[1].typec_port
 				device generic 0 on end
 			end
@@ -164,11 +230,13 @@ chip soc/intel/meteorlake
 		device ref tcss_dma1 on
 			chip drivers/intel/usb4/retimer
 				register "dfp[0].power_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B22)"
+				register "dfp[0].ec_port" = "EC_TYPEC_PORT_1"
 				use tcss_usb3_port2 as dfp[0].typec_port
 				device generic 0 on end
 			end
 			chip drivers/intel/usb4/retimer
 				register "dfp[1].power_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B22)"
+				register "dfp[1].ec_port" = "EC_TYPEC_PORT_3"
 				use tcss_usb3_port3 as dfp[1].typec_port
 				device generic 0 on end
 			end
@@ -195,7 +263,7 @@ chip soc/intel/meteorlake
 						register "desc" = ""USB2 Type-C Port C2""
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
 						register "use_custom_pld" = "true"
-						register "custom_pld" = "ACPI_PLD_TYPE_C(BACK, LEFT, ACPI_PLD_GROUP(3, 1))"
+						register "custom_pld" = "ACPI_PLD_TYPE_C(BACK, CENTER, ACPI_PLD_GROUP(3, 1))"
 						device ref usb2_port1 on end
 					end
 					chip drivers/usb/acpi
@@ -237,7 +305,7 @@ chip soc/intel/meteorlake
 						register "desc" = ""USB2 Type-A Port A4""
 						register "type" = "UPC_TYPE_A"
 						register "use_custom_pld" = "true"
-						register "custom_pld" = "ACPI_PLD_TYPE_A(BACK, CENTER, ACPI_PLD_GROUP(5, 4))"
+						register "custom_pld" = "ACPI_PLD_TYPE_A(FRONT, LEFT, ACPI_PLD_GROUP(5, 5))"
 						device ref usb2_port6 on end
 					end
 					chip drivers/usb/acpi

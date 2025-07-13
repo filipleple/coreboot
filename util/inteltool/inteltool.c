@@ -81,7 +81,11 @@ static const struct {
 	/* Host bridges /DRAM controllers integrated in CPUs */
 	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_0TH_GEN,
 	  "0th generation (Nehalem family) Core Processor" },
-	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_1ST_GEN,
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_D,
+	  "1st generation (Westmere family) Core Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_M,
+	  "1st generation (Westmere family) Core Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_1ST_GEN_0048,
 	  "1st generation (Westmere family) Core Processor" },
 	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_2ND_GEN_D,
 	  "2nd generation (Sandy Bridge family) Core Processor (Desktop)" },
@@ -188,6 +192,41 @@ static const struct {
 	  "12th generation (Alder Lake N family) Intel Processor"},
 	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_RPL_ID_H_8_6,
 	  "13th generation (Raptor Lake H family) Core Processor"},
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_MTL_ID_M,
+	  "14th generation (Meteor Lake M family) Core Processor"},
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_1,
+	  "14th generation (Meteor Lake P family) Core Processor"},
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_2,
+	  "14th generation (Meteor Lake P family) Core Processor"},
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_3,
+	  "14th generation (Meteor Lake P family) Core Processor"},
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_4,
+	  "14th generation (Meteor Lake P family) Core Processor"},
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_CORE_MTL_ID_P_5,
+	  "14th generation (Meteor Lake P family) Core Processor"},
+
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_1,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_2,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_3,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_4,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_5,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_6,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_7,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_8,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_9,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_10,
+	  "Elkhart Lake Processor" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_ELKHART_LAKE_11,
+	  "Elkhart Lake Processor" },
 
 	/* Southbridges (LPC controllers) */
 	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_82371XX, "371AB/EB/MB" },
@@ -588,6 +627,28 @@ static const struct {
 	  "Intel(R) UHD Graphics" },
 	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_RPL_H_IRIS_XE,
 	  "Intel(R) Iris Xe Graphics [RPL-P]" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_MTL_M_GT2,
+	  "Intel(R) MeteorLake-M GT2" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_MTL_P_GT2_1,
+	  "Intel(R) MeteorLake-P GT2" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_MTL_P_GT2_2,
+	  "Intel(R) MeteorLake-P GT2" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_MTL_P_GT2_3,
+	  "Intel(R) MeteorLake-P GT2" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_MTL_P_GT2_4,
+	  "Intel(R) MeteorLake-P GT2" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_EHL_GT1_1,
+	  "Intel(R) Elkhart Lake GT1" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_EHL_GT1_2,
+	  "Intel(R) Elkhart Lake GT1" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_EHL_GT1_3,
+	  "Intel(R) Elkhart Lake GT1" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_EHL_GT1_4,
+	  "Intel(R) Elkhart Lake GT1" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_EHL_GT1_5,
+	  "Intel(R) Elkhart Lake GT1" },
+	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_EHL_GT1_6,
+	  "Intel(R) Elkhart Lake GT1" },
 };
 
 #ifndef __DARWIN__
@@ -1028,7 +1089,7 @@ int main(int argc, char *argv[])
 		print_ambs(nb, pacc);
 
 	if (dump_spi)
-		print_spi(sb);
+		print_spi(sb, pacc);
 
 	if (dump_gfx)
 		print_gfx(gfx);

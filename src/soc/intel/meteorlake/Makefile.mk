@@ -18,7 +18,6 @@ bootblock-y += bootblock/ioe_die.c
 bootblock-y += bootblock/report_platform.c
 bootblock-y += bootblock/soc_die.c
 bootblock-y += espi.c
-bootblock-y += p2sb.c
 bootblock-y += soc_info.c
 
 romstage-$(CONFIG_SOC_INTEL_CSE_PRE_CPU_RESET_TELEMETRY) += cse_telemetry.c
@@ -37,6 +36,7 @@ ramstage-y += elog.c
 ramstage-y += espi.c
 ramstage-y += finalize.c
 ramstage-y += fsp_params.c
+ramstage-y += graphics.c
 ramstage-y += lockdown.c
 ramstage-y += p2sb.c
 ramstage-y += pcie_rp.c
@@ -57,7 +57,12 @@ smm-y += smihandler.c
 smm-y += soc_info.c
 smm-y += uart.c
 smm-y += xhci.c
+
 CPPFLAGS_common += -I$(src)/soc/intel/meteorlake
 CPPFLAGS_common += -I$(src)/soc/intel/meteorlake/include
+
+ifeq ($(CONFIG_SOC_INTEL_METEORLAKE_U_H),y)
+cpu_microcode_bins += 3rdparty/intel-microcode/intel-ucode/06-aa-04
+endif
 
 endif

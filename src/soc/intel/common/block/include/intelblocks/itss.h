@@ -3,6 +3,10 @@
 #ifndef SOC_INTEL_COMMON_BLOCK_ITSS_H
 #define SOC_INTEL_COMMON_BLOCK_ITSS_H
 
+#define ITSS_MAX_IRQ	119
+#define IRQS_PER_IPC	32
+#define NUM_IPC_REGS	((ITSS_MAX_IRQ + IRQS_PER_IPC - 1)/IRQS_PER_IPC)
+
 /* PIRQA Routing Control Register */
 #define PCR_ITSS_PIRQA_ROUT	0x3100
 /* PIRQB Routing Control Register */
@@ -19,6 +23,9 @@
 #define PCR_ITSS_PIRQG_ROUT	0x3106
 /* PIRQH Routing Control Register */
 #define PCR_ITSS_PIRQH_ROUT	0x3107
+/* ITSS Interrupt Route */
+#define PCR_ITSS_PIR	0x3140
+#define PCI_ITSS_PIR(i)	(PCR_ITSS_PIR + (i) * 2)
 /* ITSS Interrupt polarity control */
 #define PCR_ITSS_IPC0_CONF	0x3200
 /* ITSS Power reduction control */
@@ -26,6 +33,7 @@
 
 #if !defined(__ACPI__)
 
+#include <device/device.h>
 #include <southbridge/intel/common/acpi_pirq_gen.h>
 #include <stdint.h>
 
@@ -38,6 +46,12 @@ void itss_restore_irq_polarities(int start, int end);
 
 void itss_irq_init(const uint8_t pch_interrupt_routing[PIRQ_COUNT]);
 void itss_clock_gate_8254(void);
+
+/* SoC implementation to return corresponding PIR register offset. */
+uint32_t itss_soc_get_on_chip_dev_pir(const struct device *dev);
+
+/* Return which PIRQx the device's INTx is connected to. */
+enum pirq itss_get_on_chip_dev_pirq(const struct device *dev, enum pci_pin pin);
 
 #endif /* !defined(__ACPI__) */
 

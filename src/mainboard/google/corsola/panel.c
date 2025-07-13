@@ -2,9 +2,7 @@
 
 #include <boardid.h>
 #include <cbfs.h>
-#include <console/console.h>
 #include <device/i2c_simple.h>
-#include <edid.h>
 #include <gpio.h>
 #include <soc/ddp.h>
 #include <soc/dsi.h>

@@ -51,22 +51,6 @@ pci$(stripped_vgabios_dgpu_id).rom-align := 64
 endif # CONFIG_SOC_AMD_COMMON_BLOCK_LPC_SPI_DMA
 
 ###############################################################################
-# common support for early assembly includes
-###############################################################################
-
-define early_x86_stage
-# $1 stage name
-# $2 oformat
-
-# The '.' include path is needed for the generated assembly.inc file.
-$(1)-S-ccopts += -I.
-
-$$(objcbfs)/$(1).debug: $$$$($(1)-libs) $$$$($(1)-objs)
-	@printf "    LINK       $$(subst $$(obj)/,,$$(@))\n"
-	$$(LD_$(1)) $$(LDFLAGS_$(1)) -o $$@ -L$$(obj) $$(COMPILER_RT_FLAGS_$(1)) --whole-archive --start-group $$(filter-out %.ld,$$($(1)-objs)) $$($(1)-libs) --no-whole-archive $$(COMPILER_RT_$(1)) --end-group -T $(call src-to-obj,$(1),$(CONFIG_MEMLAYOUT_LD_FILE)) --oformat $(2)
-endef
-
-###############################################################################
 # bootblock
 ###############################################################################
 
@@ -85,6 +69,7 @@ bootblock-$(CONFIG_ARCH_BOOTBLOCK_X86_64) += memmove_64.S
 bootblock-$(CONFIG_COLLECT_TIMESTAMPS_TSC) += timestamp.c
 bootblock-$(CONFIG_X86_TOP4G_BOOTMEDIA_MAP) += mmap_boot.c
 bootblock-$(CONFIG_DEBUG_NULL_DEREF_BREAKPOINTS_IN_ALL_STAGES) += null_breakpoint.c
+bootblock-$(CONFIG_DEBUG_STACK_OVERFLOW_BREAKPOINTS_IN_ALL_STAGES) += stack_canary_breakpoint.c
 bootblock-$(CONFIG_BOOTBLOCK_NORMAL) += bootblock_normal.c
 bootblock-y += gdt_init.S
 bootblock-y += id.S
@@ -94,11 +79,7 @@ bootblock-y += car.ld
 
 $(call src-to-obj,bootblock,$(dir)/id.S): $(obj)/build.h
 
-ifeq ($(CONFIG_ARCH_BOOTBLOCK_X86_32),y)
-$(eval $(call early_x86_stage,bootblock,elf32-i386))
-else
-$(eval $(call early_x86_stage,bootblock,elf64-x86-64))
-endif
+$(eval $(call link_stage,bootblock))
 
 ifeq ($(CONFIG_BOOTBLOCK_IN_CBFS),y)
 add_bootblock = \
@@ -136,6 +117,7 @@ verstage-$(CONFIG_ARCH_VERSTAGE_X86_32) += memmove_32.c
 verstage-$(CONFIG_ARCH_VERSTAGE_X86_64) += memmove_64.S
 verstage-$(CONFIG_X86_TOP4G_BOOTMEDIA_MAP) += mmap_boot.c
 verstage-$(CONFIG_DEBUG_NULL_DEREF_BREAKPOINTS_IN_ALL_STAGES) += null_breakpoint.c
+verstage-$(CONFIG_DEBUG_STACK_OVERFLOW_BREAKPOINTS_IN_ALL_STAGES) += stack_canary_breakpoint.c
 # If verstage is a separate stage it means there's no need
 # for a chipset-specific car_stage_entry() so use the generic one
 # which just calls verstage().
@@ -147,11 +129,7 @@ verstage-y += car.ld
 
 verstage-libs ?=
 
-ifeq ($(CONFIG_ARCH_VERSTAGE_X86_32),y)
-$(eval $(call early_x86_stage,verstage,elf32-i386))
-else
-$(eval $(call early_x86_stage,verstage,elf64-x86-64))
-endif
+$(eval $(call link_stage,verstage))
 
 endif # CONFIG_ARCH_VERSTAGE_X86_32 / CONFIG_ARCH_VERSTAGE_X86_64
 
@@ -176,6 +154,7 @@ romstage-$(CONFIG_ARCH_ROMSTAGE_X86_64) += memmove_64.S
 romstage-y += memset.c
 romstage-$(CONFIG_X86_TOP4G_BOOTMEDIA_MAP) += mmap_boot.c
 romstage-$(CONFIG_DEBUG_NULL_DEREF_BREAKPOINTS_IN_ALL_STAGES) += null_breakpoint.c
+romstage-$(CONFIG_DEBUG_STACK_OVERFLOW_BREAKPOINTS_IN_ALL_STAGES) += stack_canary_breakpoint.c
 romstage-y += postcar_loader.c
 romstage-$(CONFIG_COLLECT_TIMESTAMPS_TSC) += timestamp.c
 romstage-$(CONFIG_HAVE_CF9_RESET) += cf9_reset.c
@@ -186,11 +165,7 @@ romstage-y += car.ld
 romstage-srcs += $(wildcard $(src)/mainboard/$(MAINBOARDDIR)/romstage.c)
 romstage-libs ?=
 
-ifeq ($(CONFIG_ARCH_ROMSTAGE_X86_32),y)
-$(eval $(call early_x86_stage,romstage,elf32-i386))
-else
-$(eval $(call early_x86_stage,romstage,elf64-x86-64))
-endif
+$(eval $(call link_stage,romstage))
 
 # Compiling crt0 with -g seems to trigger https://sourceware.org/bugzilla/show_bug.cgi?id=6428
 romstage-S-ccopts += -g0
@@ -222,15 +197,14 @@ postcar-$(CONFIG_ARCH_POSTCAR_X86_64) += memmove_64.S
 postcar-y += memset.c
 postcar-$(CONFIG_X86_TOP4G_BOOTMEDIA_MAP) += mmap_boot.c
 postcar-$(CONFIG_DEBUG_NULL_DEREF_BREAKPOINTS_IN_ALL_STAGES) += null_breakpoint.c
+postcar-$(CONFIG_DEBUG_STACK_OVERFLOW_BREAKPOINTS_IN_ALL_STAGES) += stack_canary_breakpoint.c
 postcar-y += postcar.c
 postcar-$(CONFIG_COLLECT_TIMESTAMPS_TSC) += timestamp.c
 postcar-$(CONFIG_HAVE_CF9_RESET) += cf9_reset.c
 
 LDFLAGS_postcar += -Map $(objcbfs)/postcar.map
 
-$(objcbfs)/postcar.debug: $$(postcar-objs)
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_postcar) $(LDFLAGS_postcar) -o $@ -L$(obj) $(COMPILER_RT_FLAGS_postcar) --whole-archive --start-group $(filter-out %.ld,$^) --no-whole-archive $(COMPILER_RT_postcar) --end-group -T $(call src-to-obj,postcar,$(CONFIG_MEMLAYOUT_LD_FILE))
+$(eval $(call link_stage,postcar))
 
 $(objcbfs)/postcar.elf: $(objcbfs)/postcar.debug.rmod
 	cp $< $@
@@ -253,7 +227,6 @@ ramstage-$(CONFIG_ACPI_BERT) += acpi_bert_storage.c
 ramstage-y += boot.c
 ramstage-y += post.c
 ramstage-y += c_start.S
-ramstage-y += c_exit.S
 ramstage-y += cpu.c
 ramstage-y += cpu_common.c
 ramstage-$(CONFIG_DEBUG_HW_BREAKPOINTS) += breakpoint.c
@@ -269,6 +242,7 @@ ramstage-y += memset.c
 ramstage-$(CONFIG_X86_TOP4G_BOOTMEDIA_MAP) += mmap_boot.c
 ramstage-$(CONFIG_GENERATE_MP_TABLE) += mpspec.c
 ramstage-$(CONFIG_DEBUG_NULL_DEREF_BREAKPOINTS) += null_breakpoint.c
+ramstage-$(CONFIG_DEBUG_STACK_OVERFLOW_BREAKPOINTS) += stack_canary_breakpoint.c
 ramstage-$(CONFIG_GENERATE_PIRQ_TABLE) += pirq_routing.c
 ramstage-y += rdrand.c
 ramstage-$(CONFIG_GENERATE_SMBIOS_TABLES) += smbios.c
@@ -289,11 +263,9 @@ rmodules_x86_64-y += memset.c
 
 ifeq ($(CONFIG_ARCH_RAMSTAGE_X86_32),y)
 target-objcopy=-O elf32-i386 -B i386
-LD_MACHINE =-m elf_i386
 endif
 ifeq ($(CONFIG_ARCH_RAMSTAGE_X86_64),y)
 target-objcopy=-O elf64-x86-64 -B i386:x86-64
-LD_MACHINE =-m elf_x86_64
 endif
 
 # Make sure generated code does not use XMMx and MMx registers
@@ -312,17 +284,10 @@ endif
 
 ramstage-libs ?=
 
-# The rmodule_link definition creates an elf file with .rmod extension.
+$(eval $(call link_stage,ramstage))
+
 $(objcbfs)/ramstage.elf: $(objcbfs)/ramstage.debug.rmod
 	cp $< $@
-
-$(objcbfs)/ramstage.debug: $(objgenerated)/ramstage.o $(call src-to-obj,ramstage,$(CONFIG_MEMLAYOUT_LD_FILE))
-	@printf "    CC         $(subst $(obj)/,,$(@))\n"
-	$(LD_ramstage) $(LDFLAGS_ramstage) -o $@ -L$(obj) $< -T $(call src-to-obj,ramstage,$(CONFIG_MEMLAYOUT_LD_FILE))
-
-$(objgenerated)/ramstage.o: $$(ramstage-objs) $(COMPILER_RT_ramstage) $$(ramstage-libs)
-	@printf "    CC         $(subst $(obj)/,,$(@))\n"
-	$(LD_ramstage) $(LD_MACHINE) -r -o $@ $(COMPILER_RT_FLAGS_ramstage) --whole-archive --start-group $(filter-out %.ld,$(ramstage-objs)) $(ramstage-libs) --no-whole-archive $(COMPILER_RT_ramstage) --end-group
 
 endif # CONFIG_ARCH_RAMSTAGE_X86_32 / CONFIG_ARCH_RAMSTAGE_X86_64
 

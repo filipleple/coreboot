@@ -11,6 +11,8 @@ smm-$(CONFIG_SOC_INTEL_COMMON_BLOCK_CSE) += disable_heci.c
 ramstage-$(CONFIG_SOC_INTEL_CSE_SET_EOP) += cse_eop.c
 romstage-$(CONFIG_SOC_INTEL_CSE_PRE_CPU_RESET_TELEMETRY) += telemetry.c
 
+romstage-$(CONFIG_SOC_INTEL_CSE_LITE_SYNC_BY_PAYLOAD) += cse_sync_payload.c
+
 ifeq ($(CONFIG_STITCH_ME_BIN),y)
 
 CSE_BP1_BIN := $(objcse)/cse_bp1.bin
@@ -89,6 +91,7 @@ ifeq ($(CONFIG_SOC_INTEL_CSE_LITE_COMPRESS_ME_RW),y)
 $(CSE_LITE_ME_RW)-compression := LZMA
 endif
 
+ifeq ($(CONFIG_SOC_INTEL_CSE_RW_VERSION),"")
 INPUT_FILE := $(call strip_quotes,$(CONFIG_SOC_INTEL_CSE_RW_FILE))
 TEMP_FILE := $(shell mktemp)
 OFFSETS := 16 18 20 22 # Offsets for CSE version components
@@ -103,6 +106,10 @@ $(obj)/cse_rw.version:
 	rm -f $(TEMP_FILE)
 	$(eval CSE_RW_CBFS_VERSION := $(shell printf "%d.%d.%d.%d" $(CSE_VERSION_MAJOR)$(CSE_VERSION_MINOR)$(CSE_VERSION_HOTFIX)$(CSE_VERSION_BUILD)))
 	@echo '$(CSE_RW_CBFS_VERSION)' > $@
+else
+$(obj)/cse_rw.version:
+	@echo '$(call strip_quotes,$(CONFIG_SOC_INTEL_CSE_RW_VERSION))' > $@
+endif
 
 CSE_RW_VERSION = $(call strip_quotes,$(CONFIG_SOC_INTEL_CSE_RW_VERSION_CBFS_NAME))
 regions-for-file-$(CSE_RW_VERSION) = FW_MAIN_A,FW_MAIN_B

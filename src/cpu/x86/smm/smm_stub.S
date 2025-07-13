@@ -10,6 +10,7 @@
  */
 
 #include <cpu/x86/cr.h>
+#include <cpu/x86/gdt.h>
 #include <cpu/x86/msr.h>
 #include <cpu/x86/lapic_def.h>
 #include <cpu/x86/64bit/entry64.inc>
@@ -47,7 +48,6 @@ fallback_stack_top:
 .code16
 .global _start
 _start:
-smm_handler_start:
 #if CONFIG(SMM_LAPIC_REMAP_MITIGATION)
 	/* Check if the LAPIC register block overlaps with the stub.
 	 * This block needs to work without data accesses because they
@@ -93,7 +93,7 @@ untampered_lapic:
 	movl	%eax, %cr0
 
 	/* Enable protected mode */
-	ljmpl	$0x8, $smm_trampoline32
+	ljmpl	$GDT_CODE_SEG, $smm_trampoline32
 
 .align 4
 smm_relocate_gdt:
@@ -124,7 +124,7 @@ smm_relocate_gdt_end:
 .global smm_trampoline32
 smm_trampoline32:
 	/* Use flat data segment */
-	movw	$0x10, %ax
+	movw	$GDT_DATA_SEG, %ax
 	movw	%ax, %ds
 	movw	%ax, %es
 	movw	%ax, %ss

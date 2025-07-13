@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include <arch/null_breakpoint.h>
+#include <arch/stack_canary_breakpoint.h>
 #include <bootsplash.h>
+#include <bootstate.h>
 #include <cbfs.h>
 #include <cbmem.h>
 #include <commonlib/fsp.h>
@@ -12,7 +14,12 @@
 #include <mrc_cache.h>
 #include <program_loading.h>
 #include <soc/intel/common/reset.h>
+#if CONFIG(SOC_AMD_COMMON)
+#include <amdblocks/vbt.h>
+#endif
+#if CONFIG(SOC_INTEL_COMMON)
 #include <soc/intel/common/vbt.h>
+#endif
 #include <stage_cache.h>
 #include <string.h>
 #include <timestamp.h>
@@ -36,7 +43,8 @@ enum fsp_silicon_init_phases {
 	FSP_MULTI_PHASE_SI_INIT_EXECUTE_PHASE_API
 };
 
-static void fsps_return_value_handler(enum fsp_silicon_init_phases phases, uint32_t status)
+static void fsps_return_value_handler(enum fsp_silicon_init_phases phases,
+				      efi_return_status_t status)
 {
 	uint8_t postcode;
 
@@ -54,16 +62,13 @@ static void fsps_return_value_handler(enum fsp_silicon_init_phases phases, uint3
 
 	switch (phases) {
 	case FSP_SILICON_INIT_API:
-		die_with_post_code(postcode, "FspSiliconInit returned with error 0x%08x\n",
-				status);
+		fsp_die_with_post_code(status, postcode, "FspSiliconInit error");
 		break;
 	case FSP_MULTI_PHASE_SI_INIT_GET_NUMBER_OF_PHASES_API:
-		printk(BIOS_SPEW, "FspMultiPhaseSiInit NumberOfPhases returned 0x%08x\n",
-				status);
+		fsp_printk(status, BIOS_SPEW, "FspMultiPhaseSiInit NumberOfPhases");
 		break;
 	case FSP_MULTI_PHASE_SI_INIT_EXECUTE_PHASE_API:
-		printk(BIOS_SPEW, "FspMultiPhaseSiInit ExecutePhase returned 0x%08x\n",
-				status);
+		fsp_printk(status, BIOS_SPEW, "FspMultiPhaseSiInit ExecutePhase");
 		break;
 	default:
 		break;
@@ -78,7 +83,7 @@ bool fsp_is_multi_phase_init_enabled(void)
 
 static void fsp_fill_common_arch_params(FSPS_UPD *supd)
 {
-#if CONFIG(FSPS_HAS_ARCH_UPD)
+#if (CONFIG(FSPS_HAS_ARCH_UPD) && !CONFIG(PLATFORM_USES_FSP2_4))
 	FSPS_ARCHx_UPD *s_arch_cfg = &supd->FspsArchUpd;
 	s_arch_cfg->EnableMultiPhaseSiliconInit = fsp_is_multi_phase_init_enabled();
 #endif
@@ -88,7 +93,7 @@ static void do_silicon_init(struct fsp_header *hdr)
 {
 	FSPS_UPD *upd, *supd;
 	fsp_silicon_init_fn silicon_init;
-	uint32_t status;
+	efi_return_status_t status;
 	fsp_multi_phase_init_fn multi_phase_si_init;
 	struct fsp_multi_phase_params multi_phase_params;
 	struct fsp_multi_phase_get_number_of_phases_params multi_phase_get_number;
@@ -119,9 +124,12 @@ static void do_silicon_init(struct fsp_header *hdr)
 	/* Give SoC/mainboard a chance to populate entries */
 	platform_fsp_silicon_init_params_cb(upd);
 
-	/* Populate logo related entries */
-	if (CONFIG(BMP_LOGO))
-		soc_load_logo(upd);
+	/*
+	 * Populate UPD entries for the logo if the platform utilizes
+	 * the FSP's capability for rendering bitmap (BMP) images.
+	 */
+	if (CONFIG(BMP_LOGO) && !CONFIG(USE_COREBOOT_FOR_BMP_RENDERING))
+		soc_load_logo_by_fsp(upd);
 
 	/* Call SiliconInit */
 	silicon_init = (void *)(uintptr_t)(hdr->image_base +
@@ -132,23 +140,33 @@ static void do_silicon_init(struct fsp_header *hdr)
 	post_code(POSTCODE_FSP_SILICON_INIT);
 
 	/* FSP disables the interrupt handler so remove debug exceptions temporarily  */
-	null_breakpoint_disable();
+	null_breakpoint_remove();
+	stack_canary_breakpoint_remove();
 	if (ENV_X86_64 && CONFIG(PLATFORM_USES_FSP2_X86_32))
 		status = protected_mode_call_1arg(silicon_init, (uintptr_t)upd);
 	else
 		status = silicon_init(upd);
 	null_breakpoint_init();
+	stack_canary_breakpoint_init();
 
-	printk(BIOS_INFO, "FSPS returned %x\n", status);
+	fsp_printk(status, BIOS_INFO, "FSPS");
 
 	timestamp_add_now(TS_FSP_SILICON_INIT_END);
 	post_code(POSTCODE_FSP_SILICON_EXIT);
 
-	if (CONFIG(BMP_LOGO))
-		bmp_release_logo();
-
 	fsp_debug_after_silicon_init(status);
 	fsps_return_value_handler(FSP_SILICON_INIT_API, status);
+
+	/* Only applies for SoC platforms prior to FSP 2.2 specification. */
+	if (!CONFIG(PLATFORM_USES_FSP2_2) && CONFIG(BMP_LOGO)) {
+		if (CONFIG(USE_COREBOOT_FOR_BMP_RENDERING))
+			soc_load_logo_by_coreboot();
+		/*
+		 * This applies regardless of whether FSP or coreboot handled
+		 * the rendering.
+		 */
+		timestamp_add_now(TS_FIRMWARE_SPLASH_RENDERED);
+	}
 
 	/* Reinitialize CPUs if FSP-S has done MP Init */
 	if (CONFIG(USE_INTEL_FSP_MP_INIT) && !fsp_is_multi_phase_init_enabled())
@@ -197,6 +215,22 @@ static void do_silicon_init(struct fsp_header *hdr)
 	}
 	timestamp_add_now(TS_FSP_MULTI_PHASE_SI_INIT_END);
 	post_code(POSTCODE_FSP_MULTI_PHASE_SI_INIT_EXIT);
+
+	if (CONFIG(BMP_LOGO)) {
+		/*
+		 * If a BMP logo is enabled (`BMP_LOGO`) and the platform is
+		 * configured to skip the FSP for rendering logo bitmap
+		 * (`USE_COREBOOT_FOR_BMP_RENDERING`), then call the coreboot
+		 * native function to handle BMP logo loading and display.
+		 */
+		if (CONFIG(USE_COREBOOT_FOR_BMP_RENDERING))
+			soc_load_logo_by_coreboot();
+		/*
+		 * This applies regardless of whether FSP or coreboot handled
+		 * the rendering.
+		 */
+		timestamp_add_now(TS_FIRMWARE_SPLASH_RENDERED);
+	}
 
 	/* Reinitialize CPUs if FSP-S has done MP Init */
 	if (CONFIG(USE_INTEL_FSP_MP_INIT))
@@ -255,6 +289,9 @@ void fsp_silicon_init(void)
 	fsps_load();
 	do_silicon_init(&fsps_hdr);
 
+	if (platform_is_low_battery_shutdown_needed())
+		do_low_battery_poweroff();
+
 	if (CONFIG(CACHE_MRC_SETTINGS) && CONFIG(FSP_NVS_DATA_POST_SILICON_INIT))
 		save_memory_training_data();
 
@@ -262,4 +299,12 @@ void fsp_silicon_init(void)
 		fsp_display_timestamp();
 }
 
-__weak void soc_load_logo(FSPS_UPD *supd) { }
+__weak void soc_load_logo_by_fsp(FSPS_UPD *supd) { }
+
+static void release_logo(void *arg_unused)
+{
+	if (CONFIG(BMP_LOGO))
+		bmp_release_logo();
+}
+
+BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_LOAD, BS_ON_EXIT, release_logo, NULL);

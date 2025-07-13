@@ -10,6 +10,13 @@
 
 static void elog_add_vboot_info(void *unused)
 {
+	/*
+	 * Skip logging boot info if CSE sync scheduled at payload.
+	 * The payload should log boot info after CSE sync.
+	 */
+	if (CONFIG(SOC_INTEL_CSE_LITE_SYNC_BY_PAYLOAD))
+		return;
+
 	/* Skip logging boot info in ACPI resume path */
 	if (acpi_is_wakeup_s3())
 		return;
@@ -24,4 +31,8 @@ static void elog_add_vboot_info(void *unused)
 	elog_add_event_raw(ELOG_TYPE_FW_VBOOT_INFO, &data, width);
 }
 
+#if CONFIG(POSTPONE_SPI_ACCESS)
+BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_LOAD, BS_ON_EXIT, elog_add_vboot_info, NULL);
+#else
 BOOT_STATE_INIT_ENTRY(BS_POST_DEVICE, BS_ON_ENTRY, elog_add_vboot_info, NULL);
+#endif

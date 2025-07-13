@@ -96,6 +96,16 @@ static inline uint32_t be32dec(const void *pp)
 		(uint32_t)(p[2] << 8) | p[3]);
 }
 
+static inline uint64_t be64dec(const void *pp)
+{
+	uint8_t const *p = (uint8_t const *)pp;
+
+	return (((uint64_t)p[0] << 56) | ((uint64_t)p[1] << 48) |
+		((uint64_t)p[2] << 40) | ((uint64_t)p[3] << 32) |
+		((uint64_t)p[4] << 24) | ((uint64_t)p[5] << 16) |
+		((uint64_t)p[6] <<  8) | p[7]);
+}
+
 static inline uint16_t le16dec(const void *pp)
 {
 	uint8_t const *p = (uint8_t const *)pp;
@@ -109,6 +119,16 @@ static inline uint32_t le32dec(const void *pp)
 
 	return ((uint32_t)(p[3] << 24) | (uint32_t)(p[2] << 16) |
 		(uint32_t)(p[1] << 8) | p[0]);
+}
+
+static inline uint64_t le64dec(const void *pp)
+{
+	uint8_t const *p = (uint8_t const *)pp;
+
+	return (((uint64_t)p[7] << 56) | ((uint64_t)p[6] << 48) |
+		((uint64_t)p[5] << 40) | ((uint64_t)p[4] << 32) |
+		((uint64_t)p[3] << 24) | ((uint64_t)p[2] << 16) |
+		((uint64_t)p[1] <<  8) | p[0]);
 }
 
 static inline void bebitenc(void *pp, uint32_t u, uint8_t b)
@@ -130,6 +150,11 @@ static inline void be32enc(void *pp, uint32_t u)
 	bebitenc(pp, u, 4);
 }
 
+static inline void be64enc(void *pp, uint32_t u)
+{
+	bebitenc(pp, u, 8);
+}
+
 static inline void lebitenc(void *pp, uint32_t u, uint8_t b)
 {
 	uint8_t *p = (uint8_t *)pp;
@@ -149,6 +174,11 @@ static inline void le32enc(void *pp, uint32_t u)
 	lebitenc(pp, u, 4);
 }
 
+static inline void le64enc(void *pp, uint32_t u)
+{
+	lebitenc(pp, u, 8);
+}
+
 /* Deprecated names (not in glibc / BSD) */
 #define htobew(in) htobe16(in)
 #define htobel(in) htobe32(in)
@@ -162,6 +192,16 @@ static inline void le32enc(void *pp, uint32_t u)
 #define letohw(in) le16toh(in)
 #define letohl(in) le32toh(in)
 #define letohll(in) le64toh(in)
+
+/* read/write with uintptr_t address */
+#define read8p(addr)	read8((void *)((uintptr_t)(addr)))
+#define read16p(addr)	read16((void *)((uintptr_t)(addr)))
+#define read32p(addr)	read32((void *)((uintptr_t)(addr)))
+#define read64p(addr)	read64((void *)((uintptr_t)(addr)))
+#define write8p(addr, value)	write8((void *)((uintptr_t)(addr)), value)
+#define write16p(addr, value)	write16((void *)((uintptr_t)(addr)), value)
+#define write32p(addr, value)	write32((void *)((uintptr_t)(addr)), value)
+#define write64p(addr, value)	write64((void *)((uintptr_t)(addr)), value)
 
 /* Handy bit manipulation macros */
 
@@ -207,5 +247,20 @@ static inline void le32enc(void *pp, uint32_t u)
 #define clrbits16(addr, clear)		clrsetbits16(addr, clear, 0)
 #define clrbits32(addr, clear)		clrsetbits32(addr, clear, 0)
 #define clrbits64(addr, clear)		clrsetbits64(addr, clear, 0)
+
+#define clrsetbits8p(addr, clear, set)	clrsetbits8((void *)((uintptr_t)(addr)), clear, set)
+#define clrsetbits16p(addr, clear, set)	clrsetbits16((void *)((uintptr_t)(addr)), clear, set)
+#define clrsetbits32p(addr, clear, set)	clrsetbits32((void *)((uintptr_t)(addr)), clear, set)
+#define clrsetbits64p(addr, clear, set)	clrsetbits64((void *)((uintptr_t)(addr)), clear, set)
+
+#define setbits8p(addr, set)		clrsetbits8((void *)((uintptr_t)(addr)), 0, set)
+#define setbits16p(addr, set)		clrsetbits16((void *)((uintptr_t)(addr)), 0, set)
+#define setbits32p(addr, set)		clrsetbits32((void *)((uintptr_t)(addr)), 0, set)
+#define setbits64p(addr, set)		clrsetbits64((void *)((uintptr_t)(addr)), 0, set)
+
+#define clrbits8p(addr, clear)		clrsetbits8((void *)((uintptr_t)(addr)), clear, 0)
+#define clrbits16p(addr, clear)		clrsetbits16((void *)((uintptr_t)(addr)), clear, 0)
+#define clrbits32p(addr, clear)		clrsetbits32((void *)((uintptr_t)(addr)), clear, 0)
+#define clrbits64p(addr, clear)		clrsetbits64((void *)((uintptr_t)(addr)), clear, 0)
 
 #endif /* _ENDIAN_H_ */

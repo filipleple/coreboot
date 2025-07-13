@@ -8,8 +8,6 @@
 static const struct pad_config override_gpio_table[] = {
 	/* A8  : WWAN_RF_DISABLE_ODL */
 	PAD_CFG_GPO(GPP_A8, 1, DEEP),
-	/* A20  : DDSP_HPD2 ==> NC */
-	PAD_NC_LOCK(GPP_A20, NONE, LOCK_CONFIG),
 	/* D3  : ISH_GP3 ==> NC */
 	PAD_NC_LOCK(GPP_D3, NONE, LOCK_CONFIG),
 	/* D6  : WWAN_EN */
@@ -26,16 +24,8 @@ static const struct pad_config override_gpio_table[] = {
 	PAD_CFG_GPI(GPP_E4, NONE, DEEP),
 	/* E5 : SDD_STRAP2 */
 	PAD_CFG_GPI(GPP_E5, NONE, DEEP),
-	/* E20 : DDP2_CTRLCLK ==> NC */
-	PAD_NC_LOCK(GPP_E20, NONE, LOCK_CONFIG),
-	/* E21 : DDP2_CTRLDATA ==> NC */
-	PAD_NC_LOCK(GPP_E21, NONE, LOCK_CONFIG),
 	/* F12 : WWAN_RST_L */
 	PAD_CFG_GPO_LOCK(GPP_F12, 1, LOCK_CONFIG),
-	/* F13 : GSXSLOAD ==> NC */
-	PAD_NC_LOCK(GPP_F13, NONE, LOCK_CONFIG),
-	/* F15 : GSXSRESET# ==> NC */
-	PAD_NC_LOCK(GPP_F15, NONE, LOCK_CONFIG),
 	/* H19 : SOC_I2C_SUB_INT_ODL */
 	PAD_CFG_GPI_APIC(GPP_H19, NONE, PLTRST, LEVEL, NONE),
 	/* H22 : IMGCLKOUT3 ==> NC */
@@ -100,6 +90,8 @@ static const struct pad_config romstage_gpio_table[] = {
 	PAD_CFG_GPO(GPP_C0, 1, DEEP),
 	/* C1  : SMBDATA ==> USI_RST_L */
 	PAD_CFG_GPO(GPP_C1, 0, DEEP),
+	/* C6  : SML1CLK ==> TCHSCR_REPORT_EN */
+	PAD_CFG_GPO(GPP_C6, 0, DEEP),
 	/* H12 : UART0_RTS# ==> SD_PERST_L */
 	PAD_CFG_GPO(GPP_H12, 1, DEEP),
 };

@@ -13,10 +13,10 @@
 #include <intelblocks/systemagent.h>
 #include <intelblocks/xdci.h>
 #include <soc/intel/common/vbt.h>
-#include <soc/itss.h>
 #include <soc/pci_devs.h>
 #include <soc/ramstage.h>
 #include <soc/soc_chip.h>
+#include <static.h>
 
 #if CONFIG(HAVE_ACPI_TABLES)
 const char *soc_acpi_name(const struct device *dev)
@@ -136,7 +136,7 @@ const char *soc_acpi_name(const struct device *dev)
 	case PCH_DEVFN_GBE:		return "GLAN";
 	case PCH_DEVFN_SRAM:		return "SRAM";
 	case PCH_DEVFN_SPI:		return "FSPI";
-	case PCH_DEVFN_CSE:		return "HEC1";
+	case PCH_DEVFN_CSE:		return "HECI";
 	}
 
 	return NULL;

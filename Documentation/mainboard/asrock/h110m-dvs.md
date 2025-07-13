@@ -11,7 +11,7 @@ Intel company provides [Firmware Support Package (2.0)](../../soc/intel/fsp/inde
 
 FSP Information:
 
-```eval_rst
+```{eval-rst}
 +-----------------------------+-------------------+-------------------+
 | FSP Project Name            | Directory         | Specification     |
 +-----------------------------+-------------------+-------------------+
@@ -114,7 +114,7 @@ facing towards the bottom of the board.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +------------------+--------------------------------------------------+
 | CPU              | Intel Skylake/Kaby Lake (LGA1151)                |
 +------------------+--------------------------------------------------+
@@ -130,5 +130,5 @@ facing towards the bottom of the board.
 
 [ASRock H110M-DVS]: https://www.asrock.com/mb/Intel/H110M-DVS%20R2.0/
 [MX25L6473E]: http://www.macronix.com/Lists/Datasheet/Attachments/7380/MX25L6473E,%203V,%2064Mb,%20v1.4.pdf
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/
 [H110M-DVS manual]: https://web.archive.org/web/20191023230631/http://asrock.pc.cdn.bitgravity.com/Manual/H110M-DVS%20R2.0.pdf

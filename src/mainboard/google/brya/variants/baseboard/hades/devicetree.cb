@@ -12,10 +12,10 @@ chip soc/intel/alderlake
 	register "gen3_dec" = "0x00fc0901"
 
 	# S0ix enable
-	register "s0ix_enable" = "1"
+	register "s0ix_enable" = "true"
 
 	# DPTF enable
-	register "dptf_enable" = "1"
+	register "dptf_enable" = "true"
 
 	register "tcc_offset" = "10"     # TCC of 90
 
@@ -59,7 +59,7 @@ chip soc/intel/alderlake
 	register "fivr_spread_spectrum" = "FIVR_SS_1_5"
 
 	# Disable C state auto-demotion for all brya baseboards
-	register "disable_c1_state_auto_demotion" = "1"
+	register "disable_c1_state_auto_demotion" = "true"
 
 	register "serial_io_uart_mode" = "{
 		[PchSerialIoIndexUART0] = PchSerialIoPci,
@@ -100,6 +100,7 @@ chip soc/intel/alderlake
 			}"
 		end
 		device ref dtt on end
+		device ref gna on end
 		device ref tcss_xhci on end
 		device ref xhci on end
 		device ref shared_sram on end

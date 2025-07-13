@@ -9,7 +9,7 @@ from [OpenCellular].
 
 ## Flashing coreboot
 
-```eval_rst
+```{eval-rst}
 +---------------------+------------+
 | Type                | Value      |
 +=====================+============+
@@ -69,7 +69,7 @@ Dediprog compatible pinout.
 
 ## Technology
 
-```eval_rst
+```{eval-rst}
 +---------------+----------------------------------------+
 | SoC           | :doc:`../../soc/cavium/cn81xx/index`   |
 +---------------+----------------------------------------+
@@ -81,4 +81,4 @@ Dediprog compatible pinout.
 
 [Elgon]: https://github.com/Telecominfraproject/OpenCellular
 [OpenCellular]: https://code.fb.com/connectivity/introducing-opencellular-an-open-source-wireless-access-platform/
-[flashrom]: https://flashrom.org/Flashrom
+[flashrom]: https://flashrom.org/

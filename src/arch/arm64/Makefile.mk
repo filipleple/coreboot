@@ -30,6 +30,9 @@ bootblock-y += eabi_compat.c
 decompressor-$(CONFIG_ARM64_USE_ARCH_TIMER) += arch_timer.c
 bootblock-$(CONFIG_ARM64_USE_ARCH_TIMER) += arch_timer.c
 bootblock-y += transition.c transition_asm.S
+ifneq ($(CONFIG_ARM64_CURRENT_EL),3)
+bootblock-y += smc.c smc_asm.S
+endif
 
 decompressor-y += memset.S
 bootblock-y += memset.S
@@ -40,13 +43,8 @@ bootblock-y += memmove.S
 
 # Build the bootblock
 
-$(objcbfs)/bootblock.debug: $$(bootblock-objs) $(obj)/config.h
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_bootblock) $(LDFLAGS_bootblock) -o $@ -L$(obj) --whole-archive --start-group $(filter-out %.ld,$(bootblock-objs)) --end-group -T $(call src-to-obj,bootblock,$(CONFIG_MEMLAYOUT_LD_FILE))
-
-$(objcbfs)/decompressor.debug: $$(decompressor-objs) $(obj)/config.h
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_bootblock) $(LDFLAGS_bootblock) -o $@ -L$(obj) --whole-archive --start-group $(filter-out %.ld,$(decompressor-objs)) --end-group -T $(call src-to-obj,decompressor,$(CONFIG_MEMLAYOUT_LD_FILE))
+$(eval $(call link_stage,bootblock))
+$(eval $(call link_stage,decompressor))
 
 endif # CONFIG_ARCH_BOOTBLOCK_ARM64
 
@@ -56,9 +54,7 @@ endif # CONFIG_ARCH_BOOTBLOCK_ARM64
 
 ifeq ($(CONFIG_ARCH_VERSTAGE_ARM64),y)
 
-$(objcbfs)/verstage.debug: $$(verstage-objs)
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_verstage) $(LDFLAGS_verstage) -o $@ -L$(obj) --whole-archive --start-group $(filter-out %.ld,$(verstage-objs)) --end-group -T $(call src-to-obj,verstage,$(CONFIG_MEMLAYOUT_LD_FILE))
+$(eval $(call link_stage,verstage))
 
 verstage-y += boot.c
 verstage-y += div0.c
@@ -69,6 +65,9 @@ verstage-y += memcpy.S
 verstage-y += memmove.S
 
 verstage-y += transition.c transition_asm.S
+ifneq ($(CONFIG_ARM64_CURRENT_EL),3)
+verstage-y += smc.c smc_asm.S
+endif
 
 endif # CONFIG_ARCH_VERSTAGE_ARM64
 
@@ -88,15 +87,16 @@ romstage-y += memmove.S
 romstage-y += ramdetect.c
 romstage-y += romstage.c
 romstage-y += transition.c transition_asm.S
+ifneq ($(CONFIG_ARM64_CURRENT_EL),3)
+romstage-y += smc.c smc_asm.S
+endif
 
 rmodules_arm64-y += memset.S
 rmodules_arm64-y += memcpy.S
 rmodules_arm64-y += memmove.S
 rmodules_arm64-y += eabi_compat.c
 
-$(objcbfs)/romstage.debug: $$(romstage-objs)
-	@printf "    LINK       $(subst $(obj)/,,$(@))\n"
-	$(LD_romstage) $(LDFLAGS_romstage) -o $@ -L$(obj) --whole-archive --start-group $(filter-out %.ld,$(romstage-objs)) --end-group -T $(call src-to-obj,romstage,$(CONFIG_MEMLAYOUT_LD_FILE))
+$(eval $(call link_stage,romstage))
 
 endif # CONFIG_ARCH_ROMSTAGE_ARM64
 
@@ -109,6 +109,7 @@ ifeq ($(CONFIG_ARCH_RAMSTAGE_ARM64),y)
 ramstage-y += div0.c
 ramstage-y += eabi_compat.c
 ramstage-y += boot.c
+ramstage-$(CONFIG_GENERATE_SMBIOS_TABLES) += smbios.c
 ramstage-y += tables.c
 ramstage-y += ramdetect.c
 ramstage-$(CONFIG_ARM64_USE_ARCH_TIMER) += arch_timer.c
@@ -117,6 +118,9 @@ ramstage-y += memcpy.S
 ramstage-y += memmove.S
 ramstage-$(CONFIG_ARM64_USE_ARM_TRUSTED_FIRMWARE) += bl31.c
 ramstage-y += transition.c transition_asm.S
+ifneq ($(CONFIG_ARM64_CURRENT_EL),3)
+ramstage-y += smc.c smc_asm.S
+endif
 ramstage-$(CONFIG_PAYLOAD_FIT_SUPPORT) += fit_payload.c
 ramstage-$(CONFIG_HAVE_ACPI_TABLES) += acpi.c
 ramstage-y += dma.c
@@ -131,9 +135,7 @@ ramstage-srcs += $(wildcard src/mainboard/$(MAINBOARDDIR)/mainboard.c)
 
 # Build the ramstage
 
-$(objcbfs)/ramstage.debug: $$(ramstage-objs)
-	@printf "    CC         $(subst $(obj)/,,$(@))\n"
-	$(LD_ramstage) $(LDFLAGS_ramstage) -o $@ -L$(obj) --whole-archive --start-group $(filter-out %.ld,$(ramstage-objs)) --end-group -T $(call src-to-obj,ramstage,$(CONFIG_MEMLAYOUT_LD_FILE))
+$(eval $(call link_stage,ramstage))
 
 # Build ARM Trusted Firmware (BL31)
 
@@ -172,17 +174,27 @@ BL31_MAKEARGS += IS_ANYTHING_TO_BUILD=1
 # Set a consistent build timestamp: the same coreboot has
 BL31_MAKEARGS += BUILD_MESSAGE_TIMESTAMP='"$(shell sed -n 's/^.define COREBOOT_BUILD\>.*"\(.*\)".*/\1/p' $(obj)/build.h)"'
 
+ifeq ($(CONFIG_ARM64_BL31_OPTEE_WITH_SMC),y)
+BL31_MAKEARGS += SPD=opteed
+BL31_MAKEARGS += OPTEE_ALLOW_SMC_LOAD=1
+BL31_MAKEARGS += PLAT_XLAT_TABLES_DYNAMIC=1
+ifeq ($(CONFIG_CHROMEOS),y)
+BL31_MAKEARGS += CROS_WIDEVINE_SMC=1
+endif
+endif # CONFIG_ARM64_BL31_OPTEE_WITH_SMC
+
 BL31_CFLAGS := -fno-pic -fno-stack-protector -Wno-deprecated-declarations -Wno-unused-function
-BL31_LDFLAGS := --emit-relocs
+BL31_LDFLAGS := -Wl,--emit-relocs
 
 BL31 := $(obj)/bl31.elf
 
 $(BL31): $(obj)/build.h
 	printf "    MAKE       $(subst $(obj)/,,$(@))\n"
-	+CROSS_COMPILE="$(CROSS_COMPILE_arm64)" \
+	+unset AS AR CC CPP OC OD LD; \
+	CROSS_COMPILE="$(CROSS_COMPILE_arm64)" \
 	CFLAGS="$(BL31_CFLAGS)" \
 	LDFLAGS="$(BL31_LDFLAGS)" \
-	$(MAKE) -C $(BL31_SOURCE) $(BL31_MAKEARGS) $(BL31_TARGET) DISABLE_PEDANTIC=1
+	$(MAKE) -C $(BL31_SOURCE) $(BL31_MAKEARGS) $(BL31_TARGET)
 	mv $(BL31_TARGET) $@
 
 .PHONY: $(BL31)

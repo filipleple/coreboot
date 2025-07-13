@@ -62,6 +62,8 @@ config BOARD_SPECIFIC_OPTIONS
 	select EC_GOOGLE_CHROMEEC_I2C_TUNNEL
 	select EC_GOOGLE_CHROMEEC_INCLUDE_SSFC_IN_FW_CONFIG
 	select EC_GOOGLE_CHROMEEC_SKUID
+	select EC_GOOGLE_CHROMEEC_SMBIOS
+	select EDK2_PCO_MMIO_EMMC if EDK2_REPO_MRCHROMEBOX
 	select ELOG
 	select ELOG_BOOT_COUNT
 	select ELOG_GSMI
@@ -299,5 +301,26 @@ config CHROMEOS_WIFI_SAR
 	select GEO_SAR_ENABLE
 	select SAR_ENABLE
 	select USE_SAR
+
+choice
+	prompt "UMA Memory Allocation"
+	default ZORK_UMA_SIZE_64MB if CHROMEOS
+	default ZORK_UMA_SIZE_128MB
+	help
+	  The amount of system memory allocated for the integrated GPU.
+
+config ZORK_UMA_SIZE_64MB
+	bool "64MB"
+
+config ZORK_UMA_SIZE_128MB
+	bool "128MB"
+
+config ZORK_UMA_SIZE_256MB
+	bool "256MB"
+
+config ZORK_UMA_SIZE_512MB
+	bool "512MB"
+
+endchoice
 
 endif # BOARD_GOOGLE_BASEBOARD_TREMBYLE || BOARD_GOOGLE_BASEBOARD_DALBOZ

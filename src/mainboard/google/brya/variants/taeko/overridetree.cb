@@ -53,7 +53,7 @@ chip soc/intel/alderlake
 	register "usb2_phy_sus_pg_disable" = "1"
 
 	# Acoustic settings
-	register "acoustic_noise_mitigation" = "1"
+	register "acoustic_noise_mitigation" = "true"
 	register "slow_slew_rate[VR_DOMAIN_IA]" = "SLEW_FAST_8"
 	register "slow_slew_rate[VR_DOMAIN_GT]" = "SLEW_FAST_8"
 	register "fast_pkg_c_ramp_disable[VR_DOMAIN_IA]" = "1"
@@ -269,7 +269,7 @@ chip soc/intel/alderlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 0 on
@@ -385,7 +385,7 @@ chip soc/intel/alderlake
 				}"
 
 				## Fan options
-				register "options.fan.fine_grained_control" = "1"
+				register "options.fan.fine_grained_control" = "true"
 				register "options.fan.step_size" = "2"
 
 				device generic 1 on
@@ -478,6 +478,7 @@ chip soc/intel/alderlake
 				# Parameter T4 >= 1ms
 				register "generic.stop_off_delay_ms" = "1"
 				register "generic.has_power_resource" = "1"
+				register "generic.use_gpio_for_status" = "true"
 				register "hid_desc_reg_offset" = "0x01"
 				device i2c 5d on end
 			end
@@ -492,7 +493,8 @@ chip soc/intel/alderlake
 				register "enable_gpio" =
 						"ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
 				register "enable_delay_ms" = "1"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
+				register "use_gpio_for_status" = "true"
 				device i2c 10 on end
 			end
 		end
@@ -576,7 +578,7 @@ chip soc/intel/alderlake
 				register "compat_string" = ""google,cros-ec-spi""
 				register "irq" = "ACPI_IRQ_WAKE_LEVEL_LOW(GPP_F15_IRQ)"
 				register "wake" = "GPE0_DW2_15"
-				register "has_power_resource" = "1"
+				register "has_power_resource" = "true"
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_D1)"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_D2)"
 				register "enable_delay_ms" = "3"
