@@ -89,10 +89,13 @@ static enum cb_err cmos_get_uint_option(unsigned int *dest, const char *name)
 {
 	struct cmos_option_table *ct;
 	struct cmos_entries *ce;
+	printk(BIOS_DEBUG, "I'm in cmos_get_uint_option and i choose to fuck up\n");
 
 	ct = get_cmos_layout();
-	if (!ct)
+	if (!ct) {
+		printk(BIOS_DEBUG, "CMOS layout not found\n");
 		return CB_CMOS_LAYOUT_NOT_FOUND;
+	}
 
 	ce = find_cmos_entry(ct, name);
 	if (!ce) {
@@ -105,11 +108,14 @@ static enum cb_err cmos_get_uint_option(unsigned int *dest, const char *name)
 		return CB_ERR_ARG;
 	}
 
-	if (!cmos_checksum_valid(LB_CKS_RANGE_START, LB_CKS_RANGE_END, LB_CKS_LOC))
+	if (!cmos_checksum_valid(LB_CKS_RANGE_START, LB_CKS_RANGE_END, LB_CKS_LOC)) {
+		printk(BIOS_DEBUG, "CMOS checksum invalid\n");
 		return CB_CMOS_CHECKSUM_INVALID;
-
-	if (get_cmos_value(ce->bit, ce->length, dest) != CB_SUCCESS)
+	}
+	if (get_cmos_value(ce->bit, ce->length, dest) != CB_SUCCESS) {
+		printk(BIOS_DEBUG, "CMOS access error\n");
 		return CB_CMOS_ACCESS_ERROR;
+	}
 
 	return CB_SUCCESS;
 }
@@ -117,6 +123,7 @@ static enum cb_err cmos_get_uint_option(unsigned int *dest, const char *name)
 unsigned int get_uint_option(const char *name, const unsigned int fallback)
 {
 	unsigned int value = 0;
+	printk(BIOS_ERR, "i'm in get_uint_option in pc80/rtc, and I choose to fuck up\n");
 	return cmos_get_uint_option(&value, name) == CB_SUCCESS ? value : fallback;
 }
 

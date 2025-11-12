@@ -11,6 +11,7 @@
 #include <soc/pcr_ids.h>
 #include <soc/tcss.h>
 #include <string.h>
+#include <option.h>
 
 #include "board_beep.h"
 
@@ -89,6 +90,19 @@ void mainboard_silicon_init_params(FSP_S_CONFIG *params)
 
 static void mainboard_final(void *chip_info)
 {
+
+	set_uint_option("attempt_slot_b", 0);
+	set_uint_option("debug_level", 7);
+	
+	if (get_uint_option("attempt_slot_b", 1) == 0) {
+		printk(BIOS_DEBUG, "Value of attempt_slot_b is zero\n");
+	} else {
+		printk(BIOS_DEBUG, "Value of attempt_slot_b falls back to one\n");
+	}
+
+	printk(BIOS_DEBUG, "Value of debug_level: %d\n", get_uint_option("debug_level", 1));
+	
+	
 	if (CONFIG(BEEP_ON_BOOT))
 		do_beep(1500, 100);
 }
