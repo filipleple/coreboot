@@ -16,6 +16,9 @@ config BOARD_SPECIFIC_OPTIONS
 	select HAVE_ACPI_TABLES
 	select INTEL_GMA_HAVE_VBT
 	select MEMORY_MAPPED_TPM
+	select HAVE_OPTION_TABLE
+	select HAVE_CMOS_DEFAULT
+	select USE_OPTION_TABLE
 
 config MAINBOARD_DIR
 	default "protectli/vault_adl_p"
