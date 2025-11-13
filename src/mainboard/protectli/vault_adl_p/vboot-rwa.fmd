@@ -34,5 +34,7 @@ FLASH 16M {
 				COREBOOT(CBFS)
 			}
 		}
+		TOPSWAP(CBFS) 1M
+		BOOTBLOCK(CBFS) 1M
 	}
 }

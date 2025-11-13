@@ -19,6 +19,9 @@ config BOARD_SPECIFIC_OPTIONS
 	select HAVE_OPTION_TABLE
 	select HAVE_CMOS_DEFAULT
 	select USE_OPTION_TABLE
+	select INTEL_HAS_TOP_SWAP
+	select INTEL_ADD_TOP_SWAP_BOOTBLOCK
+	select INTEL_TOP_SWAP_SEPARATE_REGIONS
 
 config MAINBOARD_DIR
 	default "protectli/vault_adl_p"
@@ -68,7 +71,7 @@ config SOC_INTEL_CSE_SEND_EOP_EARLY
 	default n
 
 config FMDFILE
-	default "src/mainboard/\$(CONFIG_MAINBOARD_DIR)/vboot-rwa.fmd" if VBOOT && VBOOT_SLOTS_RW_A
+	default "src/mainboard/\$(CONFIG_MAINBOARD_DIR)/vboot-rwa.fmd"
 
 config BEEP_ON_BOOT
 	bool "Beep on successful boot"
